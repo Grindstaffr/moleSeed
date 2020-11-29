@@ -1,0 +1,16 @@
+.terminal { 
+		color : #ccffff;
+		font-family: terminalmonospace;
+		font-size: 100%;
+ }
+
+ #metaCanvas {
+
+ }
+
+ @font-face {
+ 	font-family: terminalmonospace;
+ 	src: url(../assets/fonts/terminal.ttf);
+ 	font-style: normal;
+ 	font-weight: 0;
+ }
