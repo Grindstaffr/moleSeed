@@ -31,7 +31,7 @@ export const terminal = {
 			this.parent.blinkyCursor.position.leadTheText();		
 		},//backspace
 		'13' : function () {
-			this.parent.inputCommand();
+			this.parent.input.inputCommand();
 		},//enter
 		'16' : function () {
 			//make Uppercase
@@ -80,21 +80,163 @@ export const terminal = {
 			return this.parent.cache;
 		}
 	},
+	constructInput : function (trmnl) {
+		var input = {};
+		input.reRouteInput = function (commandFull){
+			this.routes[this.inputFilterType](commandFull);
+		};
+
+		input.inputCommand = function (){
+				if (this.inputIsLocked){
+				return;
+			}
+			if (this.api.submitTriggerFunction){
+				this.api.submitTriggerFunction();
+			}
+			var commandFull = this.cache.getInputRow();
+			this.cache.submitInput();
+			this.blinkyCursor.position.leadTheText();
+			if (this.shouldReRouteInput) {
+				this.bufferInput(commandFull)
+				this.reRouteInput(commandFull);
+				return;
+			}
+			this.sendToCompiler(commandFull);
+		};
+
+		input.sendToCompiler = function (commandFull){
+			this.command.assembleValidNodes.ex();
+			this.compiler.assembleValidNodes();
+			this.api.raiseSubmitFlag();
+			this.compiler.compileAndExecuteCommand(commandFull)
+		};
+
+		input.bufferInput= function (commandFull){
+			this.buffer.push(commandFull);
+			return this.buffer.length;
+		};
+
+		input.retrieveBufferedInput = function () {
+			return this.buffer.pop();
+		};
+
+		input.deleteLastBufferedInput = function () {
+			this.buffer.pop();
+			return this.buffer.length
+		};
+
+		const init = function (trmnl) {
+			input.routes = {
+				verify : function (commandFull) {
+					this.command.log(this.verifyMessage);
+					var response = commandFull[0];
+					if (response === 'y'){
+						if (this.callbackType === 'verify'){
+							this.callback(true);
+						}
+						this.callback = function () {};
+						this.sendToCompiler(this.retrieveBufferedInput());
+						this.verifyMessage = this.defaultVerifyMessage;
+						this.shouldReRouteInput = false;
+						return;
+					}
+					if (response === 'n'){
+						if (this.callbackType === 'verify'){
+							this.callback(false);
+						}
+						this.callback = function () {};
+						this.command.log(`  aborted command : "${this.retrieveBufferedInput()}" `);
+						this.verifyMessage = this.defaultVerifyMessage;
+						this.shouldReRouteInput = false;
+						return;
+					}
+
+				},
+				extend : function (commandFull) {
+
+				},
+				input : function (commandFull) {
+
+				},
+				narrow : function (commandFull, bool){
+					var inputTerms = commandFull.split(" ");
+					var command = inputTerms[0];
+					if (bool){
+						this.narrowWhitelist = [];
+						this.shouldReRouteInput = false;
+						return;
+					}
+					if (this.narrowWhitelist.length === 0){
+						this.shouldReRouteInput = false;
+						return;
+					}
+					if (this.narrowWhitelist.indexOf(command) === -1){
+						this.command.error.ex(`${command} is not a valid command, type "help" for options`)
+						return;
+					}
+					this.sendToCompiler(commandFull);
+				},
+				null : function () {
+					this.shouldReRouteInput = false;
+					return;
+				},
+			};
+			input.buffer = [];
+			input.shouldReRouteInput = false;
+			input.inputFilterType = 'null';
+			for (var prop in input.routes){
+				input.routes[prop] = input.routes[prop].bind(input);
+			}
+			input.commandToExted = {};
+			input.verifyMessage = "command requires verification. continue? (y/n)"
+			input.defaultVerifyMessage = "command requires verification. continue? (y/n)"
+			input.narrowWhitelist = [];
+			input.trmnl = trmnl
+			input.api = trmnl.api
+			input.command = trmnl.command;
+			input.cache = trmnl.cache;
+			input.blinkyCursor =  trmnl.blinkyCursor;
+			input.compiler = trmnl.compiler;
+			input.api.input = input
+		}
+		init(trmnl);
+		return input;
+	},
+	reRouteInput : function (commandFull) {
+
+		const routes = {
+			verify : function (commandFull) {
+
+			},
+			extend : function (commandFull) {
+
+			},
+			input : function (commandFull) {
+
+			},
+		};
+
+
+	},
 	inputCommand : function () {
 		if (this.inputIsLocked){
+			return;
+		}
+		if (this.api.submitTriggerFunction){
+			this.api.submitTriggerFunction();
+		}
+		var commandFull = this.cache.getInputRow();
+		this.cache.submitInput();
+		this.blinkyCursor.position.leadTheText();
+		if (this.shouldReRouteInput) {
+			this.reRouteInput(commandFull);
 			return;
 		}
 
 		this.command.assembleValidNodes.ex();
 		this.compiler.assembleValidNodes();
-		var commandFull = this.cache.getInputRow();
 		this.api.raiseSubmitFlag();
-		this.cache.submitInput();
 		this.compiler.compileAndExecuteCommand(commandFull)
-		this.blinkyCursor.position.leadTheText();
-		if (this.api.submitTriggerFunction){
-			this.api.submitTriggerFunction();
-		}
 	},
 	constructCompiler : function (boundCommander, parent) {
 		const compiler = {};
@@ -414,7 +556,11 @@ export const terminal = {
 			desc : `stop an executing program`,
 			syntax : 'stop [PROGRAM]',
 			isAvail : false,
+			hasDefault: true,
 			ex : function (programName) {
+				if (!programName){
+					programName = Object.keys(trmnl.programs.runningPrograms)[0]
+				}
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
 				if (trmnl.programs.runningPrograms[programName] === undefined){
@@ -498,6 +644,23 @@ export const terminal = {
 					cmd.cache.writeEmptyRow();
 			},
 		};
+		command.log = {
+			ex: function (text) {
+				var cmd = this.parent;
+				cmd.cache.writeEmptyRow();
+				cmd.cache.writeToVisibleRow(`${text}`);
+				cmd.cache.writeEmptyRow();
+			},
+		};
+		command.warn = {
+			name : 'WARN',
+			ex : function (text) {
+				var cmd = this.parent;
+				cmd.cache.writeEmptyRow();
+				cmd.cache.writeToVisibleRow(`!_warning_!: ${text}`);
+				cmd.cache.writeEmptyRow();
+			}
+		};
 		command.error = {
 			name : 'ERROR',
 			desc : '',
@@ -530,6 +693,9 @@ export const terminal = {
 		command.addCommand = {
 			ex: function (command) {
 				var cmd = this.parent;
+				if (cmd[command.name]){
+					cmd.overwrittenCommands[command.name] = cmd[command.name];
+				}
 				cmd[command.name] = command;
 				cmd[command.name].isAvail = true;
 				cmd.assembleValidCommands.ex();
@@ -545,6 +711,11 @@ export const terminal = {
 		command.deleteCommand = {
 			ex : function (command) {
 				var cmd = this.parent;
+				if (cmd.overwrittenCommands[command]){
+					cmd[command] = cmd.overwrittenCommands[command];
+					delete cmd.overwrittenCommands[command];
+					return;
+				}
 				cmd[command].isAvail = false;
 				delete cmd[command];
 			}
@@ -696,6 +867,7 @@ export const terminal = {
 			command.assembleValidCommands.ex();
 			command.assembleValidNodes.ex();
 			command.assembleValidPrograms.ex();
+			command.overwrittenCommands = {};
 		}
 		initCommands(boundCache, parent);
 		return command;
@@ -708,6 +880,10 @@ export const terminal = {
 
 	draw : function () {
 		if (!this.isOn){
+			this.context.fillStyle = "#CCFFFF"
+			var height = window.innerHeight;
+			var width = window.innerWidth;
+			this.context.fillText(`Press 'F11' to start moleSeed.mkr`, ((width/2) - this.letterHeight * 16), ((height/2)-this.letterHeight));
 			return;
 		}
 		//console.log('drawing Terminal')
@@ -759,9 +935,9 @@ export const terminal = {
 	blinkyCursor : {
 		draw : function () {
 			var left_relative = this.position.x * this.parent.letterHeight;
-			var top_relative = ((this.parent.maxRowCount - this.position.y) * this.parent.letterHeight)
+			var top_relative = ((this.parent.rowCount - this.position.y) * this.parent.letterHeight)
 			var leftTrue = this.parent.leftLoc + left_relative + this.parent.letterHeight + 2;
-			var topTrue = this.parent.topLoc + top_relative + 2;
+			var topTrue = this.parent.topLoc + top_relative + 1;
 			this.parent.context.fillStyle = this.style.background
 			this.blink();
 			this.parent.context.fillRect(leftTrue, topTrue, this.parent.letterHeight, this.parent.letterHeight)
@@ -848,8 +1024,87 @@ export const terminal = {
 	},
 	constructAPI : function () {
 		var terminalInterface = {};
+		terminalInterface.renounceInputManagement = function () {
+			this.input.shouldReRouteInput = false;
+			this.submitTriggerFunction = false;
+		}
+		terminalInterface.narrowCommand = function (whitelistArray, callback) {
+			this.input.shouldReRouteInput = true;
+			this.input.inputFilterType = 'narrow';
+			if (whitelistArray.length < 1){
+				this.command.error.ex('COMPILERERROR: NEED AT LEAST ONE VALID COMMAND (NARROW)')
+				this.input.shouldReRouteInput = false;
+				return;
+			}
+			if (whitelistArray.indexOf('stop') === -1){
+				this.command.error.ex('COMPILERERROR: MUST BE ABLE TO STOP NARROW')
+				this.input.shouldReRouteInput = false;
+				return;
+			}
+			this.input.narrowWhitelist = whitelistArray;
+			if (!callback){
+				return;
+			}
+			this.input.callback = callback;
+			this.input.callbackType = 'narrow';
+		};
+		terminalInterface.verifyCommand = function (verifyMessage, callback) {
+			var message = "" 
+			if (!verifyMessage){
+				message = "command requires verification. continue? (y/n)"
+			} else {
+				message = verifyMessage + `(y/n)`
+			}
+			this.input.shouldReRouteInput = true;
+			this.input.inputFilterType = 'verify';
+			this.input.message = message;
+			if (!callback){
+				return;
+			}
+			this.input.callback = callback;
+			this.input.callbackType = 'verify';
+		};
+		terminalInterface.extendCommand = function (command, message, callback) {
+			this.input.shouldReRouteInput = true;
+			this.input.inputFilterType = 'extend';
+			if(!command){
+				this.command.error.ex('COMPILERERROR: COMMAND INPUT NEEDED ON EXTND REQS')
+				this.input.shouldReRouteInput = false;
+				return;
+			}
+			this.input.commandToExtend = command;
+			if (!message){
+				return;
+			}
+			this.input.message = message
+			if (!callback){
+				return;
+			}
+			this.input.callback = callback;
+			this.input.callbackType = 'extend';
+		};
+		terminalInterface.requestInput = function (command, message) {
+			this.input.shouldReRouteInput = true;
+			this.input.inputFilterType = 'input';
+			if(!command){
+				this.command.error.ex('COMPILERERROR: COMMAND INPUT NEEDED ON INPUT REQS');
+				this.input.shouldReRouteInput = false;
+				return;
+			}
+			this.input.commandToExted = command;
+			if (!message){
+				return;
+			}
+			this.input.message = message;
+			if (!callback){
+				return;
+			}
+			this.input.callback = callback;
+			this.input.callbackType = 'input';
+		};
+
 		terminalInterface.reserveRows = function (numberOfRows){
-			var rowCount = Math.min(numberOfRows, (this.cache.inputRow.length/2))
+			var rowCount = Math.min(numberOfRows)//, (this.cache.inputRow.length/2))
 			this.cache.reserveRows(rowCount);
 			this.heightInRows = rowCount;
 		};
@@ -874,6 +1129,9 @@ export const terminal = {
 		terminalInterface.isInputBufferVerified = function (){
 			return this.cache.inputBufferVerified
 		};
+		terminalInterface.getRowCount = function () {
+			return this.cache.rowCount;
+		};
 		terminalInterface.getActiveNode = function () {
 			return this.parent.activeNode;
 		};
@@ -887,7 +1145,10 @@ export const terminal = {
 			this.parent.inputIsLocked  = false;
 		};
 		terminalInterface.throwError = function (string) {
-			return this.command.error.ex(string)
+			return this.command.error.ex(string);
+		};
+		terminalInterface.warn = function (string) {
+			return this.command.warn.ex(string);
 		};
 		terminalInterface.runCommand = function (string){
 			return this.compiler.compileAndExecuteCommand(string);
@@ -905,6 +1166,9 @@ export const terminal = {
 		terminalInterface.appendAccessibleNodes = function (node) {
 			this.command.appendAccessibleNodes.ex(node);
 		};
+		terminalInterface.getAccessibleNodes = function () {
+			return this.parent.accessibleNodes;
+		}
 		terminalInterface.clearSubmitTriggeredFunction = function () {
 			this.submitTriggerFunction = false;
 		}
@@ -1006,6 +1270,20 @@ export const terminal = {
 		cache.inputRowOffset = 0;
 		cache.inputBuffer = [];
 		cache.inputBufferVerfied = false;
+
+		cache.rescaleCache = function () {
+			console.log(this.rowCount)
+			var newDisplay = new Array(this.rowCount).fill([])
+			this.inputRow = new Array(this.rowCount).fill("");
+			this.inputRowPrev = new Array(this.rowCount).fill("");
+		    this.inputRowNext = new Array(this.rowCount).fill("");
+		    this.currentRows.forEach(function(row, index){
+		    	if (row.length > 0){
+		    		newDisplay[index] = row
+		    	}
+		    },this)
+			this.currentRows = newDisplay;
+		}.bind(cache)
 		/*
 				!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -1078,40 +1356,6 @@ export const terminal = {
 					this.composeText(newString);
 					return;
 				}
-				/*
-				if (string[metaCharIndex + 1] ===`t`){
-					if (metaCharIndex > this.inputRow.length - 5){
-						this.writeToVisibleRow(maxSubstring.substring(0,metaCharIndex));
-						this.writeEmptyRow();
-						var newString = string.substring(metaCharIndex + 2);
-						this.composeText(newString);
-						return;
-					} else {
-						console.log(metaCharIndex)
-						var tab = "     ";
-						maxSubstring = string.substring(0, this.inputRow.length - 5)
-						if (!(string.substring(this.inputRow.length - 5).length === 0)){
-							var newlineIndex = maxSubstring.indexOf(`\\n`)
-							if (newlineIndex < 0){
-								newlineIndex = this.inputRow.length
-							}
-							var secondHalfLineBreak = Math.min(maxSubstring.lastIndexOf(" "),newlineIndex)
-							var writeString = maxSubstring.substring(0, metaCharIndex) + tab + maxSubstring.substring(metaCharIndex + 2,secondHalfLineBreak);
-							this.writeToVisibleRow(writeString);
-							this.writeEmptyRow();
-							var newString = string.substring(secondHalfLineBreak);
-							this.composeText(newString);
-							return;
-						} else {
-							var writeString = maxSubstring.substring(0,metaCharIndex) + tab + maxSubstring.substring(metaCharIndex + 2);
-							this.writeToVisibleRow(writeString);
-							this.writeEmptyRow();
-							return;
-						}
-						return;
-					}
-				}
-				*/
 			}
 			if (string.length < this.inputRow.length){
 				this.writeToVisibleRow(string);
@@ -1357,23 +1601,39 @@ export const terminal = {
 	},
 	turnOff : function () {
 		this.isOn = false;
+		this.__calcLocAndDim();
 	},
 	turnOn : function () {
 		this.isOn = true;
+		//this.canvas.requestFullscreen();
+		//this.canvas.height = window.innerHeight
+		//this.canvas.width = window.innerWidth
+		this.__calcLocAndDim();
+	},
+	setContext : function (context){
+		this.context = (context)
+		this.context.font = `8px terminalmonospace`
 	},
 	__calcLocAndDim : function () {
-		var dim = Math.floor(this.canvas.height * (5/6))
-		var vBuff = Math.floor(this.canvas.height * (1/12))
+		console.log(this.canvas.height)
+		console.log(this.canvas.width)
+		var dim = Math.floor(this.canvas.height * (6/7))
+		var vBuff = Math.floor(this.canvas.height * (1/14))
 		var hBuff = ((this.canvas.width - dim)/2)
 		this.leftLoc = hBuff;
 		this.topLoc = vBuff;
 		this.botLoc = vBuff + dim;
 		this.rightLoc = hBuff + dim;
+		this.vCenter = this.canvas.height/2
+		this.hCenter = this.canvas.width/2
 		this.pxEdgeDimensions = dim;
 		this.rowCount = Math.floor(dim/this.letterHeight) - 1
+		if (this.cache){
+			this.cache.rowCount = this.rowCount
+		}
 		return;
 	},
-	init : function (navBar, assetViewer, canvas, globalProps, fileInitializer) {
+	init : function (navBar, assetViewer, canvas, globalProps, fileInitializer, devMode) {
 		
 		this.activeNode = fileInitializer;
 		
@@ -1401,7 +1661,10 @@ export const terminal = {
 		this.command = this.constructCommands(this.cache, this);
 		this.compiler = this.constructCompiler(this.command, this);
 		this.api = this.constructAPI();
+		this.input = this.constructInput(this);
 		this.blinkyCursor.init();
-		this.turnOn();
+		if(devMode){
+			this.turnOn();
+		}
 	},
 };

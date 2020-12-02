@@ -189,7 +189,7 @@ export const program = {
 	},
 	stop : function () {
 		this.settings.isRunning = false;
-		this.api.clearSubmitTriggeredFunction;
+		this.api.renounceInputManagement();
 		this.api.clearReservedRows();
 		this.api.reserveRows(0);
 		this.api.deleteCommand('inspect');

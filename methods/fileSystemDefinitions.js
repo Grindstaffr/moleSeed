@@ -290,16 +290,18 @@ export class TextDoc extends Readable {
 		super(name);
 		this.location = url;
 		this.hasBeenImported = false
+		this.pages = [];
+		this.blacklistedPageNums = [];
 	}
 
 	read(callback){
 		var textDoc = this;
 		if (this.hasBeenImported) {
-			callback(textDoc.text);
+			callback(textDoc.text, textDoc);
 		} else {
 			import(this.location).then(function(module){
-				callback(module.text);
 				textDoc.text = module.text;
+				callback(module.text, textDoc);
 				textDoc.hasBeenImported = true;
 			})
 		}

@@ -2,6 +2,11 @@
 		color : #ccffff;
 		font-family: terminalmonospace;
 		font-size: 100%;
+		overflow: hidden;
+ }
+
+ body {
+ 	overflow : hidden;
  }
 
  #metaCanvas {

@@ -283,10 +283,32 @@ import { bigBang } from './nodeVerse.js'
 			temporary Testing Solution, not stable at scale?
 			!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 			*/
-			if (terminal.isOn){
-				terminal.keyHandler(e);
+			if (!terminal.isOn){
+				if (e.keyCode === 122){
+					if (!devMode){
+						terminal.turnOn();
+						
+							
+							lacanvasa.width = window.screen.width 
+							lacanvasa.height = window.screen.height 
+						
+							terminal.__calcLocAndDim();
+					}
+						
+					
+				}
 				return;
-			}
+			};
+			if (terminal.isOn){
+				if (e.keyCode === 122){
+					terminal.turnOff();
+					terminal.__calcLocAndDim();
+					return;
+				}
+				terminal.keyHandler(e);
+				//sizeCanvas(lacanvasa);
+				return;
+			};
 			if (!keyMap.hasOwnProperty(e.keyCode)){
 				return;
 			};
@@ -364,10 +386,36 @@ import { bigBang } from './nodeVerse.js'
 			}
 		}
 
+		const sizeHandler = function () {
+			if(devMode){
+				lacanvasa.width = window.innerWidth
+				lacanvasa.height = window.innerHeight
+			}	else {
+				lacanvasa.width = window.screen.width 
+				lacanvasa.height = window.screen.height 		
+
+			}
+			ctx = lacanvasa.getContext('2d')
+			lacanvasa.style.class = "terminal"
+			lacanvasa.style.letterspacing = '0px'
+			lacanvasa.style.fontkerning = 'none'
+			lacanvasa.style.fontfamily = 'terminalmonospace'
+			ctx.font = `${globalProps.letterSize}px terminalmonospace`;
+			terminal.setContext(ctx)
+			//terminal.setContext(ctx);
+			console.log(terminal.context)
+			terminal.__calcLocAndDim();
+			console.log(terminal.context)
+			terminal.cache.rescaleCache();
+		};
+
 	//	window.addEventListener("click", loadPdf);
 		window.addEventListener("keydown", handleKeyPress);
 		window.addEventListener("keyup", keyUp);
+		window.addEventListener("resize", sizeHandler);
+		window.addEventListener("fullscreenchange", sizeHandler)
 
+		var devMode = true;
 		var lacanvasa = {};
 		var pdfCanvas = {};
 		var pdfBack = {};
@@ -387,6 +435,10 @@ import { bigBang } from './nodeVerse.js'
 				navBar.windowTender();
 				assetViewer.draw();
 				*/
+			//	console.log(ctx.font)
+
+			globalProps.time = Date.now()
+
 				terminal.draw();
 				
 
@@ -396,17 +448,20 @@ import { bigBang } from './nodeVerse.js'
 
 		const attachCanvases = function () {
 			lacanvasa = document.getElementById('the-canvas');
-			pdfCanvas = document.getElementById('pdfviewer');
-			pdfBack = document.getElementById('viewerBack');
+			//pdfCanvas = document.getElementById('pdfviewer');
+			//pdfBack = document.getElementById('viewerBack');
 				
 						ctx = lacanvasa.getContext('2d');
-						ptx = pdfCanvas.getContext('2d');
-						btx = pdfBack.getContext('2d');
+					//	ptx = pdfCanvas.getContext('2d');
+					//	btx = pdfBack.getContext('2d');
 					
 		
 		}
 		const sizeCanvas = function (canvas, width = 1280, height = 960) {
-
+			canvas.height = window.innerHeight;
+			canvas.width = window.innerWidth;
+			console.log(canvas.height);
+			console.log(canvas.width);
 		}
 
 		const init = function() {
@@ -416,8 +471,9 @@ import { bigBang } from './nodeVerse.js'
 
 
 			attachCanvases();
+			//lacanvasa.requestFullscreen();
 			sizeCanvas(lacanvasa);
-			assetViewer.init(pdfCanvas, lacanvasa, pdfBack, );
+			//assetViewer.init(pdfCanvas, lacanvasa, pdfBack, );
 			ctx.fillStyle = 'black'
 			ctx.fillRect(0,0,lacanvasa.width, lacanvasa.height);
 			ctx.fillStyle = "#CCFFFF"
@@ -431,14 +487,15 @@ import { bigBang } from './nodeVerse.js'
 			initializer_Alpha_001
 			*/
 			
-			terminal.init({},assetViewer,lacanvasa,globalProps,initNodeVerse(buildNodeVerse()))
+			terminal.init({},assetViewer,lacanvasa,globalProps,initNodeVerse(buildNodeVerse()), devMode)
 			needToLoadPDF = false;
-			
-			ctx.font = '8px terminalmonospace'
+			globalProps.time = Date.now();
+			ctx.font = `${globalProps.letterSize}px terminalmonospace`
 			lacanvasa.style.class = "terminal"
 			lacanvasa.style.letterspacing = '0px'
 			lacanvasa.style.fontkerning = 'none'
-			
+			lacanvasa.style.fontfamily = 'terminalmonospace'
+			console.log(ctx.font)
 			
 			setInterval(() => {mainLoop()}, 50);
 		}

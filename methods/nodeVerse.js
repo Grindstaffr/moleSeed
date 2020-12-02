@@ -19,6 +19,9 @@ export const bigBang = function () {
 		this.addNode(seed);
 		console.log(this)
 
+		const reader_ext = new Program('reader.ext', './reader.js')
+		this.addNode(reader_ext);
+
 		const welcome = new TextDoc('welcome','../assets/txtFiles/intro.js');		
 		this.addNode(welcome);
 
@@ -61,7 +64,9 @@ export const bigBang = function () {
 		const welcomeV2 = new TextDoc('read_this', '../assets/txtFiles/MXthumbIntro.js')
 		this.addNode(welcomeV2);
 
-		this.seed.attach(rucksack_ext)
+		this.seed.attach(rucksack_ext);
+		this.seed.attach(reader_ext);
+		this.seed.attach(welcome);
 
 		this.seed.attachTo(moveHere);
 		this.move_here.attachTo(moveHereNext);
