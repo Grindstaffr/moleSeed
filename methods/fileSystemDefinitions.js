@@ -178,6 +178,7 @@ export class Mole extends UniqueNode {
 			name : 'mole',
 			desc : 'declare mole-ware to utilize actions specific to declared .mole program',
 			syntax : `mole [MOLE] ...`,
+			recentlyVerified : false,
 			ex: function (moleName, command, commandArg, commandArg2) {
 				if (!command){
 					//THIS STAYS UNTIL THERE'S A MULTILINE INPUT BUFFER,
@@ -185,14 +186,23 @@ export class Mole extends UniqueNode {
 					this.api.throwError(`mole-ware declaration should be followed by command`);
 					return;
 				}
+				var mole = this;
 				if (!this.trmnl.accessibleNodes[moleName].moleCommands[command]){
 					this.api.throwError(`declared mole-ware does not support "${command}", try "mole ${moleName} help"`)
 					return;
 				}
-				if (this.trmnl.accessibleNodes[moleName].moleCommands[command].requiresVerification && (!this.api.isInputBufferVerified())){
-					this.api.executeCommand('verify')
+				if (this.trmnl.accessibleNodes[moleName].moleCommands[command].requiresVerification && (!this.methods.mole.recentlyVerified)){
+					this.api.verifyCommand('command will expend mole. continue? ', function(bool){
+						if (!bool){
+							return;
+						};
+						mole.methods.mole.recentlyVerified = true;
+					})
 					return;
 				}
+				if (this.trmnl.accessibleNodes[moleName].moleCommands[command].requiresVerification && (this.methods.mole.recentlyVerified)){
+					this.methods.mole.recentlyVerified = false;
+				};
 				this.trmnl.accessibleNodes[moleName].moleCommands[command].ex(commandArg, commandArg2);
 			},
 		};

@@ -31,6 +31,7 @@ export const terminal = {
 			this.parent.blinkyCursor.position.leadTheText();		
 		},//backspace
 		'13' : function () {
+			
 			this.parent.input.inputCommand();
 		},//enter
 		'16' : function () {
@@ -83,11 +84,48 @@ export const terminal = {
 	constructInput : function (trmnl) {
 		var input = {};
 		input.reRouteInput = function (commandFull){
-			this.routes[this.inputFilterType](commandFull);
+			var command = commandFull;
+			
+			if (this.filters.verify) {
+				command = this.routes.verify(command)
+				if (!this.filtersPassed.verify){
+					return;
+				}
+			};
+			if (this.filters.narrow) {
+				command = this.routes.narrow(command)
+				if (!this.filtersPassed.narrow){
+					return;
+				}
+			};
+			if (this.filters.extend) {
+				command = this.routes.extend(command)
+				if (!this.filtersPassed.extend){
+					return;
+				}
+			};
+			if (this.filters.input) {
+				command = this.routes.input(command)
+				if (!this.filtersPassed.input){
+					return;
+				}
+			};			
+			if (this.filters.null) {
+				command = this.routes.null(command)
+				if (!this.filtersPassed.null){
+					return;
+				}
+			};
+
+
+			for (var prop in this.filtersPassed){
+				this.filtersPassed[prop] = false;
+			}
+			this.sendToCompiler(command);
 		};
 
 		input.inputCommand = function (){
-				if (this.inputIsLocked){
+			if (this.inputIsLocked){
 				return;
 			}
 			if (this.api.submitTriggerFunction){
@@ -96,8 +134,8 @@ export const terminal = {
 			var commandFull = this.cache.getInputRow();
 			this.cache.submitInput();
 			this.blinkyCursor.position.leadTheText();
-			if (this.shouldReRouteInput) {
-				this.bufferInput(commandFull)
+			this.bufferInput(commandFull);
+			if (this.shouldReRouteInput()) {
 				this.reRouteInput(commandFull);
 				return;
 			}
@@ -115,41 +153,67 @@ export const terminal = {
 			this.buffer.push(commandFull);
 			return this.buffer.length;
 		};
-
+		input.peekBufferedInput = function () {
+			return this.buffer[this.buffer.length - 1]
+		};
 		input.retrieveBufferedInput = function () {
 			return this.buffer.pop();
+		};
+		input.shouldReRouteInput = function () {
+			return Object.keys(this.filters).some(function(filterName){
+				return this.filters[filterName] === true;
+			},this)
 		};
 
 		input.deleteLastBufferedInput = function () {
 			this.buffer.pop();
 			return this.buffer.length
 		};
+		input.toggleFilterOff = function (string) {
+			if (Object.keys(this.filters).indexOf(string) === -1){
+				return;
+			};
+			this.filters[string] = false;
+			return;
+		};
+		input.toggleFilterOn = function (string) {
+			if (Object.keys(this.filters).indexOf(string) === -1){
+				return;
+			};
+			this.filters[string] = true;
+			return;
+		};
 
 		const init = function (trmnl) {
 			input.routes = {
 				verify : function (commandFull) {
-					this.command.log(this.verifyMessage);
-					var response = commandFull[0];
+					//this.command.log.ex(this.verifyMessage);
+					var response = this.buffer.pop()[0]
 					if (response === 'y'){
-						if (this.callbackType === 'verify'){
-							this.callback(true);
+						if (this.callbacks.verify){
+							this.callbacks.verify(true);
 						}
-						this.callback = function () {};
-						this.sendToCompiler(this.retrieveBufferedInput());
-						this.verifyMessage = this.defaultVerifyMessage;
-						this.shouldReRouteInput = false;
-						return;
+						this.callbacks.verify = function () {};
+						var command = this.retrieveBufferedInput();
+						this.command.log.ex(`submitting ${command}`)
+						this.messages.verify = this.messages.default_verify;
+						this.toggleFilterOff('verify');
+						this.filtersPassed.verify = true;
+						//this.shouldReRouteInput = false;
+						return command;
 					}
 					if (response === 'n'){
-						if (this.callbackType === 'verify'){
-							this.callback(false);
+						if (this.callbacks.verify){
+							this.callbacks.verify(true);
 						}
-						this.callback = function () {};
-						this.command.log(`  aborted command : "${this.retrieveBufferedInput()}" `);
-						this.verifyMessage = this.defaultVerifyMessage;
-						this.shouldReRouteInput = false;
-						return;
+						this.callbacks.verify = function () {};
+						this.command.log.ex(`  aborted command : "${this.retrieveBufferedInput()}" `);
+						this.messages.verify = this.messages.default_verify;
+						this.toggleFilterOff('verify');
+						//this.shouldReRouteInput = false;
+						return this.retrieveBufferedInput();
 					}
+					return `User_cannot_answer_a_simple_yes_or_no_question`
 
 				},
 				extend : function (commandFull) {
@@ -163,37 +227,79 @@ export const terminal = {
 					var command = inputTerms[0];
 					if (bool){
 						this.narrowWhitelist = [];
-						this.shouldReRouteInput = false;
-						return;
+						this.toggleFilterOff('narrow')
+						return ;
 					}
 					if (this.narrowWhitelist.length === 0){
-						this.shouldReRouteInput = false;
+						this.toggleFilterOff('narrow')
 						return;
 					}
 					if (this.narrowWhitelist.indexOf(command) === -1){
 						this.command.error.ex(`${command} is not a valid command, type "help" for options`)
 						return;
 					}
-					this.sendToCompiler(commandFull);
+					this.filtersPassed.narrow = true;
+					return commandFull;
 				},
 				null : function () {
-					this.shouldReRouteInput = false;
+					//this.shouldReRouteInput = false;
 					return;
 				},
 			};
 			input.buffer = [];
-			input.shouldReRouteInput = false;
-			input.inputFilterType = 'null';
+			//if necessary, filters can be objectified and stacked in a given order,
+			//currently, duplicate filters are unsupported --> they must all be unique
+			//but there's a way to turn each filter into an object, so that the filters
+			//can be iterated through;
+			input.messages = {
+				narrow : "",
+				verify : "",
+				extend : "",
+				input : "",
+				null : "",
+				default_narrow : "",
+				default_verify : "",
+				default_extend : "",
+				default_input : "",
+				default_null : "",
+			};
+			input.callbacks = {
+				narrow : function(){},
+				verify : function(){},
+				extend : function(){},
+				input : function(){},
+				null : function(){},
+			};
+			input.filters = {
+				narrow : false,
+				verify : false,
+				extend : false,
+				input : false,
+				null : false,
+			};
+			input.filtersPassed = {
+				narrow : false,
+				verify : false,
+				extend : false,
+				input : false,
+				null : false,
+			};
+			//input.inputFilters = ['null'];
 			for (var prop in input.routes){
 				input.routes[prop] = input.routes[prop].bind(input);
 			}
 			input.commandToExted = {};
-			input.verifyMessage = "command requires verification. continue? (y/n)"
-			input.defaultVerifyMessage = "command requires verification. continue? (y/n)"
+			input.messages.verify = "command requires verification. continue? (y/n)"
+			input.messages.default_narrow = "commands have been narrowed."
+			input.messages.default_verify = "command requires verification. continue? (y/n)"
+			input.messages.default_extend = "command requires additional terms. please extend command."
+			input.messages.default_input = "command requires response:  "
+			input.messages.default_null = "null"
 			input.narrowWhitelist = [];
 			input.trmnl = trmnl
 			input.api = trmnl.api
 			input.command = trmnl.command;
+			trmnl.command.input = input;
 			input.cache = trmnl.cache;
 			input.blinkyCursor =  trmnl.blinkyCursor;
 			input.compiler = trmnl.compiler;
@@ -219,6 +325,7 @@ export const terminal = {
 
 	},
 	inputCommand : function () {
+		console.log('THIS INPUT METHOD IS DEPRECATED, USE input.inputCommand instead')
 		if (this.inputIsLocked){
 			return;
 		}
@@ -242,6 +349,9 @@ export const terminal = {
 		const compiler = {};
 		compiler.compileAndExecuteCommand = function (fullInput) {
 			var inputTerms = fullInput.split(" ")
+			/*
+				IN-COMPILER VERIFICATION HAS BEEN DEPRECATED
+
 			if (this.command.verificationNeeded){
 				if (inputTerms[0] === "y"){
 					this.command.verificationNeeded = false;
@@ -257,6 +367,7 @@ export const terminal = {
 					this.command.verify.ex();
 				}
 			};
+			*/
 			//at present, this puts in empty strings between all spaces... we can make less space sensititve with small tweaks
 			if (inputTerms[0] === ""){
 				this.command.null.ex();
@@ -673,15 +784,22 @@ export const terminal = {
 			},
 		};
 		command.verify = {
-			ex : function () {
-				var cmd = this.parent
-				if (cmd.verified){
+			ex : function (verifyMessage, callback) {
+				var cmd = this.parent;
+				var message = "" 
+				if (!verifyMessage){
+					message = "command requires verification. continue? (y/n)"
+				} else {
+					message = verifyMessage + `(y/n)`
+				}
+				//this.input.shouldReRouteInput = true;
+				cmd.input.toggleFilterOn('verify');
+				cmd.input.messages.verify = message;
+				cmd.log.ex(message);
+				if (!callback){
 					return;
 				}
-				cmd.verificationNeeded = true;
-				cmd.cache.writeEmptyRow();
-				cmd.cache.writeToVisibleRow(`input command requires confirmation. continue? (y/n)`);
-				cmd.cache.writeEmptyRow();
+				cmd.input.callbacks.verify = callback;
 			},
 		};
 		command.null = {
@@ -834,6 +952,9 @@ export const terminal = {
 			ex: function () {
 				var cmd = this.parent
 				return Object.keys(cmd).filter(function(key){
+					if (!cmd[key]){
+						console.log(key)
+					}
 					return (cmd[key].isAvail)
 				});
 			},
@@ -1024,83 +1145,88 @@ export const terminal = {
 	},
 	constructAPI : function () {
 		var terminalInterface = {};
+			//this whole section is sort of jury-rigged to deal with multiple filters....
+			//not a long-term sustainable solution
 		terminalInterface.renounceInputManagement = function () {
-			this.input.shouldReRouteInput = false;
-			this.submitTriggerFunction = false;
+	
+			Object.keys(this.input.filters).forEach(function(filterName){
+				this.input.filters[filterName] = false;
+			}, this)
+	
+			//this.submitTriggerFunction = false;
 		}
 		terminalInterface.narrowCommand = function (whitelistArray, callback) {
-			this.input.shouldReRouteInput = true;
-			this.input.inputFilterType = 'narrow';
+			//this.input.shouldReRouteInput = true;
+			this.input.toggleFilterOn('narrow');
 			if (whitelistArray.length < 1){
 				this.command.error.ex('COMPILERERROR: NEED AT LEAST ONE VALID COMMAND (NARROW)')
-				this.input.shouldReRouteInput = false;
+				//this.input.shouldReRouteInput = false;
 				return;
 			}
 			if (whitelistArray.indexOf('stop') === -1){
 				this.command.error.ex('COMPILERERROR: MUST BE ABLE TO STOP NARROW')
-				this.input.shouldReRouteInput = false;
+				//this.input.shouldReRouteInput = false;
 				return;
 			}
 			this.input.narrowWhitelist = whitelistArray;
 			if (!callback){
 				return;
 			}
-			this.input.callback = callback;
-			this.input.callbackType = 'narrow';
+			this.input.callbacks.narrow = callback;
 		};
 		terminalInterface.verifyCommand = function (verifyMessage, callback) {
+
 			var message = "" 
 			if (!verifyMessage){
 				message = "command requires verification. continue? (y/n)"
 			} else {
 				message = verifyMessage + `(y/n)`
 			}
-			this.input.shouldReRouteInput = true;
-			this.input.inputFilterType = 'verify';
-			this.input.message = message;
+			//this.input.shouldReRouteInput = true;
+			this.input.toggleFilterOn('verify');
+			this.input.messages.verify = message;
+			this.command.log.ex(message);
 			if (!callback){
 				return;
 			}
-			this.input.callback = callback;
-			this.input.callbackType = 'verify';
+			this.input.callbacks.verify = callback;
 		};
 		terminalInterface.extendCommand = function (command, message, callback) {
-			this.input.shouldReRouteInput = true;
-			this.input.inputFilterType = 'extend';
+			//this.input.shouldReRouteInput = true;
+			this.input.toggleFilterOn('extend');
 			if(!command){
 				this.command.error.ex('COMPILERERROR: COMMAND INPUT NEEDED ON EXTND REQS')
-				this.input.shouldReRouteInput = false;
+				//this.input.shouldReRouteInput = false;
 				return;
 			}
 			this.input.commandToExtend = command;
 			if (!message){
 				return;
 			}
-			this.input.message = message
+			this.input.messages.extend = message
 			if (!callback){
 				return;
 			}
-			this.input.callback = callback;
-			this.input.callbackType = 'extend';
+			this.input.callbacks.extend = callback;
+
 		};
 		terminalInterface.requestInput = function (command, message) {
-			this.input.shouldReRouteInput = true;
-			this.input.inputFilterType = 'input';
+			//this.input.shouldReRouteInput = true;
+			this.input.toggleFilterOn('input');
 			if(!command){
 				this.command.error.ex('COMPILERERROR: COMMAND INPUT NEEDED ON INPUT REQS');
-				this.input.shouldReRouteInput = false;
+				//this.input.shouldReRouteInput = false;
 				return;
 			}
 			this.input.commandToExted = command;
 			if (!message){
 				return;
 			}
-			this.input.message = message;
+			this.input.messages.input = message;
 			if (!callback){
 				return;
 			}
-			this.input.callback = callback;
-			this.input.callbackType = 'input';
+			this.input.callbacks.input = callback;
 		};
 
 		terminalInterface.reserveRows = function (numberOfRows){
@@ -1149,6 +1275,9 @@ export const terminal = {
 		};
 		terminalInterface.warn = function (string) {
 			return this.command.warn.ex(string);
+		};
+		terminalInterface.log = function (string){
+			return this.command.log.ex(string);
 		};
 		terminalInterface.runCommand = function (string){
 			return this.compiler.compileAndExecuteCommand(string);

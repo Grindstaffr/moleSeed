@@ -25,6 +25,9 @@ export const bigBang = function () {
 		const welcome = new TextDoc('welcome','../assets/txtFiles/intro.js');		
 		this.addNode(welcome);
 
+		const sample = new TextDoc('sample', '../assets/txtFiles/sampleTxt.js')
+		this.addNode(sample);
+
 		const directory_dir = new TextDoc('directory', '../assets/txtFiles/toasterDirectory.js');
 		this.addNode(directory_dir);
 
@@ -67,6 +70,8 @@ export const bigBang = function () {
 		this.seed.attach(rucksack_ext);
 		this.seed.attach(reader_ext);
 		this.seed.attach(welcome);
+		this.seed.attach(sample);
+		this.seed.attach(nomad_mole)
 
 		this.seed.attachTo(moveHere);
 		this.move_here.attachTo(moveHereNext);

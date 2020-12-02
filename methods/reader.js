@@ -60,28 +60,36 @@ export const program = {
 			return this.methods.replaceTabs(newString);
 		},
 
+		constructNewPage : function () {
+			var header = "  " + `${this.data.textName}` + (" ").repeat(this.api.getRowCount() - (this.data.textName.length + 12)) + `page: ${this.data.boundDoc.pages.length}` + ("  ");
+			var blank = ""
+			var upper = (" -").repeat(this.api.getRowCount()/2)
+			return [header, blank, upper, blank];
+		},
+
 		pageBreak : function (doc, page) {
 			var currentPage = [];
+			
 			if (!page){
-				return [];
+				return this.methods.constructNewPage();
 			}
 			if (page.length && page.length > 0){
 				currentPage = page;
 			};
-			if (page.length === this.api.getRowCount() - 8){
+			if (page.length === this.api.getRowCount() - 10){
 				this.data.pages.push(page);
 				doc.pages.push(page);
 				this.data.pageCount = doc.pages.length;
-				return [];
+				return this.methods.constructNewPage();
 			}
-			if (page.length >= this.api.getRowCount() - 8){
+			if (page.length >= this.api.getRowCount() - 10){
 				if (page[page.length - 1] === ""){
 					page.splice(page.length - 1, 1);
 					this.data.pages.push(page);
 					doc.pages.push(page);
 					this.data.pageCount = doc.pages.length;
-					if (page.length === this.api.getRowCount() - 8){
-						return [];
+					if (page.length === this.api.getRowCount() - 10){
+						return this.methods.constructNewPage();
 					}
 				}
 				this.api.throwError('Cannot Triple Push, this edge case should be infeasible (reader.js)')
@@ -212,6 +220,7 @@ export const program = {
 
 		},
 		composeText : function (doc, page){
+
 			var currentPage = [];
 			var txtDoc = {};
 			var text = "";
@@ -222,13 +231,13 @@ export const program = {
 					this.api.throwError('cannot find .rdbl to compose, stopping reader.ext');
 					return;
 				}
+			} else {
+				txtDoc = doc;
 			}
 
-			txtDoc = doc;
 
 			if (!page){
 				if (!doc.pages[0]){
-					console.log(doc)
 					this.api.throwError(' .rdbl file is empty. ');
 					return;
 				};
@@ -241,7 +250,10 @@ export const program = {
 					return;
 				}
 				currentPage = txtDoc.pages[this.data.currentPageNum];
-			};
+			} else {
+				currentPage = page;
+			}
+			
 
 			if (currentPage.length > (this.api.getRowCount() - 8)){
 				this.stop();
@@ -251,15 +263,22 @@ export const program = {
 			};
 
 			var rowIndex = 0;
-
+			console.log(currentPage)
 			currentPage.forEach(function(line,index,page){
 				this.api.writeToGivenRow(line,index + 2);
 			},this);
 		},
+		drawWindow : function () {
+			var count = this.api.getMaxLineLength();
+			this.api.writeToGivenRow(('-').repeat(count - 10) + 'reader.ext', this.data.rowCount - 1)
+
+		},
 
 		textDocCallback : function (text, doc){
 			if ((doc.name === this.data.textName) && (doc.pages.length === this.data.pages.length)){
-				this.methods.composeText(text, this.data, this.data.pages[this.data.currentPageNum]);
+				console.log(`did this`)
+				this.methods.composeText(this.data, this.data.pages[this.data.currentPageNum]);
+				this.methods.drawWindow();
 				return;
 			};
 			if ((doc.hasBeenImported) && (doc.pages.length >= 1)){
@@ -279,6 +298,7 @@ export const program = {
 			this.api.clearReservedRows();
 			this.methods.compileText(text,doc);
 			this.methods.composeText(doc);
+			this.methods.drawWindow();
 
 			for (var cmd in this.installData.commands){
 				if (cmd !== 'read'){
@@ -306,13 +326,16 @@ export const program = {
 				desc : 'compose next page to terminal',
 				syntax: 'next',
 				ex : function () {
-					console.log(this.currentPageNum)
+					console.log(this.data.currentPageNum)
 					if (this.data.currentPageNum === this.data.pageCount - 1){
 						this.api.throwError(`cannot increment higher than maximum`)
 						return;
 					}
 					this.data.currentPageNum = this.data.currentPageNum + 1;
-					this.methods.composeText(this.data.boundDoc,this.data.pages[this.data.currentPageNum])
+					console.log(this.data.pages[this.data.currentPageNum])
+					this.methods.composeText(this.data.boundDoc,this.data.pages[this.data.currentPageNum]);
+					this.api.log(`    incrementing page`)
+					this.methods.drawWindow();
 					return;
 				},
 			},
@@ -327,6 +350,8 @@ export const program = {
 					}
 					this.data.currentPageNum = this.data.currentPageNum - 1;
 					this.methods.composeText(this.data.boundDoc,this.data.pages[this.data.currentPageNum])
+					this.api.log(`    decrementing page`)
+					this.methods.drawWindow();
 					return;
 				},
 			},
@@ -336,6 +361,8 @@ export const program = {
 				syntax: 'read [NODE]',
 				hasDefault : true,
 				ex : function (nodeName) {
+					
+					console.log(nodeName)
 					this.data.activeNode = this.api.getActiveNode();
 					if (!nodeName){
 						nodeName = this.data.activeNode.name;
@@ -353,11 +380,12 @@ export const program = {
 						return;
 					}
 					if (this.settings.isRunning && !this.settings.recentlyVerified){
+						
 						this.api.verifyCommand(`close "${this.data.textName}" and start reading "${nodeName}"?`, function(bool){
 							if (!bool){
 								return;
 							};
-							reader.recentlyVerified = true;
+							reader.settings.recentlyVerified = true;
 						});
 						return;
 					};
@@ -404,10 +432,6 @@ export const program = {
 	ex : function (nodeName) {
 		var reader = this;
 		this.api.warn(`use of "ex reader.ext" deprecated, use "read [NODE]" instead`)
-		this.data.activeNode = this.api.getActiveNode();
-		this.data.rowCount = this.api.getRowCount() - 8
-		this.api.reserveRows(this.data.rowCount);
-		this.settings.isRunning = true;
 		this.api.extendCommand(this.methods.read, 'read which node?')
 		//this.methods.read(nodeName)
 	},
