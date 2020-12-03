@@ -13,9 +13,9 @@ export const program = {
 		showContents : function () {
 			this.data.storedNodes.forEach(function(node, index){
 				if (node.name === `[EMPTY SLOT]`){
-					this.api.writeToGivenRow(` ${index + 1} - ${node.name}`, (index*2) + 2);
+					this.api.writeToGivenRow(` ${index} - ${node.name}`, (index*2) + 2);
 				} else {
-					this.api.writeToGivenRow(` ${index + 1} - name : ${node.name}    type : ${node.type}`, (index*2) + 2)
+					this.api.writeToGivenRow(` ${index} - name : ${node.name}    type : ${node.type}`, (index*2) + 2)
 				}
 			}, this)
 		},
@@ -32,7 +32,7 @@ export const program = {
 			syntax : 'ditch [NUMBER]',
 			verificationRequired : true,
 			ex : function (number) {
-				var trueVal = (number % 8) - 1;
+				var trueVal = (number % 8);
 				if (trueVal === -1){
 					trueVal = 7;
 				};
@@ -47,7 +47,6 @@ export const program = {
 					console.log(accumulator)
 					return (accumulator && (currentValue.name === `[EMPTY SLOT]`))
 				}, true)
-				console.log(shouldRemove)
 				if (shouldRemove) {
 					this.api.deleteCommand('ditch')
 				}
@@ -55,7 +54,7 @@ export const program = {
 					this.methods.showContents();
 				}
 				this.api.writeLine('')
-				this.api.writeLine(`ditched ${nodeName} from slot ${trueVal + 1}`)
+				this.api.writeLine(`ditched ${nodeName} from slot ${trueVal}`)
 				this.api.writeLine('')
 				return;
 			}, 
@@ -74,14 +73,19 @@ export const program = {
 				} else if ( adjNodes[nodeName].name === nodeName){
 					node = adjNodes[nodeName]
 				};
-				var trueVal = (number % 8) - 1;
+				var trueVal = (number % 8);
 				if (trueVal === -1){
 					trueVal = 7;
 				};
 				if (!this.data.storedNodes[trueVal].name === '[EMPTY SLOT]' ){
 					//need to throw a verify here.... but current verify syntax is all tangled, so I can't just throw one in the middle...
 				}
+				if (!node.grabbable){
+					this.api.throwError(`cannot grab ${node} into ${trueVal} (${node.type} cannot be grabbed)`)
+				};
+
 				this.data.storedNodes[trueVal] = node; 
+
 				if (!this.installData.ditch.isAvail){
 					this.api.addCommand(this.installData.ditch);
 				}

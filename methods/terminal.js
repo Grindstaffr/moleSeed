@@ -454,6 +454,9 @@ export const terminal = {
 							args.push(inputTerms[index])
 						} 
 					}
+				} else if (term[0] === '('){
+
+
 				} else if (term === "...") {
 					cmdIsExtendable = true;
 				} else {
@@ -609,10 +612,12 @@ export const terminal = {
 			name : 'install',
 			desc : 'install a program',
 			syntax : 'install [PROGRAM]',
+			triggerFuncs : [function () {}],
 			isAvail : true,
 			ex : function (programName) {
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
+				var inst = this;
 				var program = trmnl.activeNode 
 				if (trmnl.activeNode.name !== programName){
 					program = trmnl.accessibleNodes[programName]
@@ -622,6 +627,9 @@ export const terminal = {
 						program.install(trmnl, function(){
 							trmnl.programs[program.name] = program;
 							console.log('successfully Installed')
+							inst.triggerFuncs.forEach(function(callback){
+								callback(program)
+							});
 							cmd.prgms.isAvail = true;
 							cmd.cache.writeEmptyRow();
 							cmd.cache.writeToVisibleRow(`${programName} installed successfully`);
@@ -869,6 +877,17 @@ export const terminal = {
 			}
 			}
 		};
+		command.appendAccessibleMalware = {
+			ex : function (node) {
+				var cmd = this.parent;
+				var trmnl = cmd.parent;
+				if (node.Type !== `malware`){
+					console.log(`THE DEVELOPER IS TRYING TO PASS OFF GARBAGE AS MALWARE`)
+					return;
+				}
+				trmnl.accessibleMalware[node.name] = node;
+			}
+		}
 		command.assembleValidPrograms = {
 			ex : function () {
 				var cmd = this.parent;
@@ -1016,6 +1035,12 @@ export const terminal = {
 		this.drawInputRow();
 		this.blinkyCursor.draw();
 		this.drawCurrentRows();
+
+		if (this.api.drawTriggerFunctions.length > 0){
+			this.api.drawTriggerFunctions.forEach(function(funcObj){
+				funcObj.func();
+			})
+		};
 		/*
 		this.cache.currentRows.forEach(function(row, index){
 			var line = ""
@@ -1292,17 +1317,53 @@ export const terminal = {
 		terminalInterface.assembleAccessibleNodes = function () {
 			this.command.assembleAccessibleNodes.ex();
 		}
-		terminalInterface.appendAccessibleNodes = function (node) {
-			this.command.appendAccessibleNodes.ex(node);
-		};
 		terminalInterface.getAccessibleNodes = function () {
 			return this.parent.accessibleNodes;
 		}
+		terminalInterface.appendAccessibleNodes = function (node) {
+			this.command.appendAccessibleNodes.ex(node);
+		};
+		terminalInterface.appendAccessibleMalware = function (node) {
+			this.command.appendAccessibleMalware.ex(node);
+		};
+		terminalInterface.clearAccessibleMalware = function (node) {
+
+		};
 		terminalInterface.clearSubmitTriggeredFunction = function () {
 			this.submitTriggerFunction = false;
 		}
 		terminalInterface.setSubmitTriggeredFunction = function (callback) {
 			this.submitTriggerFunction = callback;
+		};
+		terminalInterface.getNextDrawTriggerFunctionIndex = function (){
+			return this.drawTriggerFunctions.length();
+		}
+		terminalInterface.addDrawTriggeredFunction = function (callback, name){
+			//functions will trigger with every frame of the draw anim;
+			this.drawTriggerFunctions.push({ func : callback, name : name });
+			return (this.drawTriggerFunctions.length - 1);
+
+		};
+		terminalInterface.clearDrawTriggeredFunctions = function (){
+			this.drawTriggerFunctions = [];
+		};
+		terminalInterface.deleteDrawTriggeredFunctions = function (funcName){
+			var spliceIndex = [];
+			this.drawTriggerFunctions.forEach(function(functionObj, index){
+				if (functionObj.name === funcName){
+					spliceIndex.push(index)
+				}
+			});
+			if (spliceIndex.length > 0){
+				spliceIndex.forEach(function(index){
+					this.drawTriggerFunctions.splice(index, 1);
+				}, this);
+			};
+			return;
+		}
+		terminalInterface.addInstallTrigger = function (callback) {
+			this.command.install.triggerFuncs.push(callback);
+			return this.command.install.triggerFuncs.length - 1;
 		};
 		terminalInterface.triggerOnSubmit = function () {
 			if (!this.submitFlag){
@@ -1374,6 +1435,7 @@ export const terminal = {
 			terminalInterface.cache = trmnl.cache;
 			terminalInterface.command = trmnl.command;
 			terminalInterface.compiler = trmnl.compiler;
+			terminalInterface.drawTriggerFunctions = [];
 		};
 		init(this);
 		return terminalInterface;
@@ -1767,6 +1829,7 @@ export const terminal = {
 		this.activeNode = fileInitializer;
 		
 		this.accessibleNodes = [];
+		this.accessibleMalware = [];
 		this.navBar = navBar;
 		this.assetViewer = assetViewer;
 		this.canvas = canvas;

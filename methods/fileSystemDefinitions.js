@@ -1,8 +1,9 @@
 export class Node {
-	constructor(name){
+	constructor(name, address){
 		this.Type = 'node';
 		this.type = 'node';
 		this.name = name;
+		this.address = address
 		this.adjacencies = {};
 		this.visibleAdjacencies = {};
 		this.canOpen = false;
@@ -11,6 +12,8 @@ export class Node {
 		this.requirements = [];
 		this.commands = ['mv'];
 		this.triggerOnGrab = false;
+		this.grabbable = true;
+		this.recruitable = false;
 	};
 	trigger () {
 	
@@ -54,14 +57,18 @@ export class Node {
 		return this.visibleAdjacencies;
 	}
 
+	hitchPacket(){
+		return this._meta;
+	}
+
 	report() {
 		return this.visited;
 	}
 };
 
 export class Program extends Node {
-	constructor (name, url) {
-		super(name);
+	constructor (name, address, url) {
+		super(name, address);
 		this.type = 'program';
 		this.url = url;
 		this.hasBeenInstalled = false;
@@ -87,6 +94,26 @@ export class Program extends Node {
 		this.program.stop();
 	}
 }
+export class Hardware extends Node {
+	constructor (name, address){
+		super(name, address);
+		this.grabbable = false;
+		this.recruitable = true;
+	}
+}
+
+export class ProcessorMatrix extends Hardware {
+
+}
+
+export class QRig extends Hardware {
+	constructor (name, address, speed){
+		super(name, address)
+		this.speed = speed
+	}
+}
+
+
 export class UniqueNode extends Node {
 	constructor (...args) {
 		super(...args);
@@ -124,6 +151,7 @@ export class UniqueNode extends Node {
 		this.storageLoc.refresh = refreshFunc
 		if (this.name === this.trmnl.activeNode.name){
 			this.api.composeText(`WARNING: terminal is instanced on a non-duplicable node, grabbing this node will pull the terminal into rucksack.ext`)
+			//should throw a verify for grab with above message;
 		}
 		super.detachFromAll();
 		this.trmnl.activeNode.assembleVisibleAdjacencies();
@@ -139,9 +167,16 @@ export class UniqueNode extends Node {
 		}
 	}
 };
+export class Malware extends UniqueNode {
+	constructor (name, address, url){
+		this.name = name;
+		this.address = `FUCK YOURSELF`
+		this.Type = `malware`
+	}
+}
 
-export class Worm extends UniqueNode {
-	constructor (name) {
+export class Worm extends Malware {
+	constructor (name, url) {
 		super(name);
 		this.url = url;
 		this.type = 'worm'
@@ -149,6 +184,110 @@ export class Worm extends UniqueNode {
 
 	//WORMS WILL BE NECESSARY FOR SCOUTING UNMAPPED MEMORY
 	//NON-DEMO CLASS
+	grabTrigger (terminal, storageLoc, refreshFunc) {
+		var worm = this;
+		worm.terminal = this;
+		worm.api = worm.terminal.api;
+		var superGrabber = super.grabTrigger;
+		if (!terminal.programs[`silo.ext`]){
+			this.api.throwError(`rucksack.ext does not support fileType:${worm.type} without an extension`)
+		}
+		import(this.url).then(function(module){
+			if (callback){
+				callback(module.recruiter)
+			};
+			superGrabber.call(worm, terminal, storageLoc, refreshFunc);
+		})
+	};
+};
+
+
+export class Recuiter extends Malware {
+	constructor (name, url){
+		this.url = url;
+		this.name = name;
+		this.silo = {};
+		this.isSupported = false;
+		this.type = 'recruiter'
+		this.methods.arm = {
+			name : `arm`,
+			desc : `arm a recruiter`,
+			syntax : `arm [RECRUITER] trgt [HARDWARE]`,
+			ex : function () {
+				if (!this.isSupported){
+					this.api.throwError(` MIRAGE : "arm" not supported (missing dependencies)`)
+					return;
+				}
+
+			},
+		};
+		this.methods.trgt = {
+			name : `trgt`,
+			desc : `target adjacent hardware with an armed recruiter`,
+			syntax : `trgt [HARDWARE]`,
+			ex: function () {
+				if (!this.isSupported){
+					this.api.throwError(` MIRAGE : "trgt" not supported (missing dependencies)`)
+					return;
+				}
+
+			},
+
+		}
+		this.methods.fire = {
+			name : `fire`,
+			desc : `fire an armed recruiter at targeted hardware`,
+			syntax : `fire [RECRUITER]`,
+			isExtendable : true,
+			verificationCheckA : false,
+			verificationCheckB : false,
+			verificationCheckC : false,
+			ex: function () {
+				if (!this.isSupported){
+					this.api.throwError(` MIRAGE : "fire" not supported (missing dependencies)`)
+					return;
+				}
+				if (!verificationCheckA){
+					this.api.verifyCommand(`message`,function(){});
+				}
+
+			},
+		};
+	}
+	grabTrigger (terminal, storageLoc, refreshFunc) {
+		var rctr = this;
+		rctr.terminal = this;
+		rctr.api = rctr.terminal.api;
+		var superGrabber = super.grabTrigger;
+		if (!terminal.programs[`silo.ext`]){
+			this.api.warn(`rucksack.ext does not support fileType:${this.type} without an extension`);
+			this.api.log(`...grabbing anyway`);
+			this.installSiloTrigger();
+		} else {
+			this.isSupported = true;
+		}
+		import(this.url).then(function(module){
+			if (callback){
+				callback(module.recruiter)
+			};
+			superGrabber.call(rctr, terminal, storageLoc, refreshFunc);
+		})
+	};
+
+
+
+	installSiloTrigger () {
+		var triggerWhenInstalled = this.grabTrigger
+		this.api.addInstallTrigger(function(programName){
+			if (progamName === 'silo.ext'){
+				triggerWhenInstalled();
+				return;
+			};
+			return;
+		}, `${this.name}_Silo`)
+
+	};
+
 };
 
 export class Seed extends UniqueNode {
@@ -165,11 +304,11 @@ export class Seed extends UniqueNode {
 
 		}
 	}
-}
+};
 
 export class Mole extends UniqueNode {
-	constructor (name, url){
-		super(name);
+	constructor (name, address, url){
+		super(name, address);
 		this.url = url;
 		this.type = 'mole';
 		this.canBeRead = true;
@@ -257,11 +396,13 @@ export class Mole extends UniqueNode {
 		*/
 		
 	}
+
 	bindAll (context) {
 		Object.keys(context.moleCommands).forEach(function(commandName){
 			context.moleCommands[commandName].ex = context.moleCommands[commandName].ex.bind(context)
 		}, context)
 	}
+
 	grabTrigger (terminal, storageLoc, refreshFunc,callback) {
 		var mole = this
 		var superGrabber = super.grabTrigger
@@ -275,9 +416,9 @@ export class Mole extends UniqueNode {
 			mole.bindAll(mole)
 			mole.methods.mole.ex = mole.methods.mole.ex.bind(mole)
 			superGrabber.call(mole, terminal, storageLoc, refreshFunc);
-			//Object.getPrototypeOf(Object.getPrototypeOf(mole)).grabTrigger(terminal, storageLoc);
 		})
 	}
+
 	read (callback) {
 		var text = `Information on ${this.name} can be accessed through use of the "mole" syntax. Try "mole ${this.name} info"`
 		if(callback){
@@ -287,8 +428,8 @@ export class Mole extends UniqueNode {
 }
 
 export class Readable extends Node {
-	constructor (name) {
-		super(name);
+	constructor (name, address) {
+		super(name, address);
 		this.type = 'readable node';
 		this.commands.push('read')
 		this.canBeRead = true;
@@ -296,8 +437,8 @@ export class Readable extends Node {
 }
 
 export class TextDoc extends Readable {
-	constructor (name, url) {
-		super(name);
+	constructor (name, address, url) {
+		super(name, address);
 		this.location = url;
 		this.hasBeenImported = false
 		this.pages = [];
@@ -319,7 +460,7 @@ export class TextDoc extends Readable {
 }
 
 export class InvisibleNode extends Node {
-	constructor (name, url) {
+	constructor (name, address, url) {
 		super(name);
 		this.isInvisible = true;
 		this.url = url
@@ -353,15 +494,15 @@ export class TerminalStoryPiece extends Node {
 }
 
 export class Asset extends Node {
-	constructor (name, url) {
-		super(name);
+	constructor (name, address, url) {
+		super(name, address);
 		this.url = url;
 	}
 }
 
 export class Pdf extends Asset {
-	constructor (name, url, title){
-		super(name, url);
+	constructor (name, address, url, title){
+		super(name, address, url);
 		this.title = title;
 		this.type = 'pdf';
 		this.scale = 1;
@@ -547,11 +688,12 @@ export const initializerAlpha = function () {
 }
 
 export class Databank {
-	constructor(name, protocol){
+	constructor(name, protocol, address){
 		this.name = name;
 		this.structure = 'DataBank'
 		this.protocol = protocol;
 		this.nodeNets = {};
+		this.address = address;
 	}
 
 	addNodeNet(nodeNet){
@@ -559,7 +701,9 @@ export class Databank {
 			value : this,
 			writable : false,
 		})
-		this.nodeNets[nodeNet.name] = nodeNet
+		this.nodeNets[nodeNet.name] = nodeNet;
+		this._meta.router[this.address][nodeNet.address] = {};
+
 	}
 
 	getNodeNet(nodeNetName){
@@ -568,18 +712,23 @@ export class Databank {
 }
 
 export class NodeNet {
-	constructor(name){
+	constructor(name, address){
 		this.name = name;
 		this.structure = 'nodeNet'
+		this.address = address;
 	}
 
 	addNode(node){
+		if (node.Type === `malware`){
+			return;
+		}
 		Object.defineProperty(node, '_meta', {
 			value : this,
 			writable : false,
 		})
 		//node._meta = this;
 		this[node.name] = node
+		this._meta._meta.router[this._meta.address][this.address][node.address] = node;
 	}
 };
 /*

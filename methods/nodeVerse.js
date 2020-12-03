@@ -2,76 +2,92 @@ import { initializerAlpha, Node, Pdf, Asset, Readable, TerminalStoryPiece, TextD
 
 export const bigBang = function () {
 	const nodeVerse = {};
-
 	nodeVerse.databanks = {};
+	nodeVerse.router = {};
 
-	nodeVerse.databanks._PioneerDataServices = new Databank(`_PioneerDataServices`)
+	nodeVerse.appendDataBank = function (databank) {
+		nodeVerse.databanks[databank.name] = databank;
+		nodeVerse.router[databank.address] = {};
+		Object.defineProperty(databank, '_meta', {
+			value : this,
+			writable : false,
+		})
+	}
+
+
+	const _PioneerDataServices = new Databank(`_PioneerDataServices`,`PDS_k9.34.00`, `dz019q$$tajz>`)
+	nodeVerse.appendDataBank(_PioneerDataServices);
 	/*
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		DATABANK :: _PioneerDataServices NODENET:: __toaster
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 	*/
-	const __toaster = new NodeNet(`__toaster`);
+	const __toaster = new NodeNet(`__toaster`,`%81jan222jn*=`);
 	nodeVerse.databanks._PioneerDataServices.addNodeNet(__toaster)
 	nodeVerse.databanks._PioneerDataServices.nodeNets.__toaster.init = function () {
 		const seed = new Node('seed');
 		this.addNode(seed);
 		console.log(this)
 
-		const reader_ext = new Program('reader.ext', './reader.js')
+		const silo_ext = new Program('silo.ext','bxbljs00\"3p&*z\"yi' ,'./silo.js')
+		this.addNode(silo_ext)
+
+		const reader_ext = new Program('reader.ext', `a+zya0wtbd&e2fs%o`, './reader.js')
 		this.addNode(reader_ext);
 
-		const welcome = new TextDoc('welcome','../assets/txtFiles/intro.js');		
+		const welcome = new TextDoc('welcome', `=%zp5pszgciq<6sce`,'../assets/txtFiles/intro.js',);		
 		this.addNode(welcome);
 
-		const sample = new TextDoc('sample', '../assets/txtFiles/sampleTxt.js')
+		const sample = new TextDoc('sample',`0&tbiiz4pu1>t657v`, '../assets/txtFiles/sampleTxt.js')
 		this.addNode(sample);
 
-		const directory_dir = new TextDoc('directory', '../assets/txtFiles/toasterDirectory.js');
+		const directory_dir = new TextDoc('directory',`muflds0?&n*$r5?3e`, '../assets/txtFiles/toasterDirectory.js');
 		this.addNode(directory_dir);
 
-		const rucksack_dir = new Node('rucksack');
+		const rucksack_dir = new Node('rucksack',`7k>g+wo\"?jz$e7p&<`);
 		this.addNode(rucksack_dir);
 
-		const rucksack_ext = new Program('rucksack.ext', './rucksack.js');
+		const rucksack_ext = new Program('rucksack.ext',`hqch4+?u\"auwujxra`, './rucksack.js');
 		this.addNode(rucksack_ext);
 
-		const rucksack_rdbl = new TextDoc('rucksack.rdbl', '../assets/txtFiles/rucksack.js');
+		const rucksack_rdbl = new TextDoc('rucksack.rdbl', `3\"nbb$j\"jwkx!*4<&`, '../assets/txtFiles/rucksack.js');
 		this.addNode(rucksack_rdbl);
 
-		const crawler_dir = new Node('crawler');
+		const crawler_dir = new Node('crawler', `$ufcw&$miw2aui8=>`);
 		this.addNode(crawler_dir);
 
-		const crawler_ext = new Program('crawler.mse', `./crawler.js`);
+		const crawler_ext = new Program('crawler.mse', `bl&<d0vqfkq42jn<3`, `./crawler.js`);
 		this.addNode(crawler_ext);
 
-		const crawler_rdbl = new TextDoc('crawler.rdbl', '../assets/txtFiles/crawler.js');
+		const crawler_rdbl = new TextDoc('crawler.rdbl', `=ye42z=ww39kikqat`, '../assets/txtFiles/crawler.js');
 		this.addNode(crawler_rdbl);
 
-		const moveHere = new Node('move_here');
+		const moveHere = new Node('move_here', `*r#!jo>nbhk?>!mgw`);
 		this.addNode(moveHere);
 
-		const moveHereNext = new Node('move_here_next');
+		const moveHereNext = new Node('move_here_next', `0hjn?&w?n#onkbk$j`);
 		this.addNode(moveHereNext);
 
-		const nomad_dir = new Node('mole')
+		const nomad_dir = new Node('mole', `4qb1927k+4c*?zwz3`)
 		this.addNode(nomad_dir);
 
-		const nomad_rdbl = new TextDoc('nomad.rdbl', '../assets/txtFiles/nomad.js');
+		const nomad_rdbl = new TextDoc('nomad.rdbl', `*ga#hxf$+9nf$qa?$`, '../assets/txtFiles/nomad.js');
 		this.addNode(nomad_rdbl);
 
-		const nomad_mole = new Mole('nomad.mole', './nomad.js')
+		const nomad_mole = new Mole('nomad.mole', `n<*c0!pxvhp%0d\"rs`, './nomad.js')
 		this.addNode(nomad_mole);
 
-		const welcomeV2 = new TextDoc('read_this', '../assets/txtFiles/MXthumbIntro.js')
+		const welcomeV2 = new TextDoc('read_this', `8=4f#9>3n\"y!=3$i2`,'../assets/txtFiles/MXthumbIntro.js')
 		this.addNode(welcomeV2);
 
 		this.seed.attach(rucksack_ext);
 		this.seed.attach(reader_ext);
 		this.seed.attach(welcome);
 		this.seed.attach(sample);
-		this.seed.attach(nomad_mole)
+		this.seed.attach(nomad_mole);
+		this.seed.attach(silo_ext);
+
 
 		this.seed.attachTo(moveHere);
 		this.move_here.attachTo(moveHereNext);
