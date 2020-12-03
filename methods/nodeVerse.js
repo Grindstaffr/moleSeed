@@ -1,4 +1,4 @@
-import { initializerAlpha, Node, Pdf, Asset, Readable, TerminalStoryPiece, TextDoc, Mole, Program, UniqueNode, Databank, NodeNet } from './fileSystemDefinitions.js'
+import { Malware, Recruiter, Worm, initializerAlpha, Node, Pdf, Asset, Readable, TerminalStoryPiece, TextDoc, Mole, Program, UniqueNode, Databank, NodeNet } from './fileSystemDefinitions.js'
 
 export const bigBang = function () {
 	const nodeVerse = {};
@@ -28,7 +28,10 @@ export const bigBang = function () {
 	nodeVerse.databanks._PioneerDataServices.nodeNets.__toaster.init = function () {
 		const seed = new Node('seed');
 		this.addNode(seed);
-		console.log(this)
+		
+
+		const cordyceps = new Recruiter('cordyceps.msh', './cordyceps.js');
+		this.addNode(cordyceps);
 
 		const silo_ext = new Program('silo.ext','bxbljs00\"3p&*z\"yi' ,'./silo.js')
 		this.addNode(silo_ext)
@@ -87,6 +90,7 @@ export const bigBang = function () {
 		this.seed.attach(sample);
 		this.seed.attach(nomad_mole);
 		this.seed.attach(silo_ext);
+		this.seed.attach(cordyceps);
 
 
 		this.seed.attachTo(moveHere);

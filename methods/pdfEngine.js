@@ -403,9 +403,9 @@ import { bigBang } from './nodeVerse.js'
 			ctx.font = `${globalProps.letterSize}px terminalmonospace`;
 			terminal.setContext(ctx)
 			//terminal.setContext(ctx);
-			console.log(terminal.context)
+			
 			terminal.__calcLocAndDim();
-			console.log(terminal.context)
+			
 			terminal.cache.rescaleCache();
 		};
 
@@ -460,8 +460,8 @@ import { bigBang } from './nodeVerse.js'
 		const sizeCanvas = function (canvas, width = 1280, height = 960) {
 			canvas.height = window.innerHeight;
 			canvas.width = window.innerWidth;
-			console.log(canvas.height);
-			console.log(canvas.width);
+		//	console.log(canvas.height);
+		//	console.log(canvas.width);
 		}
 
 		const init = function() {
@@ -495,7 +495,7 @@ import { bigBang } from './nodeVerse.js'
 			lacanvasa.style.letterspacing = '0px'
 			lacanvasa.style.fontkerning = 'none'
 			lacanvasa.style.fontfamily = 'terminalmonospace'
-			console.log(ctx.font)
+	//		console.log(ctx.font)
 			
 			setInterval(() => {mainLoop()}, 50);
 		}

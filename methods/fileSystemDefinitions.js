@@ -99,6 +99,8 @@ export class Hardware extends Node {
 		super(name, address);
 		this.grabbable = false;
 		this.recruitable = true;
+		this.type = 'hardware'
+		this.Type = 'hardware'
 	}
 }
 
@@ -169,6 +171,8 @@ export class UniqueNode extends Node {
 };
 export class Malware extends UniqueNode {
 	constructor (name, address, url){
+		super();
+		this.url = url;
 		this.name = name;
 		this.address = `FUCK YOURSELF`
 		this.Type = `malware`
@@ -202,22 +206,23 @@ export class Worm extends Malware {
 };
 
 
-export class Recuiter extends Malware {
+export class Recruiter extends Malware {
 	constructor (name, url){
-		this.url = url;
-		this.name = name;
-		this.silo = {};
+		super(name, 'FUCKYOU',url);
+		this.siloAPI = {};
 		this.isSupported = false;
+		this.isArmed = false;
 		this.type = 'recruiter'
 		this.methods.arm = {
 			name : `arm`,
 			desc : `arm a recruiter`,
-			syntax : `arm [RECRUITER] trgt [HARDWARE]`,
+			syntax : `arm [RECRUITER]`,
 			ex : function () {
 				if (!this.isSupported){
 					this.api.throwError(` MIRAGE : "arm" not supported (missing dependencies)`)
 					return;
 				}
+				this.siloAPI.armRecruiter(this);
 
 			},
 		};
@@ -225,11 +230,12 @@ export class Recuiter extends Malware {
 			name : `trgt`,
 			desc : `target adjacent hardware with an armed recruiter`,
 			syntax : `trgt [HARDWARE]`,
-			ex: function () {
+			ex: function (hardwareName) {
 				if (!this.isSupported){
 					this.api.throwError(` MIRAGE : "trgt" not supported (missing dependencies)`)
 					return;
 				}
+				this.siloAPI.targetHardware()
 
 			},
 
@@ -253,11 +259,19 @@ export class Recuiter extends Malware {
 
 			},
 		};
-	}
-	grabTrigger (terminal, storageLoc, refreshFunc) {
 		var rctr = this;
-		rctr.terminal = this;
+		//console.log(this.url)
+		import(url).then(function(module){
+		//	console.log(module.recruiter)
+			rctr.trolls = module.recruiter.trolls 
+		});
+	};
+	grabTrigger (terminal, storageLoc, refreshFunc, callback) {
+
+		var rctr = this;
+		rctr.terminal = terminal;
 		rctr.api = rctr.terminal.api;
+		
 		var superGrabber = super.grabTrigger;
 		if (!terminal.programs[`silo.ext`]){
 			this.api.warn(`rucksack.ext does not support fileType:${this.type} without an extension`);
@@ -265,26 +279,38 @@ export class Recuiter extends Malware {
 			this.installSiloTrigger();
 		} else {
 			this.isSupported = true;
+			rctr.siloAPI = terminal.programs[`silo.ext`].methods.siloAPI
 		}
 		import(this.url).then(function(module){
 			if (callback){
 				callback(module.recruiter)
 			};
+			var recruiter = module.recruiter
+			rctr.effectiveness = recruiter.effectiveness;
+			rctr.slowness = recruiter.slowness;
+			rctr.crackingAbil = recruiter.crackingAbil;
 			superGrabber.call(rctr, terminal, storageLoc, refreshFunc);
+			rctr.methods.arm.ex = rctr.methods.arm.ex.bind(rctr)	
+			rctr.methods.trgt.ex = rctr.methods.trgt.ex.bind(rctr)	
+			rctr.methods.fire.ex = rctr.methods.fire.ex.bind(rctr)	
+						
 		})
 	};
 
-
+	arm () {
+		this.isArmed = true;
+	}
 
 	installSiloTrigger () {
-		var triggerWhenInstalled = this.grabTrigger
-		this.api.addInstallTrigger(function(programName){
-			if (progamName === 'silo.ext'){
-				triggerWhenInstalled();
+		var rctr = this;
+		this.api.addInstallTrigger(function(program){
+			if (program.name === 'silo.ext'){
+				rctr.isSupported = true;
+				rctr.siloAPI = program.methods.siloAPI;
 				return;
 			};
 			return;
-		}, `${this.name}_Silo`)
+		}, `${this.name}_silo`)
 
 	};
 
@@ -430,7 +456,7 @@ export class Mole extends UniqueNode {
 export class Readable extends Node {
 	constructor (name, address) {
 		super(name, address);
-		this.type = 'readable node';
+		this.type = 'readable';
 		this.commands.push('read')
 		this.canBeRead = true;
 	}

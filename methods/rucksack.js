@@ -15,7 +15,11 @@ export const program = {
 				if (node.name === `[EMPTY SLOT]`){
 					this.api.writeToGivenRow(` ${index} - ${node.name}`, (index*2) + 2);
 				} else {
-					this.api.writeToGivenRow(` ${index} - name : ${node.name}    type : ${node.type}`, (index*2) + 2)
+					if (node.Type === 'malware'){
+						this.api.writeToGivenRow(` ${index} - name : ${node.name}    type : !!ERROR!!: TYPE_NOT_FOUND_`, (index*2) + 2)	
+					} else {
+						this.api.writeToGivenRow(` ${index} - name : ${node.name}    type : ${node.type}`, (index*2) + 2)
+					}
 				}
 			}, this)
 		},
@@ -26,6 +30,9 @@ export const program = {
 
 	},
 	installData : {
+		api_triggerReDraw : function () {
+			this.ex();
+		},
 		ditch : {
 			name : 'ditch',
 			desc : 'ditch contents of a numbered slot in rucksack.ext',
@@ -100,7 +107,7 @@ export const program = {
 					this.methods.showContents();
 				}
 				this.api.writeLine('')
-				this.api.writeLine(`grabbed ${nodeName} into slot ${trueVal + 1}`)
+				this.api.writeLine(`grabbed ${nodeName} into slot ${trueVal}`)
 				this.api.writeLine('')
 			},
 		},
@@ -132,7 +139,7 @@ export const program = {
 		if (callback){
 			callback(this.installData);
 		}
-		this.installed = true;
+		this.isInstalled = true;
 		this.data.settings = this.settings
 		this.methods.data = this.data;
 		this.methods.api = this.api;
@@ -141,13 +148,13 @@ export const program = {
 		this.installData.grab.ex = this.installData.grab.ex.bind(this);
 		this.installData.rummage.ex = this.installData.rummage.ex.bind(this);
 		this.installData.ditch.ex = this.installData.ditch.ex.bind(this);
+		this.installData.api_triggerReDraw = this.installData.api_triggerReDraw.bind(this);
 		this.api.addCommand(this.installData.grab);
 		this.api.addCommand(this.installData.rummage);
+		this.api.addInterfaceFunction(this.installData.api_triggerReDraw,`reRenderRucksack`);
 
 	},
-	patch : function () {
-
-	},
+	
 	stop : function () {
 		this.settings.isRunning = false;
 		this.api.clearReservedRows();
@@ -167,9 +174,8 @@ export const program = {
 		this.methods.showContents();
 		this.methods.drawWindow();
 		this.data.storedNodes.forEach(function(node){
-			if(node.Type === 'node'){
-				this.api.appendAccessibleNodes(node)
-			}
+			this.api.appendAccessibleNodes(node)
+			
 		},this)
 	},
 }

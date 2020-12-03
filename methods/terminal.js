@@ -417,7 +417,7 @@ export const terminal = {
 				}
 				if (term[0] === '['){
 					if (this.validArgs[term] === undefined){
-						this.command.error.ex('syntax not implemented')
+						this.command.error.ex('syntax not implemented (possible missing dependencies)')
 						args = false;
 						return;
 					}
@@ -495,10 +495,48 @@ export const terminal = {
 			'[TEXT]' : "string",
 		};
 		compiler.assembleValidNodes = function () {
+			/*
 			this.validArgs['[MOLE]'] = this.command.validMoleList;
 			this.validArgs['[NODE]'] = this.command.validNodeList;
 			this.validArgs['[PROGRAM]'] = this.command.validProgramList;
 			this.validArgs['[PROGRAM]'] = this.command.validProgramList;
+			*/
+			const caseMap = {
+				node : '[NODE]',
+				malware : `[MALWARE]`,
+				hardware : `[HARWARE]`,
+				program : `[PROGRAM]`,
+				mole : `[MOLE]`,
+				worm : `[WORM]`,
+				recruiter : `[RECRUITER]`,
+				seed : `[SEED]`,
+				dataBank : `[DATABANK]`,
+				nodeNet : `[NODENET]`,
+				textDoc: `[TEXTDOC]`,
+				readable : `[READABLE]`,
+				null : `[NULL]`,
+				void : `[]`,
+				put : `[]`,				
+				other : `[]`,
+				things : `[]`,
+				here : `[]`,			
+			}
+
+			Object.keys(this.parent.accessibleNodes).forEach(function(nodeName){
+				var node = this.parent.accessibleNodes[nodeName]
+				if (node.Type !== 'node'){
+					if (!this.validArgs[caseMap[node.Type]]){
+						this.validArgs[caseMap[node.Type]] = [];
+					}
+					this.validArgs[caseMap[node.Type]].push(node.name);
+				};
+				this.validArgs[caseMap[`node`]].push(node.name);
+				if (!this.validArgs[caseMap[node.type]]){
+						this.validArgs[caseMap[node.type]] = [];
+					}
+					this.validArgs[caseMap[node.type]].push(node.name);
+			}, this)
+
 
 		};
 		compiler.assembleValidCommands = function () {
@@ -597,6 +635,9 @@ export const terminal = {
 				} else if (trmnl.activeNode.visibleAdjacencies[nodeName] === undefined){
 					cmd.error.ex('cannot move to non-adjacent nodes')
 					return;
+				} else if (trmnl.activeNode.visibleAdjacencies[nodeName].Type === 'malware'){
+					cmd.error.ex(`FAILURE: meta_prop [NODE]_width (expected number, got "${trmnl.activeNode.visibleAdjacencies[nodeName].trolls[parseInt(Math.floor(Math.random()*10))]}")`);
+					return;
 				}
 				trmnl.activeNode = trmnl.activeNode.visibleAdjacencies[nodeName];
 				trmnl.activeNode.trigger();
@@ -628,7 +669,7 @@ export const terminal = {
 							trmnl.programs[program.name] = program;
 							console.log('successfully Installed')
 							inst.triggerFuncs.forEach(function(callback){
-								callback(program)
+								callback(program, program)
 							});
 							cmd.prgms.isAvail = true;
 							cmd.cache.writeEmptyRow();
@@ -775,9 +816,9 @@ export const terminal = {
 			name : 'WARN',
 			ex : function (text) {
 				var cmd = this.parent;
-				cmd.cache.writeEmptyRow();
-				cmd.cache.writeToVisibleRow(`!_warning_!: ${text}`);
-				cmd.cache.writeEmptyRow();
+				//cmd.cache.writeEmptyRow();
+				cmd.cache.composeText(`!_Warning_!: ${text}`, true);
+				//cmd.cache.writeEmptyRow();
 			}
 		};
 		command.error = {
@@ -786,9 +827,9 @@ export const terminal = {
 			syntax: '',
 			ex : function (text) {
 				var cmd = this.parent;
-				cmd.cache.writeEmptyRow();
-				cmd.cache.writeToVisibleRow(`ERROR: ${text}`);
-				cmd.cache.writeEmptyRow();
+				//cmd.cache.writeEmptyRow();
+				cmd.cache.composeText(`ERROR: ${text}`, true);
+				//cmd.cache.writeEmptyRow();
 			},
 		};
 		command.verify = {
@@ -1401,6 +1442,19 @@ export const terminal = {
 			}
 			return false;
 		};
+		terminalInterface.addInterfaceFunction = function (func, funcName){
+			if (!typeof func === "function"){
+				console.log(`MISTAKE: TYPE OF FUNC IS...${typeof func}`)
+				return
+			}
+			this[funcName] = func;
+		};
+		terminalInterface.patchInterfaceFunction = function (func, funcName){
+			if (this[funcName]){
+				delete this[funcName];
+				this[funcName] = func;
+			};
+		};
 		terminalInterface.addCommand = function (commandObject) {
 			/*
 				commandObj = {
@@ -1463,7 +1517,7 @@ export const terminal = {
 		cache.inputBufferVerfied = false;
 
 		cache.rescaleCache = function () {
-			console.log(this.rowCount)
+			
 			var newDisplay = new Array(this.rowCount).fill([])
 			this.inputRow = new Array(this.rowCount).fill("");
 			this.inputRowPrev = new Array(this.rowCount).fill("");
@@ -1533,7 +1587,7 @@ export const terminal = {
 			newString = newString.substring(0,(tabIndex)) + "     " + newString.substring(tabIndex + 2);
 			return this.replaceTabs(newString);
 		};
-		cache.composeText = function (str){
+		cache.composeText = function (str, bool){
 			var string = this.eliminateBS(str)
 			string = this.replaceTabs(str)
 			this.writeEmptyRow();
@@ -1558,7 +1612,9 @@ export const terminal = {
 					appropriateIndex = this.inputRow.length;
 				}
 				this.writeToVisibleRow(string.substring(0, appropriateIndex));
-				this.writeEmptyRow();
+				if (!bool){
+					this.writeEmptyRow();
+				}
 				var newString = string.slice(appropriateIndex, string.length);
 				this.composeText(newString);
 				return;
@@ -1806,8 +1862,6 @@ export const terminal = {
 		this.context.font = `8px terminalmonospace`
 	},
 	__calcLocAndDim : function () {
-		console.log(this.canvas.height)
-		console.log(this.canvas.width)
 		var dim = Math.floor(this.canvas.height * (6/7))
 		var vBuff = Math.floor(this.canvas.height * (1/14))
 		var hBuff = ((this.canvas.width - dim)/2)
