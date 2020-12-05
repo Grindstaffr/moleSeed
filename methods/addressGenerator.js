@@ -1,4 +1,4 @@
-function addressGenerator (number) {
+export function addressGenerator (number) {
 	const map = {
 	0 : '0',
 	1 : '1',

@@ -199,9 +199,10 @@ export const terminal = {
 				verify : function (commandFull) {
 					//this.command.log.ex(this.verifyMessage);
 					var response = this.buffer.pop()[0]
+					var toggle = false;
 					if (response === 'y'){
 						if (this.callbacks.verify){
-							this.callbacks.verify(true);
+							this.callbacks.verify(true, toggle);
 						}
 						this.callbacks.verify = function () {};
 						var command = this.retrieveBufferedInput();
@@ -214,13 +215,17 @@ export const terminal = {
 					}
 					if (response === 'n'){
 						if (this.callbacks.verify){
-							this.callbacks.verify(false);
+							this.callbacks.verify(false, toggle);
 						}
 						this.callbacks.verify = function () {};
-						this.command.log.ex(`  aborted command : "${this.retrieveBufferedInput()}" `);
+						var command = this.retrieveBufferedInput()
+						this.command.log.ex(`  aborted command : "${command}" `);
 						this.messages.verify = this.messages.default_verify;
 						this.toggleFilterOff('verify');
 						//this.shouldReRouteInput = false;
+						if (toggle){
+							return command;
+						}
 						return this.retrieveBufferedInput();
 					}
 						this.command.error.ex(`User_cannot_answer_a_simple_yes_or_no_question`)
@@ -228,7 +233,7 @@ export const terminal = {
 						this.messages.verify = this.messages.default_verify;
 						this.toggleFilterOff('verify');
 						if (this.callbacks.verify){
-							this.callbacks.verify(false);
+							this.callbacks.verify(false, false);
 						}
 					return `User_cannot_answer_a_simple_yes_or_no_question`
 
@@ -552,7 +557,9 @@ export const terminal = {
 			Object.keys(this.parent.accessibleNodes).forEach(function(nodeName){
 				var node = this.parent.accessibleNodes[nodeName]
 				if (node.Type !== 'node'){
-					
+					if (node.Type === 'malware'){
+						this.validArgs[`[PROGRAM]`].push(node.name)
+					}
 					if (!this.validArgs[caseMap[node.Type]]){
 						
 						this.validArgs[caseMap[node.Type]] = [];
@@ -604,8 +611,8 @@ export const terminal = {
 						var name = cmd[key].name;
 						var desc = cmd[key].desc;
 						var line = (" ") + name + (" ").repeat(8 - name.length) + (": ") + desc;
-						cmd.cache.writeToVisibleRow(line)
-						cmd.cache.writeEmptyRow();
+						cmd.cache.composeText(line, true, true, 12)
+						//cmd.cache.writeEmptyRow();
 					}
 				})
 			},
@@ -717,6 +724,10 @@ export const terminal = {
 				var trmnl = cmd.parent;
 				var inst = this;
 				var program = trmnl.activeNode 
+				if (trmnl.accessibleNodes[programName].Type === 'malware'){
+					trmnl.accessibleNodes[programName].ex(trmnl);
+					return;
+				}
 				if (trmnl.activeNode.name !== programName){
 					program = trmnl.accessibleNodes[programName]
 				};
@@ -724,7 +735,7 @@ export const terminal = {
 					program.install(function(program){
 						program.install(trmnl, function(){
 							trmnl.programs[program.name] = program;
-							console.log('successfully Installed')
+							//console.log('successfully Installed')
 							inst.triggerFuncs.forEach(function(callback){
 								callback(program, program)
 							});
@@ -747,6 +758,10 @@ export const terminal = {
 			ex : function (programName) {
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
+				if (trmnl.accessibleNodes[programName].Type === 'malware'){
+					trmnl.accessibleNodes[programName].ex(trmnl);
+					return;
+				}
 				if (!trmnl.programs[programName]){
 					cmd.error.ex('cannot execute an uninstalled program')
 					return;
@@ -758,7 +773,7 @@ export const terminal = {
 						return;
 					}
 				}
-				trmnl.programs[programName].ex();
+				trmnl.programs[programName].ex(tmrnl);
 				trmnl.programs.runningPrograms[programName] = trmnl.programs[programName]
 				trmnl.command.stop.isAvail = true;
 				cmd.assembleValidCommands.ex();
@@ -884,7 +899,7 @@ export const terminal = {
 			syntax: '',
 			ex : function (text) {
 				var cmd = this.parent;
-				//cmd.cache.writeEmptyRow();
+				cmd.cache.writeEmptyRow();
 				cmd.cache.composeText(`ERROR: ${text}`, true);
 				//cmd.cache.writeEmptyRow();
 			},
@@ -1353,6 +1368,9 @@ export const terminal = {
 			this.cache.reserveRows(rowCount);
 			this.heightInRows = rowCount;
 		};
+		terminalInterface.getReservedRowCount = function () {
+			return this.cache.reservedRows
+		};
 		terminalInterface.clearUnreservedRows = function(){
 			this.cache.clearUnreservedRows();
 		};
@@ -1364,7 +1382,16 @@ export const terminal = {
 		};
 		terminalInterface.writeToGivenRow = function (string, rowIndex){
 			this.cache.writeToGivenRow(string,rowIndex);
+		
 		};
+		terminalInterface.writeToCoordinate = function (string, rowIndex, columnIndex) {
+			if (string.length > 1){
+				this.command.error.ex(`Can only write one character per cell`);
+				return;
+			};
+			this.cache.currentRows[rowIndex][columnIndex] = string;
+			return;
+		}
 		terminalInterface.composeText = function (string){
 			this.cache.composeText(string);
 		};
@@ -1537,6 +1564,15 @@ export const terminal = {
 		terminalInterface.unblockCommand = function (commandName) {
 			this.command.unblockCommand.ex(commandName);
 		};
+		terminalInterface.defeatedMalware = function (malwareName, malwareType) {
+			var text = `moleSeed's built-in anti-malware has scrubbed ${malwareName} from your system`
+			var text2 = `residual effects of ${malwareName} may be indeterminate`
+			var text3 = `try not to install or execute any more ${malwareType}s while you're bumbling aimlessly about... I mean... uh... If you wanna mess with that stuff... there are MUCH better ways of going about it.`
+			this.cache.composeText(text)
+			this.cache.composeText(text2)
+			this.cache.composeText(text3)
+			return;
+		}
 		const init = function (trmnl) {
 			terminalInterface.parent = trmnl;
 			terminalInterface.cache = trmnl.cache;
@@ -1640,10 +1676,15 @@ export const terminal = {
 			newString = newString.substring(0,(tabIndex)) + "     " + newString.substring(tabIndex + 2);
 			return this.replaceTabs(newString);
 		};
-		cache.composeText = function (str, bool){
+		cache.composeText = function (str, shouldUnSpace, shouldTab, tabSize){
 			var string = this.eliminateBS(str)
 			string = this.replaceTabs(str)
-			this.writeEmptyRow();
+			if (!tabSize) {
+				tabSize = 5;
+			}
+			if (!shouldUnSpace){
+				this.writeEmptyRow();
+			}
 			var maxSubstring = string.substring(0,this.inputRow.length);
 			var metaCharIndex = maxSubstring.indexOf(`\\`)
 			if (metaCharIndex >= 0){
@@ -1651,7 +1692,10 @@ export const terminal = {
 					this.writeToVisibleRow(maxSubstring.substring(0,metaCharIndex));
 					this.writeEmptyRow();
 					var newString = string.substring(metaCharIndex + 2);
-					this.composeText(newString);
+					if (shouldTab){
+						newString = "     " + newString;
+					}
+					this.composeText(newString, shouldUnSpace, shouldTab);
 					return;
 				}
 			}
@@ -1665,11 +1709,14 @@ export const terminal = {
 					appropriateIndex = this.inputRow.length;
 				}
 				this.writeToVisibleRow(string.substring(0, appropriateIndex));
-				if (!bool){
+				if (!shouldUnSpace){
 					this.writeEmptyRow();
 				}
 				var newString = string.slice(appropriateIndex, string.length);
-				this.composeText(newString);
+				if (shouldTab){
+						newString = (" ").repeat(tabSize) + newString;
+					}
+				this.composeText(newString, shouldUnSpace, shouldTab);
 				return;
 			}
 		};
@@ -1844,7 +1891,7 @@ export const terminal = {
 
 		cache.writeToGivenRow = function (string, rowNum) {
 			if (typeof string !== 'string'){
-				console.warn('cant use non-strings')
+				console.log(string)
 				return;
 			}
 			var row = new Array(this.inputRow.length).fill("");
@@ -1852,6 +1899,7 @@ export const terminal = {
 				row[index] = letter;
 			})
 			this.currentRows[rowNum] = row;
+			
 			return;
 
 		};

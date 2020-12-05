@@ -19,7 +19,13 @@ export const program = {
 	},
 	settings : {},
 	methods : {
-		siloAPI : {
+		siloApi : {
+			getLinkedHardware : function () {
+				if (!this.data.hardwareStatus.linked){
+					return false;
+				}
+				return this.data.linkedHardware;
+			},
 			getArmedRecruiterName : function () {
 				if (this.data.armedRecruiter.isDummy){
 					this.api.throwError(`no recruiter is armed`)
@@ -64,7 +70,7 @@ export const program = {
 			},
 			linkTargetedHardware : function (){
 				this.data.linkedHardware = this.data.targetedHardware
-				this.data.linkedHardware.link(this.methods.siloAPI, this.api);
+				this.data.linkedHardware.link(this.methods.siloApi, this.api);
 				this.data.hardwareStatus.linked = true;
 				this.data.hardwareStatus.targeted = false;
 				this.data.linkTimeStart = Date.now();
@@ -72,7 +78,7 @@ export const program = {
 				this.api.log(` ${this.data.armedRecruiter.name} success.`)
 				this.api.log(` ${this.data.linkedHardware.name} commands now accessible thru "recruit" syntax`)
 				
-				this.methods.siloAPI.clearDataAfterNewLink();
+				this.methods.siloApi.clearDataAfterNewLink();
 				
 				this.api.reRenderRucksack(true);
 
@@ -117,10 +123,12 @@ export const program = {
 					return;
 				} else {
 					this.data.armedRecruiter.recruitAnim(this.api, function(){
-						silo.linkTargetedHardware();
+						console.log(silo.data)
+						console.log(silo.data.armedRecruiter)
+						silo.data.armedRecruiter.methods.use.ex();
+						silo.methods.siloApi.linkTargetedHardware();
 						/*
 						silo.data.linkedHardware = silo.data.targetedHardware;
-						silo.data.armedRecruiter.methods.use.ex();
 						silo.methods.siloAPI.clearDataAfterNewLink();
 
 						silo.data.linkTimeStart = Date.now();
@@ -129,7 +137,7 @@ export const program = {
 						silo.api.log(`  RECRUIT SUCCESS`);
 						silo.api.reRenderRucksack(true);
 						*/
-						console.log(silo.data)
+						//console.log(silo.data)
 					})
 				};
 
@@ -178,7 +186,8 @@ export const program = {
 			var now = Date.now();
 			this.data.linkTime = now - this.data.linkTimeStart;
 			if (this.data.linkTime >= this.data.unLinkTime){
-				this.methods.siloAPI.clearDataAfterLinkExpires();
+				this.data.linkedHardware.jettison();
+				this.methods.siloApi.clearDataAfterLinkExpires();
 				this.api.log(`Link Broken`)
 				this.api.reserveRows(0);
 				//DO RESETS (SHUD HAVE FUNC FOR DO)
@@ -274,8 +283,8 @@ export const program = {
 		this.rucksack.methods.showContents = this.installData.patch_showContents;
 		this.rucksack.methods.drawWindow = this.installData.patch_drawWindow;
 
-		Object.keys(this.methods.siloAPI).forEach(function(key){
-			this.methods.siloAPI[key] = this.methods.siloAPI[key].bind(this);
+		Object.keys(this.methods.siloApi).forEach(function(key){
+			this.methods.siloApi[key] = this.methods.siloApi[key].bind(this);
 		}, this);
 
 		/*
