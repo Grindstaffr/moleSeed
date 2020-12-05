@@ -1,4 +1,4 @@
-import { Malware, Recruiter, Worm, initializerAlpha, Node, Pdf, Asset, Readable, TerminalStoryPiece, TextDoc, Mole, Program, UniqueNode, Databank, NodeNet } from './fileSystemDefinitions.js'
+import { Hardware, QRig, Malware, Recruiter, Worm, initializerAlpha, Node, Pdf, Asset, Readable, TerminalStoryPiece, TextDoc, Mole, Program, UniqueNode, Databank, NodeNet } from './fileSystemDefinitions.js'
 
 export const bigBang = function () {
 	const nodeVerse = {};
@@ -15,7 +15,7 @@ export const bigBang = function () {
 	}
 
 
-	const _PioneerDataServices = new Databank(`_PioneerDataServices`,`PDS_k9.34.00`, `dz019q$$tajz>`)
+	const _PioneerDataServices = new Databank(`_PioneerDataServices`,`PDS_p9.34.00`, `dz019q$$tajz>`)
 	nodeVerse.appendDataBank(_PioneerDataServices);
 	/*
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -29,6 +29,8 @@ export const bigBang = function () {
 		const seed = new Node('seed');
 		this.addNode(seed);
 		
+		const wallysIbsQ19 = new QRig(`wally'sIBSQ19`, 'c6#!k%uvo3yg$<lcx','./wallysIbsQ19.js');
+		this.addNode(wallysIbsQ19);
 
 		const cordyceps = new Recruiter('cordyceps.msh', './cordyceps.js');
 		this.addNode(cordyceps);
@@ -68,6 +70,7 @@ export const bigBang = function () {
 
 		const moveHere = new Node('move_here', `*r#!jo>nbhk?>!mgw`);
 		this.addNode(moveHere);
+		moveHere.encrypt(7,`babydiaper`)
 
 		const moveHereNext = new Node('move_here_next', `0hjn?&w?n#onkbk$j`);
 		this.addNode(moveHereNext);
@@ -91,6 +94,7 @@ export const bigBang = function () {
 		this.seed.attach(nomad_mole);
 		this.seed.attach(silo_ext);
 		this.seed.attach(cordyceps);
+		this.seed.attach(wallysIbsQ19);
 
 
 		this.seed.attachTo(moveHere);

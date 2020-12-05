@@ -3,12 +3,14 @@ export const program = {
 	isInstalled : false,
 	runsInBackground : true,
 	data: {
-		armedRecruiter : {},
-		targetedHardware : {},
-		breakTime : 100000,
+		armedRecruiter : {isDummy : true},
+		targetedHardware : {isDummy : true},
+		meanUnLinkTime : 300000,
+		unLinkTime : 100000,
 		linkTime: 0,
 		linkTimeStart: 0,
-		linkedHardware : {},
+		linkedHardware : {isDummy : true},
+		canRecruit : false,
 		hardwareStatus : {
 			linked : false,
 			targeted : false,
@@ -18,16 +20,120 @@ export const program = {
 	settings : {},
 	methods : {
 		siloAPI : {
+			getArmedRecruiterName : function () {
+				if (this.data.armedRecruiter.isDummy){
+					this.api.throwError(`no recruiter is armed`)
+					return;
+				}
+				if (!this.data.armedRecruiter.name){
+					this.api.throwError(`missing value (ARMD RCTR [NAME])`)
+					return;
+				};
+				return this.data.armedRecruiter.name;
+			},
+			getTargetedHardwareName : function () {
+				if (this.data.targetedHardware.isDummy){
+					this.api.throwError(`no hardware is targeted`)
+				}
+				if (!this.data.targetedHardware.name){
+					this.api.throwError(`missing value (TRGT HDWR [NAME])`)
+					return;
+				}
+				return this.data.targetedHardware.name
+			},
 			armRecruiter : function (recruiter) {
 				this.data.armedRecruiter = recruiter;
 				this.data.armedRecruiter.arm();
 				this.api.reRenderRucksack(true);
 			},
+			resetAllData : function (){
+				this.data = {
+					armedRecruiter : {isDummy : true},
+					targetedHardware : {isDummy : true},
+					meanUnLinkTime : 300000,
+					unLinkTime : 100000,
+					linkTime: 0,
+					linkTimeStart: 0,
+					linkedHardware : {isDummy : true},
+					canRecruit : false,
+					hardwareStatus : {
+						linked : false,
+						targeted : false,
+					},
+				}
+			},
+			linkTargetedHardware : function (){
+				this.data.linkedHardware = this.data.targetedHardware
+				this.data.linkedHardware.link(this.methods.siloAPI, this.api);
+				this.data.hardwareStatus.linked = true;
+				this.data.hardwareStatus.targeted = false;
+				this.data.linkTimeStart = Date.now();
+
+				this.api.log(` ${this.data.armedRecruiter.name} success.`)
+				this.api.log(` ${this.data.linkedHardware.name} commands now accessible thru "recruit" syntax`)
+				
+				this.methods.siloAPI.clearDataAfterNewLink();
+				
+				this.api.reRenderRucksack(true);
+
+			},
+			clearDataAfterNewLink : function () {
+				this.data.armedRecruiter = {isDummy : true};
+				this.data.targetedHardware = {isDummy : true};
+			},
+			clearDataAfterLinkExpires : function () {
+				this.data.hardwareStatus.linked = false; 
+				this.data.unLinkTime = this.data.meanUnLinkTime;
+				this.data.linkTimeStart = 0;
+				this.data.linkTime = 0;
+				this.data.linkedHardware = {isDummy : true};
+			},
 			targetHardware: function (hardwareName) {
-				this.data.targetedHardware = this.api.getAdjacentNodes()[hardwareName]
+				var silo = this;
+				var target = this.api.getAdjacentNodes()[hardwareName];
+				if (!target){
+					this.api.throwError(`targeted hardware not accessible`)
+					return;
+				}
+				if (target.Type !== 'hardware'){
+					this.api.throwError(`must target hardware (expected Type = "hardware", got Type = "${target.Type}")`)
+				}
+				this.data.targetedHardware = target;
+				this.data.targetedHardware.getSpecs(function(data){
+					silo.data.hardwareStatus.targeted = true;
+					silo.data.unLinkTime = Math.floor(silo.data.meanUnLinkTime * (silo.data.armedRecruiter.effectiveness/silo.data.targetedHardware.specs.resistance))
+					silo.data.canRecruit = (silo.data.armedRecruiter.crackingAbil >= silo.data.targetedHardware.specs.security)
+					silo.api.reRenderRucksack(true);
+				})
+
 			},
 			launchRecruiter : function (recruiter){
-				this.data.linkTimeStart = Date.now();
+				var silo = this;
+				if (!this.data.canRecruit){
+					this.data.armedRecruiter.failureAnim(this.api, function () {
+						silo.api.log(`  RECRUIT FAILURE: ${silo.armedRecruiter.name} (detected non-exploited Anti-Malware program)`)
+						return;
+					})
+					return;
+				} else {
+					this.data.armedRecruiter.recruitAnim(this.api, function(){
+						silo.linkTargetedHardware();
+						/*
+						silo.data.linkedHardware = silo.data.targetedHardware;
+						silo.data.armedRecruiter.methods.use.ex();
+						silo.methods.siloAPI.clearDataAfterNewLink();
+
+						silo.data.linkTimeStart = Date.now();
+						silo.data.hardwareStatus.linked = true;
+						silo.data.hardwareStatus.targeted = false;
+						silo.api.log(`  RECRUIT SUCCESS`);
+						silo.api.reRenderRucksack(true);
+						*/
+						console.log(silo.data)
+					})
+				};
+
+				
 				//program fun shit here
 
 			},
@@ -57,9 +163,9 @@ export const program = {
 				var hdwrHeader = 'NO HDWR'
 				line = line + hdwrHeader + (" ").repeat(spacing - hdwrHeader.length)
 			};
-			if ((this.data.hardwareStatus.linked) && (this.data.linkTime <= this.data.breakTime)){
-				var timeHeader = `TIME : ${this.data.linkTime} / ${this.data.breakTime}`
-				line = line + timeHeader;
+			if ((this.data.hardwareStatus.linked) && (this.data.linkTime <= this.data.unLinkTime)){
+				var timeHeader = `TIME : ${this.data.linkTime} / ${this.data.unLinkTime}`
+				line = line + "  " + timeHeader;
 			};
 			this.api.writeToGivenRow(line, 1)
 			this.api.writeToGivenRow((' -').repeat((Math.floor(this.api.getRowCount()/2))-4 )+ ' silo.ext',3)
@@ -71,8 +177,10 @@ export const program = {
 			}
 			var now = Date.now();
 			this.data.linkTime = now - this.data.linkTimeStart;
-			if (this.data.linkTime <= this.data.breakTime){
-				this.linkedHardware = {};
+			if (this.data.linkTime >= this.data.unLinkTime){
+				this.methods.siloAPI.clearDataAfterLinkExpires();
+				this.api.log(`Link Broken`)
+				this.api.reserveRows(0);
 				//DO RESETS (SHUD HAVE FUNC FOR DO)
 			}
 			//can drop some kinds of triggers in here
@@ -98,13 +206,16 @@ export const program = {
 			this.settings.isRunning = false;
 			this.api.clearReservedRows();
 			this.api.reserveRows(0);
+			if (this.silo.data.hardwareStatus.linked){
+				this.api.reserveRows(4)
+			}
 			// this.methods.drawSilo();
 			// AT some later point, we may wanna upgrade silo from a patch upgrade for rucksack to being standalone... but not now!
 			this.api.unblockCommand('mv');
 			this.api.clearAccessibleMalware();
 			
 			if (this.silo.data.armedRecruiter.isArmed){
-				this.api.appendAccessibleMalware(this.silo.armedRecruiter);
+				this.api.appendAccessibleMalware(this.silo.data.armedRecruiter);
 				this.methods.drawSilo();
 				return;
 			};
@@ -163,9 +274,15 @@ export const program = {
 		this.rucksack.methods.showContents = this.installData.patch_showContents;
 		this.rucksack.methods.drawWindow = this.installData.patch_drawWindow;
 
+		Object.keys(this.methods.siloAPI).forEach(function(key){
+			this.methods.siloAPI[key] = this.methods.siloAPI[key].bind(this);
+		}, this);
+
+		/*
 		this.methods.siloAPI.armRecruiter = this.methods.siloAPI.armRecruiter.bind(this);
 		this.methods.siloAPI.targetHardware = this.methods.siloAPI.targetHardware.bind(this);
-		this.methods.siloAPI.launchRecruiter = this.methods.siloAPI.launchRecruiter.bind(this)
+		this.methods.siloAPI.launchRecruiter = this.methods.siloAPI.launchRecruiter.bind(this);
+		*/
 
 		this.api.patchInterfaceFunction(this.installData.patch_rucksack_ex.bind(this.rucksack), 'reRenderRucksack')
 

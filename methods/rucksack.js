@@ -88,7 +88,8 @@ export const program = {
 					//need to throw a verify here.... but current verify syntax is all tangled, so I can't just throw one in the middle...
 				}
 				if (!node.grabbable){
-					this.api.throwError(`cannot grab ${node} into ${trueVal} (${node.type} cannot be grabbed)`)
+					this.api.throwError(`cannot grab ${node.name} into ${trueVal} (${node.type} cannot be grabbed)`)
+					return;
 				};
 
 				this.data.storedNodes[trueVal] = node; 

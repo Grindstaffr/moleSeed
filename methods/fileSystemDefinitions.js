@@ -14,10 +14,71 @@ export class Node {
 		this.triggerOnGrab = false;
 		this.grabbable = true;
 		this.recruitable = false;
+		this.moveTriggeredFunctions = [];
 	};
-	trigger () {
-	
+	triggerOnMove (context, lastNode) {
+		if (this.moveTriggeredFunctions.length === 0){
+			return;
+		}
+		this.moveTriggeredFunctions.forEach(function(func){
+			if (typeof func !== 'function'){
+				return;
+			}
+			func(context, lastNode);
+		}, this)
 	}
+
+	setURL (url) {
+		this.url = url;
+	}
+
+	encrypt(level, password){
+		this.Type = `encrypted`;
+		this.isEncrypted = true;
+		this.encryptionData = {
+			password : password,
+			level : level,
+			guessAgainDeclined : false,
+		}
+		this.moveTriggeredFunctions.push(this.setAPI.bind(this))
+		this.moveTriggeredFunctions.push(this.encryptionBarrier.bind(this));
+	}
+
+	encryptionBarrier(context, lastNode){
+		var node = this;
+		var lastNode = lastNode
+		console.log(lastNode)
+		this.api.requestInput(function(commandFull){
+			var keyCode = commandFull.split(" ")[0]
+			if (keyCode === node.encryptionData.password){
+				node.api.log(` :: KEYCODE CORRECT :: `)
+				return;
+			} else {
+				node.api.log(` :: KEYCODE INCORRECT ::`)
+				node.api.verifyCommand(`try again? `, function (bool) {
+					if (!bool){
+						node.encryptionData.guessAgainDeclined = true;
+						node.api.executeCommand('mv', lastNode.name, true, lastNode)
+						return;
+					} else {
+						return;
+					}
+				})
+				/*
+				if (node.encryptionData.guessAgainDeclined){
+					node.encryptionData.guessAgainDeclined = false;
+					node.api.executeCommand('mv', lastNode.name, true, lastNode)
+				}
+				*/
+			}
+		}, ` :: AUTHORIZATION REQUIRED :: ENTER KEYCODE : `)
+	}
+
+	setAPI(context){
+		this.api = context.api;
+		return;
+	}
+
 	detachFromAll () {
 		console.log(`jettisoning node`)
 		for (var property in this.adjacencies){
@@ -95,13 +156,106 @@ export class Program extends Node {
 	}
 }
 export class Hardware extends Node {
-	constructor (name, address){
+	constructor (name, address, url){
 		super(name, address);
 		this.grabbable = false;
 		this.recruitable = true;
 		this.type = 'hardware'
 		this.Type = 'hardware'
+		this.url = url;
+		this.methods = {};
+		this.methods.unlink = {
+			name : `unlink`,
+			desc : `unlink linked hardware`,
+			syntax : `unlink`,
+			ex : function () {
+				this.siloAPI.clearDataAfterLinkExpires();
+
+			},
+		}
+		this.methods.recruit = {
+			name : `recruit`,
+			desc : `declare linked hardware to operate terminal commands on declared hardware`,
+			syntax : `recruit [HARDWARE] ...`,
+			ex : function (hardwareName, command, commandArg, commandArg2){
+				if (!command){
+
+					this.api.extendCommand()
+					return;
+				}
+				var hardware = this;
+				if (!this.hardware){
+					return;
+				}
+			}
+		};
+		this.methods.hardwareCommands  = {};
+		this.methods.hardwareCommands.help = {
+			name : 'help',
+			desc : 'list available commands for declared hardware',
+			syntax : `recruit [HARDWARE] help`,
+			ex : function () {
+				var hCmd = this.hardwareCommands;
+				this.api.writeLine("")
+				this.api.writeLine(` --- listing available commands for ${this.name} with descriptions ---  `)
+				this.api.writeLine("");
+				this.api.writeLine("");
+				Object.keys(hCmd).forEach(function(commandName){
+					var name = hCmd[commandName].name
+					var desc = hCmd[commandName].desc
+					var line = (" ") + name + (" ").repeat(8 - name.length) + (": ") + desc
+					this.api.writeLine(line)
+					this.api.writeLine("");
+				},this)
+			}
+		}
+		this.methods.hardwareCommands.info = {
+			name : `info`,
+			desc : `display information for declared hardware`,
+			syntax : `recruit [HARDWARE] info`,
+			ex : function () {
+				this.api.writeLine("");
+				this.api.writeLine( ` ::: specs for ${this.name} ::: `);
+				this.api.writeLine("");
+				Object.keys(this.specs).forEach(function(key){
+					if (typeof this.specs[key] === "string"){
+						var key = key;
+						var data = this.specs[key];
+						var line = key + " : " + data;
+						this.api.composeText(line, true);
+					}
+				}, this);
+			} 
+		}
+		this.link = this.link.bind(this);
 	}
+
+	getSpecs (callback) {
+		var hardware = this;
+		import(this.url).then(function(hardwareDataMod){
+				hardware.specs = hardwareDataMod.hardware
+			if (callback){
+				callback(hardwareDataMod);
+			}
+		});
+	}
+
+	bindAll (context) {
+		Object.keys(context.hardwareCommands).forEach(function(commandName){
+			context.hardwareCommands[commandName].ex = context.hardwareCommands[commandName].bind(context)
+		}, context);
+	}
+
+	link (siloAPI, api) {
+		this.siloAPI = siloAPI;
+		this.api = api;
+		this.bindAll(this);
+		Object.keys(this.methods).forEach(function(commandName){
+			this.methods[commandName].ex = this.methods[commandName].ex.bind(this);
+		}, this);
+	}
+
+
 }
 
 export class ProcessorMatrix extends Hardware {
@@ -109,9 +263,38 @@ export class ProcessorMatrix extends Hardware {
 }
 
 export class QRig extends Hardware {
-	constructor (name, address, speed){
-		super(name, address)
-		this.speed = speed
+	constructor (name, address, url){
+		super(name, address, url)
+		this.type = `Q-Rig`
+		this.methods.hardwareCommands.BF = {
+			name : 'BF',
+			desc : 'brute force an encrypted node',
+			syntax : `BF [NODE]`,
+			verificationCheckCrypt : false,
+			ex : function (nodeName){
+				var target = this.api.getAccessibleNodes[nodeName];
+				var qRig = this;
+				var skip = false;
+				var ver = qRig.methods.hardwareCommands.BF
+				if (target.Type !== 'encrypted' && !ver.verificationCheckCrypt){
+					this.api.warn(`node not encrypted. BF call is a waste of time and electricity`);
+					this.api.verifyCommand('Waste time and electricity? ',function(bool){
+						if (!bool){
+							return;
+						}
+						ver.verificationCheckCrypt = true;
+						skip = true;
+					})
+					return;
+				}
+				if (!skip){
+					if (this.specs.qubits >= target.encryptionData.level){
+						
+					}
+				}
+			}
+
+		}
 	}
 }
 
@@ -217,12 +400,13 @@ export class Recruiter extends Malware {
 			name : `arm`,
 			desc : `arm a recruiter`,
 			syntax : `arm [RECRUITER]`,
-			ex : function () {
-				if (!this.isSupported){
-					this.api.throwError(` MIRAGE : "arm" not supported (missing dependencies)`)
+			ex : function (recruiterName) {
+				var recruiter = this.api.getAccessibleNodes()[recruiterName]
+				if (!recruiter.isSupported){
+					this.api.throwError(`MIRAGE: "arm" not supported (missing dependencies)`)
 					return;
 				}
-				this.siloAPI.armRecruiter(this);
+				this.siloAPI.armRecruiter(recruiter);
 
 			},
 		};
@@ -232,10 +416,10 @@ export class Recruiter extends Malware {
 			syntax : `trgt [HARDWARE]`,
 			ex: function (hardwareName) {
 				if (!this.isSupported){
-					this.api.throwError(` MIRAGE : "trgt" not supported (missing dependencies)`)
+					this.api.throwError(`MIRAGE: "trgt" not supported (missing dependencies)`)
 					return;
 				}
-				this.siloAPI.targetHardware()
+				this.siloAPI.targetHardware(hardwareName)
 
 			},
 
@@ -248,14 +432,56 @@ export class Recruiter extends Malware {
 			verificationCheckA : false,
 			verificationCheckB : false,
 			verificationCheckC : false,
-			ex: function () {
-				if (!this.isSupported){
-					this.api.throwError(` MIRAGE : "fire" not supported (missing dependencies)`)
+			ex: function (recruiterName) {
+				var rctr = this;
+				var recruiter = this.api.getAccessibleNodes()[recruiterName];
+				if (!recruiter.isSupported){
+					this.api.throwError(`MIRAGE: "fire" not supported (missing dependencies)`)
+					return;
+				};
+				if (recruiterName !== this.siloAPI.getArmedRecruiterName()){
+					this.api.throwError(`${this.siloAPI.getArmedRecruiterName()} is armed. Cannot fire a different recruiter`);
+					return;
+				};
+				if (!recruiter.isArmed){
+					this.api.throwError(`${recruiter.name} unarmed... cannot fire an unarmed recruiter`);
+				}
+				var launchControl = recruiter.methods.fire;
+				if (!launchControl.verificationCheckA){
+					this.api.verifyCommand(`armed recruiter: ${recruiter.name}, targeted hardware: ${rctr.siloAPI.getTargetedHardwareName()}, confirm? `,function(bool){
+						if (!bool){
+							return;
+						}
+						launchControl.verificationCheckA = true;
+						rctr.api.log(``)
+					});
+					return;
+				};
+				if (!launchControl.verificationCheckB){
+					this.api.verifyCommand(`Use of recruiter-Ware is prohibited by the fucking cops and shit... Continue? `,function(bool){
+						if (!bool){
+							return;
+						}
+						launchControl.verificationCheckB = true;
+						rctr.api.log(``)
+					});
 					return;
 				}
-				if (!verificationCheckA){
-					this.api.verifyCommand(`message`,function(){});
+				if (!launchControl.verificationCheckC){
+					this.api.verifyCommand(`Instance of ${recruiter.name} is single-use... fire command will expend usage. Continue?`,function(bool){
+						if (!bool){
+							return;
+						}
+						launchControl.verificationCheckC = true;
+						rctr.api.log(``)
+					});
+					return;
 				}
+
+				launchControl.verificationCheckA = false; 		
+				launchControl.verificationCheckB = false;				
+				launchControl.verificationCheckC = false;		
+				this.siloAPI.launchRecruiter(recruiter);
 
 			},
 		};
@@ -289,6 +515,8 @@ export class Recruiter extends Malware {
 			rctr.effectiveness = recruiter.effectiveness;
 			rctr.slowness = recruiter.slowness;
 			rctr.crackingAbil = recruiter.crackingAbil;
+			rctr.recruitAnim = recruiter.recruitAnim;
+			rctr.failureAnim = recruiter.failureAnim;
 			superGrabber.call(rctr, terminal, storageLoc, refreshFunc);
 			rctr.methods.arm.ex = rctr.methods.arm.ex.bind(rctr)	
 			rctr.methods.trgt.ex = rctr.methods.trgt.ex.bind(rctr)	

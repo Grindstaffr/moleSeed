@@ -116,7 +116,11 @@ export const terminal = {
 					return;
 				}
 			};
-
+			if (this.shouldNotSubmitCatch){
+				this.shouldNotSubmitCatch = false;
+				this.buffer.pop();
+				return;
+			}
 
 			for (var prop in this.filtersPassed){
 				this.filtersPassed[prop] = false;
@@ -134,15 +138,18 @@ export const terminal = {
 			var commandFull = this.cache.getInputRow();
 			this.cache.submitInput();
 			this.blinkyCursor.position.leadTheText();
-			this.bufferInput(commandFull);
 			if (this.shouldReRouteInput()) {
+				this.bufferInput(commandFull);
 				this.reRouteInput(commandFull);
 				return;
+			} else {
+				
+				this.sendToCompiler(commandFull);
 			}
-			this.sendToCompiler(commandFull);
 		};
 
 		input.sendToCompiler = function (commandFull){
+			this.bufferInput(commandFull)
 			this.command.assembleValidNodes.ex();
 			this.compiler.assembleValidNodes();
 			this.api.raiseSubmitFlag();
@@ -168,6 +175,9 @@ export const terminal = {
 		input.deleteLastBufferedInput = function () {
 			this.buffer.pop();
 			return this.buffer.length
+		};
+		input.reBufferLastCmd = function () {
+			this.bufferInput(this.buffer[this.buffer.length-1])
 		};
 		input.toggleFilterOff = function (string) {
 			if (Object.keys(this.filters).indexOf(string) === -1){
@@ -204,7 +214,7 @@ export const terminal = {
 					}
 					if (response === 'n'){
 						if (this.callbacks.verify){
-							this.callbacks.verify(true);
+							this.callbacks.verify(false);
 						}
 						this.callbacks.verify = function () {};
 						this.command.log.ex(`  aborted command : "${this.retrieveBufferedInput()}" `);
@@ -213,14 +223,31 @@ export const terminal = {
 						//this.shouldReRouteInput = false;
 						return this.retrieveBufferedInput();
 					}
+						this.command.error.ex(`User_cannot_answer_a_simple_yes_or_no_question`)
+						this.command.log.ex(`  aborted command : "${this.retrieveBufferedInput()}" `);
+						this.messages.verify = this.messages.default_verify;
+						this.toggleFilterOff('verify');
+						if (this.callbacks.verify){
+							this.callbacks.verify(false);
+						}
 					return `User_cannot_answer_a_simple_yes_or_no_question`
 
 				},
 				extend : function (commandFull) {
 
+					var response = this.buffer.pop();
+
 				},
 				input : function (commandFull) {
-
+					if (this.callbacks.input){
+						this.callbacks.input(commandFull);
+						this.callbacks.input = function () {};
+						this.messages.input = this.messages.default_input;
+						this.toggleFilterOff(`input`)
+						this.filtersPassed.input = true;
+						return;
+					}
+					return;
 				},
 				narrow : function (commandFull, bool){
 					var inputTerms = commandFull.split(" ");
@@ -504,7 +531,7 @@ export const terminal = {
 			const caseMap = {
 				node : '[NODE]',
 				malware : `[MALWARE]`,
-				hardware : `[HARWARE]`,
+				hardware : `[HARDWARE]`,
 				program : `[PROGRAM]`,
 				mole : `[MOLE]`,
 				worm : `[WORM]`,
@@ -515,7 +542,7 @@ export const terminal = {
 				textDoc: `[TEXTDOC]`,
 				readable : `[READABLE]`,
 				null : `[NULL]`,
-				void : `[]`,
+				encrypted : `[ENCRYPTED]`,
 				put : `[]`,				
 				other : `[]`,
 				things : `[]`,
@@ -525,7 +552,9 @@ export const terminal = {
 			Object.keys(this.parent.accessibleNodes).forEach(function(nodeName){
 				var node = this.parent.accessibleNodes[nodeName]
 				if (node.Type !== 'node'){
+					
 					if (!this.validArgs[caseMap[node.Type]]){
+						
 						this.validArgs[caseMap[node.Type]] = [];
 					}
 					this.validArgs[caseMap[node.Type]].push(node.name);
@@ -537,7 +566,7 @@ export const terminal = {
 					this.validArgs[caseMap[node.type]].push(node.name);
 			}, this)
 
-
+			
 		};
 		compiler.assembleValidCommands = function () {
 			this.validArgs['[COMMAND]'] = this.command.validCommandList;
@@ -624,30 +653,58 @@ export const terminal = {
 			desc: 'move to an adjacent node',
 			syntax: 'mv [NODE]',
 			isAvail: true,
-			ex: function (nodeName) {
+			prevNodes : [],
+			ex: function (nodeName, forceThru, node) {
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
 				if (trmnl.activeNode.name === nodeName){
 					cmd.cache.writeEmptyRow();
 					cmd.cache.writeToVisibleRow(`moved nowhere`)
 					cmd.cache.writeEmptyRow();
+					trmnl.activeNode.triggerOnMove(trmnl, this.retrieveLastPrevNode());
 					return;
-				} else if (trmnl.activeNode.visibleAdjacencies[nodeName] === undefined){
+				} else if (!forceThru && trmnl.activeNode.visibleAdjacencies[nodeName] === undefined ){
 					cmd.error.ex('cannot move to non-adjacent nodes')
 					return;
-				} else if (trmnl.activeNode.visibleAdjacencies[nodeName].Type === 'malware'){
+				} else if (!forceThru && trmnl.activeNode.visibleAdjacencies[nodeName].Type === 'malware'){
 					cmd.error.ex(`FAILURE: meta_prop [NODE]_width (expected number, got "${trmnl.activeNode.visibleAdjacencies[nodeName].trolls[parseInt(Math.floor(Math.random()*10))]}")`);
 					return;
 				}
-				trmnl.activeNode = trmnl.activeNode.visibleAdjacencies[nodeName];
-				trmnl.activeNode.trigger();
-				cmd.assembleAccessibleNodes.ex();
-				cmd.assembleValidNodes.ex();
-				cmd.compiler.assembleValidNodes();
+				var nodeToMoveto = trmnl.activeNode.visibleAdjacencies[nodeName];
+				if (forceThru && node){
+					console.log(`forcing thru`)
+					nodeToMoveto = node;
+				}
+				var lastNode = trmnl.activeNode
+				
 				cmd.cache.writeEmptyRow();
 				cmd.cache.writeToVisibleRow(`moved to ${nodeName}`)
 				cmd.cache.writeEmptyRow();
-			}
+				trmnl.activeNode = nodeToMoveto;
+				this.addToPrevNodes(lastNode);
+				var lastNode = this.retrieveLastPrevNode();
+				trmnl.activeNode.triggerOnMove(trmnl, lastNode);
+				cmd.assembleAccessibleNodes.ex();
+				cmd.assembleValidNodes.ex();
+				cmd.compiler.assembleValidNodes();
+			},
+			addToPrevNodes: function(node){
+				var cmd = this.parent;
+				var trmnl = cmd.parent;
+				if (node.name === this.prevNodes[this.prevNodes.length - 1]){
+					return;
+				}
+				if (node.name === trmnl.activeNode.name){
+					return;
+				}
+				if (this.prevNodes.length > 20){
+					this.prevNodes.shift();
+				}
+				this.prevNodes.push(node)
+			},
+			retrieveLastPrevNode : function () {
+				return this.prevNodes[this.prevNodes.length - 1]
+			},
 		};
 		command.install = {
 			name : 'install',
@@ -807,9 +864,9 @@ export const terminal = {
 		command.log = {
 			ex: function (text) {
 				var cmd = this.parent;
-				cmd.cache.writeEmptyRow();
-				cmd.cache.writeToVisibleRow(`${text}`);
-				cmd.cache.writeEmptyRow();
+				//cmd.cache.writeEmptyRow();
+				cmd.cache.composeText(`${text}`, true);
+				//cmd.cache.writeEmptyRow();
 			},
 		};
 		command.warn = {
@@ -1276,23 +1333,19 @@ export const terminal = {
 			this.input.callbacks.extend = callback;
 
 		};
-		terminalInterface.requestInput = function (command, message) {
+		terminalInterface.requestInput = function (callback, message) {
 			//this.input.shouldReRouteInput = true;
 			this.input.toggleFilterOn('input');
-			if(!command){
-				this.command.error.ex('COMPILERERROR: COMMAND INPUT NEEDED ON INPUT REQS');
-				//this.input.shouldReRouteInput = false;
-				return;
+			this.input.shouldNotSubmitCatch = true;
+			if (message){
+				this.input.messages.input = message;	
 			}
-			this.input.commandToExted = command;
-			if (!message){
-				return;
-			}
-			this.input.messages.input = message;
 			if (!callback){
 				return;
 			}
 			this.input.callbacks.input = callback;
+			this.command.log.ex(this.input.messages.input);
+
 		};
 
 		terminalInterface.reserveRows = function (numberOfRows){
@@ -1422,12 +1475,12 @@ export const terminal = {
 		terminalInterface.lowerSubmitFlag = function () {
 			this.submitFlag = false;
 		};
-		terminalInterface.executeCommand = function (commandName) {
+		terminalInterface.executeCommand = function (commandName, arg1, arg2, arg3) {
 			if (!this.command[commandName]){
 				this.command.error.ex('Invalid api use: command not recognized')
 				return;
 			};
-			this.command[commandName].ex()
+			this.command[commandName].ex(arg1,arg2, arg3)
 		};
 		terminalInterface.executeSilentCommand = function(commandName, args) {
 			this.command[commandName].ex(...args)

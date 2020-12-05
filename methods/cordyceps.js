@@ -1,5 +1,5 @@
 export const recruiter = {
-	effectiveness : 13, //out of 100 (scalar for how long recruited hardware stays under user control)
+	effectiveness : 1.3, //relative to mean of 1 (scalar for how long recruited hardware stays under user control)
 	slowness : 70, //scalar for setTimeout governing animation on recruit?
 	crackingAbil : 40,//can only crack things with lower security ratings?
 	trolls : {
@@ -14,7 +14,14 @@ export const recruiter = {
 		9 : "I'll bet you've got poop in your diaper, you stupid baby...",
 		0 : "Ummm... well... no. not happening."
 	}, 
-	uniqueAnim : function () {
-
+	recruitAnim : function (api, callback) {
+		if (callback){
+			callback();
+		}
+	},
+	failureAnim : function (api, callback) {
+		if (callback){
+			callback();
+		}
 	},
 }
