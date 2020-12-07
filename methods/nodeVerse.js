@@ -35,6 +35,9 @@ export const bigBang = function () {
 		const cordyceps = new Recruiter('cordyceps.msh', './cordyceps.js');
 		this.addNode(cordyceps);
 
+		const pegleg = new Recruiter('pegleg.yaar', './pegleg.js');
+		this.addNode(pegleg)
+
 		const silo_ext = new Program('silo.ext','bxbljs00\"3p&*z\"yi' ,'./silo.js')
 		this.addNode(silo_ext)
 
@@ -95,6 +98,7 @@ export const bigBang = function () {
 		this.seed.attach(silo_ext);
 		this.seed.attach(cordyceps);
 		this.seed.attach(wallysIbsQ19);
+		this.seed.attach(pegleg)
 
 
 		this.seed.attachTo(moveHere);

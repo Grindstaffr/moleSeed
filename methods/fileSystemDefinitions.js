@@ -396,7 +396,11 @@ export class UniqueNode extends Node {
 			isSilent : true,
 			usedBy : 0,
 			ex : function (nodeName) {
-				console.log(this.storageLoc)
+				
+				if (!this.storageLoc.container){
+					this.detachFromAll();
+					return;
+				}
 				this.storageLoc.container[this.storageLoc.index] = {name : `[EMPTY SLOT]`}
 				for (var property in this.methods){
 					this.api.decrementCommandUsedBy(property);
@@ -452,7 +456,6 @@ export class Malware extends UniqueNode {
 		this.api = trmnl.api
 		var malware = this;
 		import(this.url).then(function(module){
-			console.log(module)
 			malware.exAnim = module.recruiter.exAnim.bind(malware);
 			malware.exAnim(malware.api);
 			malware.methods.use.ex();

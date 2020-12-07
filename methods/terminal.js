@@ -1142,7 +1142,7 @@ export const terminal = {
 		//console.log('drawing Terminal')
 		this.context.strokeStyle = this.style.stroke
 		this.context.beginPath();
-		this.context.rect(this.leftLoc , this.topLoc, this.pxEdgeDimensions, this.pxEdgeDimensions)
+		this.context.rect(this.leftLoc , this.topLoc, this.pxEdgeDimensions +2, this.pxEdgeDimensions+2)
 		this.context.stroke();
 
 		this.drawInputRow();
@@ -1177,26 +1177,35 @@ export const terminal = {
 		//console.log(this.botLoc)
 		//console.log(this.style.text)
 		this.context.fillStyle = this.style.text
-		this.context.fillText('>',this.leftLoc + 2, this.botLoc - 2)
-		this.context.fillText(`${line}`, this.leftLoc + 2 + this.letterHeight, this.botLoc -2)
+		this.context.fillText('>',this.leftLoc + 2, this.botLoc)
+		this.context.fillText(`${line}`, this.leftLoc + 2 + this.letterHeight, this.botLoc)
 	},
 	drawCurrentRows : function () {
-		var start = this.topLoc + this.letterHeight
+		var vStart = this.topLoc + this.letterHeight
+		var hStart = this.leftLoc + 2
 		var trmnl = this
-		this.context.fillStyle = this.style.text
+		this.context.fillStyle = this.style.text /*
 		this.cache.currentRows.forEach(function(row, index){
 			var line = row.join("");
-			var vLoc = start + (index * trmnl.letterHeight)
+			var vLoc = vStart + (index * trmnl.letterHeight)
 			trmnl.context.fillText(`${line}`, trmnl.leftLoc + 2, vLoc )
 		})
+		*/
+		this.cache.currentRows.forEach(function(row, rowIndex){
+			row.forEach(function(character, characterIndex){
+				var vLoc = vStart + (rowIndex * trmnl.letterHeight)
+				var hLoc = hStart + (characterIndex * trmnl.letterHeight)
+				this.context.fillText(character, hLoc, vLoc)
+			},this)
+		},this)
 
 	},
 	blinkyCursor : {
 		draw : function () {
 			var left_relative = this.position.x * this.parent.letterHeight;
-			var top_relative = ((this.parent.rowCount - this.position.y) * this.parent.letterHeight)
+			var top_relative = ((this.cache.rowCount - this.position.y) * this.parent.letterHeight)
 			var leftTrue = this.parent.leftLoc + left_relative + this.parent.letterHeight + 2;
-			var topTrue = this.parent.topLoc + top_relative + 1;
+			var topTrue = this.parent.topLoc + top_relative ;
 			this.parent.context.fillStyle = this.style.background
 			this.blink();
 			this.parent.context.fillRect(leftTrue, topTrue, this.parent.letterHeight, this.parent.letterHeight)
@@ -1212,7 +1221,7 @@ export const terminal = {
 			x : 0,
 			y : 0,
 			up : function () {
-				if (this.y === (this.parent.trmnl.maxRowCount + 1)){
+				if (this.y === (this.rowCount + 1)){
 					return;
 				}
 				this.y = this.y + 1;
@@ -1275,6 +1284,7 @@ export const terminal = {
 		init : function () {
 			this.trmnl = this.parent;
 			this.position.parent = this;
+			this.cache = this.parent.cache
 			this.style = {
 				background : this.parent.style.background,
 				text : this.parent.style.text,
@@ -1963,7 +1973,7 @@ export const terminal = {
 		this.context.font = `8px terminalmonospace`
 	},
 	__calcLocAndDim : function () {
-		var dim = Math.floor(this.canvas.height * (6/7))
+		var dim = Math.floor((Math.floor(this.canvas.height * (6/7))/this.letterHeight)) * this.letterHeight
 		var vBuff = Math.floor(this.canvas.height * (1/14))
 		var hBuff = ((this.canvas.width - dim)/2)
 		this.leftLoc = hBuff;

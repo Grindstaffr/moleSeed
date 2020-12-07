@@ -5,8 +5,8 @@ export const recruiter = {
 	trolls : {
 		1 : `I'm a fun guy!`,
 		2 : `Ant you glad you're not an ant?`,
-		3 : `All your ants are belong to us`,
-		4 : `...moron`,
+		3 : `All your brains are belong to mush`,
+		4 : `this is sooo sporing`,
 		5 : `get high, then die`,
 		6 : `SHROOMTOWN BAYYYBBYYYY`,
 		7 : `Mind your own business`,
