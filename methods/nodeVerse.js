@@ -14,6 +14,10 @@ export const bigBang = function () {
 		})
 	}
 
+	nodeVerse.getDefaultNode = function () {
+		return this.router[`dz019q$$tajz>`][`%81jan222jn*=`][`8i7e36p!y9jig21mw`]
+	}
+
 
 	const _PioneerDataServices = new Databank(`_PioneerDataServices`,`PDS_p9.34.00`, `dz019q$$tajz>`)
 	nodeVerse.appendDataBank(_PioneerDataServices);
@@ -26,7 +30,7 @@ export const bigBang = function () {
 	const __toaster = new NodeNet(`__toaster`,`%81jan222jn*=`);
 	nodeVerse.databanks._PioneerDataServices.addNodeNet(__toaster)
 	nodeVerse.databanks._PioneerDataServices.nodeNets.__toaster.init = function () {
-		const seed = new Node('seed');
+		const seed = new Node('seed', `8i7e36p!y9jig21mw`);
 		this.addNode(seed);
 
 		const biblio = new Program(`biblio.ext`, `usi8p6diw<82ihv37`, `./biblio.js`);

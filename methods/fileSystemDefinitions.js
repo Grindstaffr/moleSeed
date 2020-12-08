@@ -218,7 +218,7 @@ export class Library extends Node {
 		if (this.checkCensorStatus(fileName)){
 			return { type : 'null'};
 		}
-		const file = new TextDoc(`${fileName}`, `xx` ,`../assets/libraries/${this.name}/${this.repository[fileName].url}`)
+		const file = new LibraryFile(`${fileName}`, `xx` ,`../assets/libraries/${this.name}/${this.repository[fileName].url}`)
 		this.attach(file)
 		return file
 	}
@@ -1105,6 +1105,12 @@ export class TextDoc extends Readable {
 			callback(textDoc.text, textDoc);
 		} else {
 			import(this.location).then(function(module){
+				if (!module.text){
+					textDoc.text = module.doc.text;
+					callback(module.doc.text, textDoc);
+					textDoc.hasBeenImported = true;
+					return;
+				}
 				textDoc.text = module.text;
 				callback(module.text, textDoc);
 				textDoc.hasBeenImported = true;
@@ -1117,7 +1123,7 @@ export class LibraryFile extends TextDoc {
 	constructor (name, address, url) {
 		super(name, address, url);
 		this.address = 'Non_Addressable_Nodelet';
-		this.type = `libraryFile`;
+		this.type = `library_file`;
 	}
 }
 

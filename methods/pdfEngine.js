@@ -2,8 +2,10 @@ import { program } from './navigator.js';
 import { initializerAlpha, Node, Pdf, Asset, Readable, TerminalStoryPiece, TextDoc, Mole, Program, UniqueNode } from './fileSystemDefinitions.js'
 import { assetViewer } from './assetViewer.js'
 import { globalProps } from './globalState.js'
-import { terminal } from './terminal.js'
+// import { terminal } from './terminal.js'
 import { bigBang } from './nodeVerse.js'
+import { Terminal } from './terminalClass.js'
+import { TerminalActivator } from './TerminalActivator.js'
 
 
 /*async function __initializer () {
@@ -21,7 +23,7 @@ import { bigBang } from './nodeVerse.js'
 
 
 
-
+		
 
 
 
@@ -311,9 +313,9 @@ import { bigBang } from './nodeVerse.js'
 					return;
 				}
 				terminal.keyHandler(e);
-				//sizeCanvas(lacanvasa);
 				return;
 			};
+			/*
 			if (!keyMap.hasOwnProperty(e.keyCode)){
 				return;
 			};
@@ -325,64 +327,24 @@ import { bigBang } from './nodeVerse.js'
 			};
 
 			pdfKeyCommands[routingName]();
+			*/
 
 		};
 
 		const keyUp = function (e){
 
 		}
+
 		const buildNodeVerse = function () {
 			const nodeVerse = bigBang();
-			
-
 			return nodeVerse
 		}
 
 		const initNodeVerse = function (nodeVerse) {
-			
 			return nodeVerse.databanks._PioneerDataServices.nodeNets.__toaster.seed
 		}
 
-		const initializer_Alpha_001 = function () {
-			const nav = new Program('crawler.mse', `./crawler.js`);
-			const viewer = new Program('viewer.mS', `./assetViewer.js`);
-			const rucksack = new Program('rucksack.ext', './rucksack.js')
-			/*
-			const ltp = new Pdf('LTP', '../assets/pdfs/tiLTP.pdf', 'LearnToPlay')
-			const rr = new Pdf('RR', '../assets/pdfs/tiRR.pdf', 'RulesReference')
-			const gorp = new Pdf('Gorp', '../assets/pdfs/Second Export Gorp.pdf', 'Gorp Menlo')
-			const sample = new TextDoc('sample','../assets/txtFiles/sampleTxt.js')
-			*/
-			const intro = new TextDoc('welcome','../assets/txtFiles/intro.js')
-			const seed = new Node('seed')
-			const crawlerBX = new Node('crawler')
-			const rucksackBX = new Node('rucksack')
-			const crawlerReadMe = new TextDoc('crawler.rdbl', '../assets/txtFiles/crawler.js')
-			const rucksackReadMe = new TextDoc('rucksack.rdbl', '../assets/txtFiles/rucksack.js')
-			const mxthumbtro = new TextDoc('read_this', '../assets/txtFiles/MXthumbIntro.js')
-			const caravan = new TextDoc('caravan', '../assets/txtFiles/Caravan.js')
-			const mole = new Mole('Gyorgy.mole', './Gyorgy.js')
 
-			intro.attach(rucksackBX)
-			intro.attach(crawlerBX)
-			seed.attach(intro)
-			seed.attach(rucksack)
-			mole.attach(seed);
-			mxthumbtro.attach(intro)
-			caravan.attach(mxthumbtro)
-			rucksackBX.attach(rucksackReadMe)
-			rucksackBX.attach(rucksack)
-			crawlerBX.attach(crawlerReadMe)
-			crawlerBX.attach(nav)
-
-			//seed.attach(gorp)
-			//seed.attach(nav)
-			//gorp.attach(viewer)
-			//gorp.attach(sample)
-
-			return seed
-
-		}
 
 
 		const autoToggleBlackScreen = function () {
@@ -407,16 +369,13 @@ import { bigBang } from './nodeVerse.js'
 			lacanvasa.style.fontkerning = 'none'
 			lacanvasa.style.fontfamily = 'terminalmonospace'
 			ctx.font = `${globalProps.letterSize}px terminalmonospace`;
-			terminal.setContext(ctx)
-			//terminal.setContext(ctx);
-			
-			terminal.__calcLocAndDim();
-			
-			terminal.cache.rescaleCache();
+
+			terminalActivator.activeTerminal.setContext(ctx)
+			terminalActivator.activeTerminal.__calcLocAndDim();
+			terminalActivator.activeTerminal.cache.rescaleCache();
 		};
 
-	//	window.addEventListener("click", loadPdf);
-		window.addEventListener("keydown", handleKeyPress);
+	
 		window.addEventListener("keyup", keyUp);
 		window.addEventListener("resize", sizeHandler);
 		window.addEventListener("fullscreenchange", sizeHandler)
@@ -431,69 +390,42 @@ import { bigBang } from './nodeVerse.js'
 		var needToLoadPDF = false;
 		var needToScrubPDF = false;
 		var needToRefreshPDF = false;
+		const terminalActivator = new TerminalActivator(document.getElementById('the-canvas'), globalProps, buildNodeVerse());
 
+		window.addEventListener("keydown", terminalActivator.keyHandler);
 
-		const mainLoop = function() {
-				cleanCanvasFrame(lacanvasa, ctx)
-				paintCanvasBackground(lacanvasa, ctx, "#00000a")
-				/*
-				navBar.draw(ctx);
-				navBar.windowTender();
-				assetViewer.draw();
-				*/
-			//	console.log(ctx.font)
-
-			globalProps.time = Date.now()
-
-				terminal.draw();
-				
-
-
+		const mainLoop = function(terminal) {
+			cleanCanvasFrame(lacanvasa, ctx)
+			paintCanvasBackground(lacanvasa, ctx, "#00000a")
+			globalProps.time = Date.now();
+			terminalActivator.draw();
 		}
 		
 
 		const attachCanvases = function () {
 			lacanvasa = document.getElementById('the-canvas');
-			//pdfCanvas = document.getElementById('pdfviewer');
-			//pdfBack = document.getElementById('viewerBack');
-				
-						ctx = lacanvasa.getContext('2d');
-					//	ptx = pdfCanvas.getContext('2d');
-					//	btx = pdfBack.getContext('2d');
-					
-		
+			ctx = lacanvasa.getContext('2d');
 		}
+
 		const sizeCanvas = function (canvas, width = 1280, height = 960) {
 			canvas.height = window.innerHeight;
 			canvas.width = window.innerWidth;
-		//	console.log(canvas.height);
-		//	console.log(canvas.width);
 		}
 
 		const init = function() {
 			
-			//__initializer();
-			
-
-
 			attachCanvases();
-			//lacanvasa.requestFullscreen();
+
 			sizeCanvas(lacanvasa);
-			//assetViewer.init(pdfCanvas, lacanvasa, pdfBack, );
+		
+			terminalActivator.activeTerminal.__calcLocAndDim();
+			terminalActivator.activeTerminal.cache.rescaleCache();
 			ctx.fillStyle = 'black'
 			ctx.fillRect(0,0,lacanvasa.width, lacanvasa.height);
 			ctx.fillStyle = "#CCFFFF"
-			/*
-			navBar.init(lacanvasa, assetViewer);
-			navBar.activeNode = initializerAlpha();
-			navBar.previousNode = navBar.activeNode;
-			navBar.assembleText();
-			navBar.draw(ctx, 'lime')
-
-			initializer_Alpha_001
-			*/
-			
-			terminal.init({},assetViewer,lacanvasa,globalProps,initNodeVerse(buildNodeVerse()), devMode)
+	
+			//const terminal = new Terminal(lacanvasa, globalProps, initNodeVerse(buildNodeVerse()))
+			// terminal.init({},assetViewer,lacanvasa,globalProps,initNodeVerse(buildNodeVerse()), devMode)
 			needToLoadPDF = false;
 			globalProps.time = Date.now();
 			ctx.font = `${globalProps.letterSize}px terminalmonospace`

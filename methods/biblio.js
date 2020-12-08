@@ -234,8 +234,10 @@ export const program = {
 					}
 
 					this.data.requestedFile = this.data.library.getFile(requestFile);
+				
 					this.methods.resetDisplaySettings();
 					this.settings.displayReqFile = true;
+					this.api.appendAccessibleNodes(this.data.requestedFile);
 				},
 			},
 			next : {
@@ -280,6 +282,7 @@ export const program = {
 			errorState : false,
 			ex : function (command, arg1, arg2, arg3) {
 				const biblio = this.installData.biblio
+
 				if (!this.settings.isRunning){
 						// this.ex will return false in case of an error throw
 						// we want errorState true in this case
@@ -294,6 +297,7 @@ export const program = {
 					biblio.wantsMoreCommands = false;
 					biblio.cmdExtVer = false;
 					biblio.errorState = false;
+					console.log(`early error`)
 					return;
 				}
 				if (arguments.length === 0){
@@ -312,7 +316,7 @@ export const program = {
 						return;
 					}
 					if (!biblio.wantsMoreCommands){
-						console.log(`return 2`)
+				
 						biblio.cmdExtVer = false;
 						biblio.errorState = false;
 						return;
@@ -331,23 +335,27 @@ export const program = {
 								return;
 							}
 							biblio.cmd = command;
-							biblio.arg1 = inputTerms[indexStart + 1];
-							biblio.arg2 = inputTerms[indexStart + 2];
-							biblio.arg3 = inputTerms[indexStart + 3];
+							biblio.arg1 = inputTerms[indexStart + 1] || "";
+							biblio.arg2 = inputTerms[indexStart + 2] || "";
+							biblio.arg3 = inputTerms[indexStart + 3] || "";
+
 							prgm.api.runCommand(`biblio ${biblio.cmd} ${biblio.arg1} ${biblio.arg2} ${biblio.arg3}`)
 							return;
 						}, `Enter biblio-specific command:`)
-							console.log(biblio)
-						if (biblio.errorState){
-							biblio.cmdExtVer = false;
-							biblio.wantsMoreCommands = false;
-							biblio.errorState = false;
 							return;
-						}
+						
 					}
 				};
+				if (biblio.errorState){
+						biblio.cmdExtVer = false;
+						biblio.wantsMoreCommands = false;
+						biblio.errorState = false;
+						console.log(`secondary error`)
+						return;
+					}
 				let foundRealCommand = true
 				if (!this.methods.commands[biblio.cmd]){
+				
 					foundRealCommand = false;
 					Object.keys(this.data.pseudonyms).forEach(function(recognizedCommandName){
 						if (this.data.pseudonyms[recognizedCommandName].indexOf(biblio.cmd) === -1){
@@ -368,9 +376,11 @@ export const program = {
 					biblio.cmdExtVer = false;
 					biblio.wantsMoreCommands = false;
 					biblio.errorState = false;
+				
 					return
 				}
 				if (!this.data.library.readyToAcceptCommands){
+			
 					var triggerOnReady = function () {
 						prgm.methods.commands[biblio.cmd].ex(biblio.arg1,biblio.arg2,biblio.arg3)
 						prgm.data.library.setTriggerOnReady(function(){});
@@ -381,7 +391,9 @@ export const program = {
 					this.data.library.setTriggerOnReady(triggerOnReady)
 					return;
 				}
+			
 				this.methods.commands[biblio.cmd].ex(biblio.arg1,biblio.arg2,biblio.arg3);
+				this.methods.draw();
 				biblio.cmdExtVer = false;
 				biblio.wantsMoreCommands = false;
 			},
