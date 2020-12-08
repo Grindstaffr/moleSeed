@@ -138,25 +138,33 @@ export class Library extends Node {
 		this.directoryUrl = directoryUrl;
 		this.assembleRepository = this.assembleRepository.bind(this)
 		this.isLoaded = false;
-		this.fetchRepository();
 		this.repository = {};
+		this.files =  [];
 		this.type = `library`;
 		this.Type = `library`;
 		this.grabbable = false;
 		this.recruitable = false;
-		this.readyToAcceptCommands = false;
+		this.readyToAcceptCommands = true;
 		this.censoredTerms = ['SWARM','phoenix','SWARM/phoenix'];
 		this.renderTrigger = function () {};
+		this.assemblerTrigger = function () {};
 		
 		
 	}
+	setAssemblerTrigger (func) {
+		if (typeof func !== 'function'){
+			console.log(`cannot setAssemblerTrigger to a non-function (Library -- fileSystemDefinitions.js)`)
+			return;
+		}
+		this.assemblerTrigger = func
+	} 
 
 	setRenderTrigger (func) {
 		if (typeof func !== 'function'){
 			console.log(`cannot setRenderTrigger to a non-function (Library -- fileSystemDefinitions.js)`)
 			return;
 		}
-		this.renderTrigger = function;
+		this.renderTrigger = func;
 	}
 
 	censorTerm(string){
@@ -176,6 +184,7 @@ export class Library extends Node {
 		this.detachAllFiles();
 		this.freeRepo();
 		this.setRenderTrigger(function(){});
+		this.setAssemblerTrigger(function(){});
 	}
 	
 
@@ -196,10 +205,10 @@ export class Library extends Node {
 		this.detachAllFiles();
 		if (!this.repository[fileName]){
 			this.api.throwError(`No file found with name ${fileName}`)
-			return { type : 'nothing' };
+			return { type : 'null' };
 		}
-		if (this.checkCensorStatus(string)){
-			return;
+		if (this.checkCensorStatus(fileName)){
+			return { type : 'null'};
 		}
 		const file = new TextDoc(`${fileName}`, `xx` ,`../assets/libraries/${this.name}/${this.repository[fileName].url}`)
 		this.attach(file)
@@ -212,7 +221,7 @@ export class Library extends Node {
 
 	fetchRepository () {
 		
-		//this.waitingScreen();
+		this.waitingScreen();
 		const library = this;
 		const headers = new Headers();
 		headers.append(`Library-Name`,`${this.name}`)
@@ -251,7 +260,7 @@ export class Library extends Node {
 		}
 		
 		const terminatingCharacters = [" ", ",", ".", "?", "!", ";", ":", ")", "(", "/"]
-		//this.waitingScreen();
+		this.waitingScreen();
 		const outputArray = [];
 		if (options.quickSearch){
 			Object.keys(this.repository).forEach(function(fileName){
@@ -296,6 +305,7 @@ export class Library extends Node {
 			}, this)
 		},this)
 		library.searchComplete = true;
+		console.log(outputArray)
 		return outputArray;
 
 	}
@@ -308,8 +318,8 @@ export class Library extends Node {
 				library.repository[module.doc.name].url = fileName
 				if (index === library.files.length -1){
 					library.lastFileLoaded = true;
-				
-					console.log(library.searchRepository(`out`))
+					console.log('assemblerTrigger')
+					library.assemblerTrigger();
 				}
 			})
 		})
@@ -364,6 +374,7 @@ export class Library extends Node {
 		};
 
 		const loop = function (value) {
+			
 			library.api.clearReservedRows();
 			if (library.lastFileLoaded) {
 				library.lastFileLoaded = false;
@@ -385,19 +396,22 @@ export class Library extends Node {
 			var vSpacing = Math.floor(((library.api.getReservedRowCount())-3)/2)
 
 			library.api.writeToGivenRow((" ").repeat(hSpacing) + animFrames[`frame_${value}`][`row_1`], vSpacing)
-			library.api.writeToGivenRow((" ").repeat(hSpacing) +nimFrames[`frame_${value}`][`row_2`], vSpacing + 1)
+			library.api.writeToGivenRow((" ").repeat(hSpacing) +animFrames[`frame_${value}`][`row_2`], vSpacing + 1)
 			library.api.writeToGivenRow((" ").repeat(hSpacing) +animFrames[`frame_${value}`][`row_3`], vSpacing + 2)
 
 			var newValue = value % 8;
-			setTimeout(function () {loop(newValue)}, 250)
+			setTimeout(function () {loop(newValue)}, 150)
 		};
 
 		const stopWaiting = function () {
+			
 			library.readyToAcceptCommands = true;
 			library.api.clearReservedRows();
-			library.api.renderTrigger();
+			library.renderTrigger();
+			
 		};
 		
+		loop(0);
 		
 	}
 

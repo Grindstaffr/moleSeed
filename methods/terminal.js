@@ -132,9 +132,6 @@ export const terminal = {
 			if (this.inputIsLocked){
 				return;
 			}
-			if (this.api.submitTriggerFunction){
-				this.api.submitTriggerFunction();
-			}
 			var commandFull = this.cache.getInputRow();
 			this.cache.submitInput();
 			this.blinkyCursor.position.leadTheText();
@@ -145,6 +142,9 @@ export const terminal = {
 			} else {
 				
 				this.sendToCompiler(commandFull);
+			}
+			if (this.api.submitTriggerFunction){
+				this.api.submitTriggerFunction();
 			}
 		};
 
@@ -764,9 +764,11 @@ export const terminal = {
 			ex : function (programName) {
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
-				if (trmnl.accessibleNodes[programName].Type === 'malware'){
-					trmnl.accessibleNodes[programName].ex(trmnl);
-					return;
+				if (trmnl.accessibleNodes[programName]){
+					if (trmnl.accessibleNodes[programName].Type === 'malware'){
+						trmnl.accessibleNodes[programName].ex(trmnl);
+						return;
+					}
 				}
 				if (!trmnl.programs[programName]){
 					cmd.error.ex('cannot execute an uninstalled program')
@@ -1393,6 +1395,9 @@ export const terminal = {
 		terminalInterface.clearReservedRows = function(){
 			this.cache.clearReservedRows();
 		};
+		terminalInterface.clearContiguousRows = function (startRow, endRow){
+			this.cache.clearContiguousRows(startRow, endRow)
+		};
 		terminalInterface.writeLine = function (string) {
 			this.cache.writeToVisibleRow(string);
 		};
@@ -1408,8 +1413,8 @@ export const terminal = {
 			this.cache.currentRows[rowIndex][columnIndex] = string;
 			return;
 		}
-		terminalInterface.composeText = function (string){
-			this.cache.composeText(string);
+		terminalInterface.composeText = function (string, shouldUnSpace, shouldTab, tabWidth){
+			this.cache.composeText(string, shouldUnSpace, shouldTab, tabWidth);
 		};
 		terminalInterface.getMaxLineLength = function () {
 			return this.cache.inputRow.length
@@ -1931,6 +1936,12 @@ export const terminal = {
 				this.currentRows[i] = row;
 			}
 		};
+		cache.clearContiguousRows = function (startRow, endRow){
+			for (var i = startRow; i < endRow; i ++){
+				var row = new Array(this.inputRow.length).fill("");
+				this.currentRows[i] = row;
+			}
+		}
 		cache.reserveRows = function (numberOfRows){
 			this.reservedRows = numberOfRows;
 			return;

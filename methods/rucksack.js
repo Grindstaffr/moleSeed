@@ -107,6 +107,8 @@ export const program = {
 				if (this.settings.isRunning){
 					this.methods.showContents();
 				}
+
+				this.api.appendAccessibleNodes(node);
 				this.api.writeLine('')
 				this.api.writeLine(`grabbed ${nodeName} into slot ${trueVal}`)
 				this.api.writeLine('')

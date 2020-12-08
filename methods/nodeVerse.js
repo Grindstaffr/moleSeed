@@ -29,6 +29,9 @@ export const bigBang = function () {
 		const seed = new Node('seed');
 		this.addNode(seed);
 
+		const biblio = new Program(`biblio.ext`, `usi8p6diw<82ihv37`, `./biblio.js`);
+		this.addNode(biblio);
+
 		const caravanLibrary = new Library(`caravanLibrary`, `d%*a%611!c&tr\"inj`, `../assets/libraries/caravanLibrary`)
 		this.addNode(caravanLibrary);
 
@@ -101,7 +104,9 @@ export const bigBang = function () {
 		this.seed.attach(silo_ext);
 		this.seed.attach(cordyceps);
 		this.seed.attach(wallysIbsQ19);
-		this.seed.attach(pegleg)
+		this.seed.attach(pegleg);
+		this.seed.attach(caravanLibrary);
+		this.seed.attach(biblio);
 
 
 		this.seed.attachTo(moveHere);
@@ -119,7 +124,7 @@ export const bigBang = function () {
 		this.mole.attach(nomad_rdbl);
 		this.mole.attach(nomad_mole);
 
-		
+
 	};
 	nodeVerse.databanks._PioneerDataServices.nodeNets.__toaster.init();
 
