@@ -148,8 +148,16 @@ export class Library extends Node {
 		this.censoredTerms = ['SWARM','phoenix','SWARM/phoenix'];
 		this.renderTrigger = function () {};
 		this.assemblerTrigger = function () {};
+		this.triggerOnReady = function () {};
 		
 		
+	}
+	setTriggerOnReady (func) {
+		if (typeof func !== 'function'){
+			console.log(`cannot setTriggerOnReady to a non-function (Library -- fileSystemDefinitions.js)`)
+			return;
+		}
+		this.triggerOnReady = func;
 	}
 	setAssemblerTrigger (func) {
 		if (typeof func !== 'function'){
@@ -305,7 +313,6 @@ export class Library extends Node {
 			}, this)
 		},this)
 		library.searchComplete = true;
-		console.log(outputArray)
 		return outputArray;
 
 	}
@@ -318,7 +325,6 @@ export class Library extends Node {
 				library.repository[module.doc.name].url = fileName
 				if (index === library.files.length -1){
 					library.lastFileLoaded = true;
-					console.log('assemblerTrigger')
 					library.assemblerTrigger();
 				}
 			})
@@ -408,6 +414,7 @@ export class Library extends Node {
 			library.readyToAcceptCommands = true;
 			library.api.clearReservedRows();
 			library.renderTrigger();
+			library.triggerOnReady();
 			
 		};
 		
@@ -617,7 +624,7 @@ export class QRig extends Hardware {
 							ver.doShors = true;
 						}
 						
-						toggle = true;
+						toggle.toggle = true;
 						
 						ver.verificationCheckShors = true;
 					})

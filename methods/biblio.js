@@ -190,7 +190,6 @@ export const program = {
 					}
 
 					this.methods.assignShortCutKeys(false);
-					console.log(fileArray)
 					this.methods.assignShortCutKeys(fileArray);
 					this.methods.pageSortFileList();
 
@@ -282,23 +281,30 @@ export const program = {
 			ex : function (command, arg1, arg2, arg3) {
 				const biblio = this.installData.biblio
 				if (!this.settings.isRunning){
-						biblio.errorState =	this.ex();
+						// this.ex will return false in case of an error throw
+						// we want errorState true in this case
+						biblio.errorState =	!this.ex();
 					}
+				const prgm = this
 				biblio.cmd = command;
 				biblio.arg1 = arg1;
 				biblio.arg2 = arg2;
 				biblio.arg3 = arg3;
+				if (biblio.errorState){
+					biblio.wantsMoreCommands = false;
+					biblio.cmdExtVer = false;
+					biblio.errorState = false;
+					return;
+				}
 				if (arguments.length === 0){
-					if (this.settings.isRunning){
-						this.api.log(`  ${this.name} is already running.`)
-					}
 					if (!biblio.cmdExtVer){
-						this.api.verifyCommand(`Would you like to run a ${this.name}-specific command?`, function(bool, bool2){
+						this.api.verifyCommand(`Would you like to run a ${this.name}-specific command?`, function(bool, toggle){
+								toggle.toggle = true;
 								if (!bool){
 									biblio.cmdExtVer = true
 									return;
 								} else {
-									biblio.cmdExtVer = true
+									biblio.cmdExtVer = true;
 									biblio.wantsMoreCommands = true;
 									return;
 								}
@@ -306,8 +312,12 @@ export const program = {
 						return;
 					}
 					if (!biblio.wantsMoreCommands){
+						console.log(`return 2`)
+						biblio.cmdExtVer = false;
+						biblio.errorState = false;
 						return;
 					} else {
+						
 						this.api.requestInput(function(commandFull){
 							var inputTerms = commandFull.split(" ");
 							var indexStart = 0;
@@ -315,8 +325,8 @@ export const program = {
 								indexStart = indexStart + 1;
 							}
 							var command = inputTerms[indexStart];
-							if (!this.methods.commands[command]){
-								this.api.throwError(`input command is not recognized by ${this.name} parser`)
+							if (!prgm.methods.commands[command]){
+								prgm.api.throwError(`input command is not recognized by ${this.name} parser`)
 								biblio.errorState = true;
 								return;
 							}
@@ -324,8 +334,13 @@ export const program = {
 							biblio.arg1 = inputTerms[indexStart + 1];
 							biblio.arg2 = inputTerms[indexStart + 2];
 							biblio.arg3 = inputTerms[indexStart + 3];
+							prgm.api.runCommand(`biblio ${biblio.cmd} ${biblio.arg1} ${biblio.arg2} ${biblio.arg3}`)
+							return;
 						}, `Enter biblio-specific command:`)
+							console.log(biblio)
 						if (biblio.errorState){
+							biblio.cmdExtVer = false;
+							biblio.wantsMoreCommands = false;
 							biblio.errorState = false;
 							return;
 						}
@@ -350,8 +365,21 @@ export const program = {
 					return;
 				}
 				if (biblio.errorState){
+					biblio.cmdExtVer = false;
+					biblio.wantsMoreCommands = false;
 					biblio.errorState = false;
 					return
+				}
+				if (!this.data.library.readyToAcceptCommands){
+					var triggerOnReady = function () {
+						prgm.methods.commands[biblio.cmd].ex(biblio.arg1,biblio.arg2,biblio.arg3)
+						prgm.data.library.setTriggerOnReady(function(){});
+						prgm.methods.draw();
+					}
+					biblio.cmdExtVer = false;
+					biblio.wantsMoreCommands = false;
+					this.data.library.setTriggerOnReady(triggerOnReady)
+					return;
 				}
 				this.methods.commands[biblio.cmd].ex(biblio.arg1,biblio.arg2,biblio.arg3);
 				biblio.cmdExtVer = false;
@@ -392,7 +420,7 @@ export const program = {
 	},
 	stop : function () {
 		this.settings.isRunning = false;
-		this.library.data.powerDown();
+		this.data.library.powerDown();
 		this.data.library = {};
 		this.api.clearReservedRows(0);
 		this.api.reserveRows(0);
@@ -405,6 +433,9 @@ export const program = {
 		if (thisNode.type !== `library`){
 			this.api.throwError(`${this.name} operates as a library interface; move to a library node in order to execute ${this.name} or use its command interface`)
 			return false;
+		}
+		if (!this.api.checkIfRunning(`${this.name}`)){
+			this.api.appendToRunningPrograms(`${this.name}`, false)
 		}
 		this.api.reserveRows(40);
 		this.api.clearReservedRows();

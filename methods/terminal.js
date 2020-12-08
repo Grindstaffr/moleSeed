@@ -200,8 +200,9 @@ export const terminal = {
 				verify : function (commandFull) {
 					//this.command.log.ex(this.verifyMessage);
 					var response = this.buffer.pop()[0]
-					var toggle = false;
+					var toggle = { toggle : false };
 					if (response === 'y'){
+						toggle.toggle = true;
 						if (this.callbacks.verify){
 							this.callbacks.verify(true, toggle);
 						}
@@ -211,6 +212,9 @@ export const terminal = {
 						this.messages.verify = this.messages.default_verify;
 						this.toggleFilterOff('verify');
 						this.filtersPassed.verify = true;
+						if (!toggle.toggle){
+							this.filtersPassed.verify = false;
+						}
 						//this.shouldReRouteInput = false;
 						return command;
 					}
@@ -220,13 +224,15 @@ export const terminal = {
 						}
 						this.callbacks.verify = function () {};
 						var command = this.retrieveBufferedInput()
-						this.command.log.ex(`  aborted command : "${command}" `);
 						this.messages.verify = this.messages.default_verify;
 						this.toggleFilterOff('verify');
-						//this.shouldReRouteInput = false;
-						if (toggle){
+
+						console.log(toggle.toggle)
+						if (toggle.toggle){
+							this.filtersPassed.verify = true;
 							return command;
 						}
+						this.command.log.ex(`  aborted command : "${command}" `);
 						return this.retrieveBufferedInput();
 					}
 						this.command.error.ex(`User_cannot_answer_a_simple_yes_or_no_question`)
@@ -794,15 +800,15 @@ export const terminal = {
 		command.stop = {
 			name : 'stop',
 			desc : `stop an executing program`,
-			syntax : 'stop [PROGRAM]',
+			syntax : 'stop ...',
 			isAvail : false,
 			hasDefault: true,
 			ex : function (programName) {
+				var cmd = this.parent;
+				var trmnl = cmd.parent;
 				if (!programName){
 					programName = Object.keys(trmnl.programs.runningPrograms)[0]
 				}
-				var cmd = this.parent;
-				var trmnl = cmd.parent;
 				if (trmnl.programs.runningPrograms[programName] === undefined){
 					cmd.error.ex(`cannot stop a program that's not executing`)
 					return;
@@ -1310,7 +1316,9 @@ export const terminal = {
 			}, this)
 	
 			//this.submitTriggerFunction = false;
-		}
+		};
+
+
 		terminalInterface.narrowCommand = function (whitelistArray, callback) {
 			//this.input.shouldReRouteInput = true;
 			this.input.toggleFilterOn('narrow');
@@ -1471,6 +1479,25 @@ export const terminal = {
 		terminalInterface.clearAccessibleMalware = function (node) {
 
 		};
+		terminalInterface.checkIfRunning = function (programName) {
+			return (Object.keys(this.parent.programs.runningPrograms).indexOf(programName) !== -1)
+		}
+		terminalInterface.getPrograms = function () {
+			return this.parent.programs
+		};
+		terminalInterface.getRunningPrograms = function (){
+			return this.parent.programs.runningPrograms;
+		};
+		terminalInterface.appendToRunningPrograms = function (programName, stopReplace) {
+			if (!this.parent.programs[programName]){
+				return;
+			}
+			this.parent.programs.runningPrograms[programName] = this.parent.programs[programName];
+			if (!stopReplace){
+				this.parent.command.stop.isAvail = true;
+				return;
+			}
+		}
 		terminalInterface.clearSubmitTriggeredFunction = function () {
 			this.submitTriggerFunction = false;
 		}
