@@ -285,8 +285,13 @@ import { bigBang } from './nodeVerse.js'
 			*/
 			if (!terminal.isOn){
 				if (e.keyCode === 122){
+					if (!window.screenTop && !window.screenY){
+						if (!terminal.isOn){
+							e.preventDefault();
+						}
+					}
 					if (!devMode){
-						terminal.turnOn();
+							terminal.turnOn();
 						
 							
 							lacanvasa.width = window.screen.width 
@@ -328,6 +333,7 @@ import { bigBang } from './nodeVerse.js'
 		}
 		const buildNodeVerse = function () {
 			const nodeVerse = bigBang();
+			
 
 			return nodeVerse
 		}
@@ -467,7 +473,7 @@ import { bigBang } from './nodeVerse.js'
 		const init = function() {
 			
 			//__initializer();
-			const nodeVerse = buildNodeVerse();
+			
 
 
 			attachCanvases();

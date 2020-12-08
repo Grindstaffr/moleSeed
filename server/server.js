@@ -19,6 +19,12 @@ server.get('/', (req,res) => {
 
 	})
 
+server.get(`/libraryContents`, (req, res) => {
+	fs.readdir( __dirname + `/../assets/libraries/${req.headers[`library-name`]}`, function(err,files){
+		console.log(files)
+		res.send(files)	})
+})
+
 
 
 

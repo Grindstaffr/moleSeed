@@ -176,7 +176,6 @@ export const program = {
 		this.methods.drawWindow();
 		this.data.storedNodes.forEach(function(node){
 			this.api.appendAccessibleNodes(node)
-			
 		},this)
 	},
 }

@@ -151,6 +151,7 @@ export const terminal = {
 		input.sendToCompiler = function (commandFull){
 			this.bufferInput(commandFull)
 			this.command.assembleValidNodes.ex();
+			this.compiler.assembleValidPrograms(); // HOT FIX for the rewrite of assembleValidNOdes (MUST SIT b4 assemble ValidNOdes)
 			this.compiler.assembleValidNodes();
 			this.api.raiseSubmitFlag();
 			this.compiler.compileAndExecuteCommand(commandFull)
@@ -533,6 +534,9 @@ export const terminal = {
 			this.validArgs['[PROGRAM]'] = this.command.validProgramList;
 			this.validArgs['[PROGRAM]'] = this.command.validProgramList;
 			*/
+
+			//THIS NEEDS TO NOT BE A LEAKY MEMORY HOLE?
+			//THIS SHOULD HOPEFULLY DEAL WITH PROGRAMS?
 			const caseMap = {
 				node : '[NODE]',
 				malware : `[MALWARE]`,
@@ -572,6 +576,8 @@ export const terminal = {
 					}
 					this.validArgs[caseMap[node.type]].push(node.name);
 			}, this)
+
+			
 
 			
 		};
@@ -773,7 +779,7 @@ export const terminal = {
 						return;
 					}
 				}
-				trmnl.programs[programName].ex(tmrnl);
+				trmnl.programs[programName].ex(trmnl);
 				trmnl.programs.runningPrograms[programName] = trmnl.programs[programName]
 				trmnl.command.stop.isAvail = true;
 				cmd.assembleValidCommands.ex();

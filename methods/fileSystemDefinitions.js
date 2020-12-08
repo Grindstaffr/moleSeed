@@ -1,5 +1,6 @@
 import { addressGenerator } from './addressGenerator.js';
 
+
 export class Node {
 	constructor(name, address){
 		this.Type = 'node';
@@ -129,6 +130,278 @@ export class Node {
 		return this.visited;
 	}
 };
+
+export class Library extends Node {
+	constructor (name, address, directoryUrl){
+
+		super(name, address);
+		this.directoryUrl = directoryUrl;
+		this.assembleRepository = this.assembleRepository.bind(this)
+		this.isLoaded = false;
+		this.fetchRepository();
+		this.repository = {};
+		this.type = `library`;
+		this.Type = `library`;
+		this.grabbable = false;
+		this.recruitable = false;
+		this.readyToAcceptCommands = false;
+		this.censoredTerms = ['SWARM','phoenix','SWARM/phoenix'];
+		this.renderTrigger = function () {};
+		
+		
+	}
+
+	setRenderTrigger (func) {
+		if (typeof func !== 'function'){
+			console.log(`cannot setRenderTrigger to a non-function (Library -- fileSystemDefinitions.js)`)
+			return;
+		}
+		this.renderTrigger = function;
+	}
+
+	censorTerm(string){
+		this.censoredTerms.push(string);
+	}
+
+	checkCensorStatus (string) {
+		this.censoredTerms.forEach(function(censoredTerm){
+			if (censoredTerm.includes(string)){
+				return true;
+			}
+		})
+		return (!this.censoredTerms.indexOf(string) === -1)
+	}
+
+	powerDown () {
+		this.detachAllFiles();
+		this.freeRepo();
+		this.setRenderTrigger(function(){});
+	}
+	
+
+	detachAllFiles() {
+		Object.keys(this.adjacencies).forEach(function(adjacentNodeName){
+			if (this.adjacencies[adjacentNodeName].type = `libraryFile`){
+				this.adjacencies[adjacentNodeName].detachFromAll();
+			}
+		}, this)
+	}
+
+	freeRepo () {
+		this.repository = {};
+		return;
+	}
+
+	getFile (fileName) {
+		this.detachAllFiles();
+		if (!this.repository[fileName]){
+			this.api.throwError(`No file found with name ${fileName}`)
+			return { type : 'nothing' };
+		}
+		if (this.checkCensorStatus(string)){
+			return;
+		}
+		const file = new TextDoc(`${fileName}`, `xx` ,`../assets/libraries/${this.name}/${this.repository[fileName].url}`)
+		this.attach(file)
+		return file
+	}
+
+	declareApi(api){
+		this.api = api
+	}
+
+	fetchRepository () {
+		
+		//this.waitingScreen();
+		const library = this;
+		const headers = new Headers();
+		headers.append(`Library-Name`,`${this.name}`)
+		const requestObject = {
+			method : `GET`,
+			headers : headers,
+		}
+		const repoRequest = new Request('/libraryContents', requestObject)
+		
+		fetch(repoRequest).then(function(response){
+			response.json().then(function(data){
+				library.files = data;
+				library.isLoaded = true;
+				library.assembleRepository();
+			})
+		})
+
+	}
+
+	searchRepository (string, options) {
+		const library = this;
+		if (!options){
+			options = {};
+			options.noPartialMatches = true;
+			options.quickSearch = false;
+			options.matchCase = false;
+		}
+		if (this.checkCensorStatus(string)){
+			return[];
+		}
+		const eliminateDuplicates = function (searchTerm, array){
+			if (array.indexOf(searchTerm) !== array.lastIndexOf(searchTerm)){
+				array.splice(array.indexOf(searchTerm), 1)
+				eliminateDuplicates(searchTerm, array)
+			}
+		}
+		
+		const terminatingCharacters = [" ", ",", ".", "?", "!", ";", ":", ")", "(", "/"]
+		//this.waitingScreen();
+		const outputArray = [];
+		if (options.quickSearch){
+			Object.keys(this.repository).forEach(function(fileName){
+				if (this.repository[fileName].text.toLowerCase().includes(string.toLowerCase())){
+					outputArray.push(fileName);
+					return;
+				}
+		
+			},this)
+			library.searchComplete = true;
+			return outputArray;
+		}
+
+		var firstCap = string.substring(0,1).toUpperCase() + string.substring(1)
+		var allLow = string.toLowerCase();
+		var allUpp = string.toUpperCase();
+
+		var checkArray = [string, firstCap, allLow, allUpp];
+
+		if (options.matchCase){
+			checkArray = [string];
+		}
+
+		if (options.noPartialMatches) {
+			var newCheckArray = [];
+			terminatingCharacters.forEach(function(terminatingCharacter){
+				checkArray.forEach(function(str){
+					newCheckArray.push(" " + str + terminatingCharacter)
+				})
+			})
+			checkArray = newCheckArray;
+		}
+		checkArray.forEach(function(searchTerm){
+			eliminateDuplicates(searchTerm, checkArray)
+		})
+		Object.keys(this.repository).forEach(function(fileName){
+			 return checkArray.forEach(function(searchTerm){
+					if (this.repository[fileName].text.includes(searchTerm)){
+						outputArray.push(fileName);
+						return;
+					}
+			}, this)
+		},this)
+		library.searchComplete = true;
+		return outputArray;
+
+	}
+
+	assembleRepository () {
+		var library = this;
+		this.files.forEach(function(fileName, index){
+			import(`../assets/libraries/${library.name}/${fileName}`).then(function(module){
+				library.repository[module.doc.name] = module.doc;
+				library.repository[module.doc.name].url = fileName
+				if (index === library.files.length -1){
+					library.lastFileLoaded = true;
+				
+					console.log(library.searchRepository(`out`))
+				}
+			})
+		})
+	}
+
+	waitingScreen(){
+		var library = this;
+		library.readyToAcceptCommands = false;
+
+
+		
+		const animFrames = {};
+		animFrames.frame_0 = {
+			row_1 : "loa",
+			row_2 : "  d",
+			row_3 : "gni"
+		};
+		animFrames.frame_1 = {
+			row_1 : "oad",
+			row_2 : "l i",
+			row_3 : " gn"
+		};
+		animFrames.frame_2 = {
+			row_1 : "adi",
+			row_2 : "o n",
+			row_3 : "l g"
+		};		
+		animFrames.frame_3 = {
+			row_1 : "din",
+			row_2 : "a g",
+			row_3 : "ol "
+		};
+		animFrames.frame_4 = {
+			row_1 : "ing",
+			row_2 : "d  ",
+			row_3 : "aol"
+		};
+		animFrames.frame_5 = {
+			row_1 : "ng ",
+			row_2 : "i l",
+			row_3 : "dao"
+		};		
+		animFrames.frame_6 = {
+			row_1 : "g l",
+			row_2 : "n o",
+			row_3 : "ida"
+		};
+		animFrames.frame_7 = {
+			row_1 : " lo",
+			row_2 : "g  a",
+			row_3 : "nid"
+		};
+
+		const loop = function (value) {
+			library.api.clearReservedRows();
+			if (library.lastFileLoaded) {
+				library.lastFileLoaded = false;
+				stopWaiting();
+				return;
+			}
+			if (library.shouldStop) {
+				library.shouldStop = false;
+				stopWaiting();
+				return;
+			}
+			if (library.searchComplete) {
+				library.searchComplete = false;
+				stopWaiting();
+				return;
+			};
+
+			var hSpacing = Math.floor(((library.api.getRowCount())-3)/2)
+			var vSpacing = Math.floor(((library.api.getReservedRowCount())-3)/2)
+
+			library.api.writeToGivenRow((" ").repeat(hSpacing) + animFrames[`frame_${value}`][`row_1`], vSpacing)
+			library.api.writeToGivenRow((" ").repeat(hSpacing) +nimFrames[`frame_${value}`][`row_2`], vSpacing + 1)
+			library.api.writeToGivenRow((" ").repeat(hSpacing) +animFrames[`frame_${value}`][`row_3`], vSpacing + 2)
+
+			var newValue = value % 8;
+			setTimeout(function () {loop(newValue)}, 250)
+		};
+
+		const stopWaiting = function () {
+			library.readyToAcceptCommands = true;
+			library.api.clearReservedRows();
+			library.api.renderTrigger();
+		};
+		
+		
+	}
+
+}
 
 export class Program extends Node {
 	constructor (name, address, url) {
@@ -681,6 +954,7 @@ export class Mole extends UniqueNode {
 				if (!command){
 					//THIS STAYS UNTIL THERE'S A MULTILINE INPUT BUFFER,
 					//AT WHICH POINT, YOU CAN USE THIS TO FILL THE BUFFER WITH CORRECT MOLE OR W/E
+					//Good Example code for this can now be found in biblio.js (under biblio)
 					this.api.throwError(`mole-ware declaration should be followed by command`);
 					return;
 				}
@@ -815,6 +1089,14 @@ export class TextDoc extends Readable {
 				textDoc.hasBeenImported = true;
 			})
 		}
+	}
+}
+
+export class LibraryFile extends TextDoc {
+	constructor (name, address, url) {
+		super(name, address, url);
+		this.address = 'Non_Addressable_Nodelet';
+		this.type = `libraryFile`;
 	}
 }
 

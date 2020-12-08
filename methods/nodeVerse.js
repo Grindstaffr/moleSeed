@@ -1,4 +1,4 @@
-import { Hardware, QRig, Malware, Recruiter, Worm, initializerAlpha, Node, Pdf, Asset, Readable, TerminalStoryPiece, TextDoc, Mole, Program, UniqueNode, Databank, NodeNet } from './fileSystemDefinitions.js'
+import { Library, Hardware, QRig, Malware, Recruiter, Worm, initializerAlpha, Node, Pdf, Asset, Readable, TerminalStoryPiece, TextDoc, Mole, Program, UniqueNode, Databank, NodeNet } from './fileSystemDefinitions.js'
 
 export const bigBang = function () {
 	const nodeVerse = {};
@@ -28,7 +28,10 @@ export const bigBang = function () {
 	nodeVerse.databanks._PioneerDataServices.nodeNets.__toaster.init = function () {
 		const seed = new Node('seed');
 		this.addNode(seed);
-		
+
+		const caravanLibrary = new Library(`caravanLibrary`, `d%*a%611!c&tr\"inj`, `../assets/libraries/caravanLibrary`)
+		this.addNode(caravanLibrary);
+
 		const wallysIbsQ19 = new QRig(`wally'sIBSQ19`, 'c6#!k%uvo3yg$<lcx','./wallysIbsQ19.js');
 		this.addNode(wallysIbsQ19);
 
@@ -116,6 +119,7 @@ export const bigBang = function () {
 		this.mole.attach(nomad_rdbl);
 		this.mole.attach(nomad_mole);
 
+		
 	};
 	nodeVerse.databanks._PioneerDataServices.nodeNets.__toaster.init();
 

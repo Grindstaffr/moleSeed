@@ -147,7 +147,7 @@ export const program = {
 			},
 		},
 		drawSilo : function () {
-			var count = this.api.getMaxLineLength();
+			var count = this.api.getRowCount();
 			var spacing = Math.floor((count - 4)/3)
 			var line = "  ";
 			var time = " ";
