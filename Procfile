@@ -1,2 +1,2 @@
-web : cd server
-web : node server.js
+web: cd server
+web: node server.js
