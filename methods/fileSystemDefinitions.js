@@ -83,15 +83,27 @@ export class Node {
 		return;
 	}
 
-	detachFromAll () {
+	detachFromAll (type) {
 		//console.log(`jettisoning node`)
-		for (var property in this.adjacencies){
-			
-			delete this.adjacencies[property].adjacencies[this.name]
-			delete this.adjacencies[property].visibleAdjacencies[this.name]
-			delete this.adjacencies[property]
-			delete this.visibleAdjacencies[property]
-		};
+		if (!type){
+			for (var nodeName in this.adjacencies){
+				
+				delete this.adjacencies[nodeName].adjacencies[this.name]
+				delete this.adjacencies[nodeName].visibleAdjacencies[this.name]
+				delete this.adjacencies[nodeName]
+				delete this.visibleAdjacencies[nodeName]
+			};
+		} else {
+			for (var nodeName in this.adjacencies){
+				if (this.adjacencies[nodeName].type === type){
+					delete this.adjacencies[nodeName].adjacencies[this.name]
+					delete this.adjacencies[nodeName].visibleAdjacencies[this.name]
+					delete this.adjacencies[nodeName]
+					delete this.visibleAdjacencies[nodeName]
+				}
+			}
+		}
+
 		this.assembleVisibleAdjacencies();
 		
 	}
@@ -210,6 +222,7 @@ export class Library extends Node {
 	}
 
 	getFile (fileName) {
+
 		this.detachAllFiles();
 		if (!this.repository[fileName]){
 			this.api.throwError(`No file found with name ${fileName}`)
