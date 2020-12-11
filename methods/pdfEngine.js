@@ -5,7 +5,7 @@ import { globalProps } from './globalState.js'
 // import { terminal } from './terminal.js'
 import { bigBang } from './nodeVerse.js'
 import { Terminal } from './terminalClass.js'
-import { TerminalActivator } from './TerminalActivator.js'
+import { TerminalActivator } from './terminalActivator.js'
 
 
 /*async function __initializer () {
