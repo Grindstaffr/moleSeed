@@ -210,7 +210,7 @@ export class Library extends Node {
 
 	detachAllFiles() {
 		Object.keys(this.adjacencies).forEach(function(adjacentNodeName){
-			if (this.adjacencies[adjacentNodeName].type = `libraryFile`){
+			if (this.adjacencies[adjacentNodeName].type === `libraryFile`){
 				this.adjacencies[adjacentNodeName].detachFromAll();
 			}
 		}, this)
