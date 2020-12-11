@@ -1,0 +1,27 @@
+{
+  "name": "Portfolio",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "pdfjs-dist": "^2.5.207"
+  },
+  "engines" : {
+    "node" : "8.11.x"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Grindstaffr/moleSeed.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Grindstaffr/moleSeed/issues"
+  },
+  "homepage": "https://github.com/Grindstaffr/moleSeed#readme"
+}

@@ -1384,6 +1384,12 @@ export class NodeNet {
 		this.name = name;
 		this.structure = 'nodeNet'
 		this.address = address;
+		this.accessPoints = [];
+		this.getAccessPoints = this.getAccessPoints.bind(this);
+	}
+
+	getAccessPoints () {
+		return this.accessPoints;
 	}
 
 	addNode(node){
@@ -1397,6 +1403,21 @@ export class NodeNet {
 		//node._meta = this;
 		this[node.name] = node
 		this._meta._meta.router[this._meta.address][this.address][node.address] = node;
+	}
+
+	addAccessNode(){
+		if (node.Type === 'malware') {
+			return;
+		}
+		Object.defineProperty(node, '_meta', {
+			value : this,
+			writable : false,
+		})
+		this._meta._meta.router[this._meta.address][this.address][node.address] = node;
+
+		thia.accessPoints.push(node);
+		
+		
 	}
 };
 /*
