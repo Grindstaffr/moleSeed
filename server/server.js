@@ -1,7 +1,8 @@
 const express = require('express');
 const pdfjsLib = require('pdfjs-dist/es5/build/pdf.js')
 const bodyParser = require('body-parser');
-const cors = require('cors')
+const cors = require('cors');
+
 const fs = require('fs');
 const server = express();
 //const port = 3003;

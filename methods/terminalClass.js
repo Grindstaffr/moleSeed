@@ -19,13 +19,6 @@ export class Terminal {
 		this.index = index
 
 		this.style = colorScheme;
-/*
-		{
-			background : "#01060D",
-			text : "#EEF0FF",
-			stroke: "#EEF0FF",
-		}
-		*/
 
 		this.__calcLocAndDim();
 
@@ -297,8 +290,7 @@ export class Terminal {
 	}
 
 	__calcLocAndDim  () {
-		console.log('calculating')
-		console.log(this.canvas)
+
 
 		var dim = Math.floor((Math.floor(this.canvas.height * (6/7))/this.letterHeight)) * this.letterHeight
 		var vBuff = Math.floor(this.canvas.height * (1/14))
@@ -314,7 +306,7 @@ export class Terminal {
 		if (this.cache){
 			this.cache.rowCount = this.rowCount
 		}
-		return;
+		return [dim, this.leftLoc, this.topLoc, this.rowCount];
 	}
 
 	constructPrograms () {
@@ -878,39 +870,79 @@ export class Terminal {
 		command.read = {
 			name: 'read',
 			desc: 'read the contents of an adjacent node',
-			syntax: 'read [NODE]',
+			syntax: 'read [NODE] ...',
 			isAvail: true,
-			ex : function (nodeName) {
+			ex : function (nodeName, startIndex, endIndex) {
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
+				cmd.cache.writeEmptyRow();
 				var node = {}
 				if (trmnl.activeNode.name === nodeName){
 					node = trmnl.activeNode
 				} else {
-					console.log(trmnl.accessibleNodes)
 					node = trmnl.accessibleNodes[nodeName]
 				}
-				console.log(node)
 				if (!node.canBeRead){
 					cmd.error.ex('the node does not contain any readable data')
 					return;
 				}
+				if (startIndex){
+					if (isNaN(parseInt(startIndex))){
+						cmd.warn.ex(`${this.name} startIndex must be an integer value... setting indexes to default`)
+						startIndex = 0;
+						endIndex = false;
+					}
+					if (endIndex){
+						if (isNaN(parseInt(endIndex))){
+							cmd.warn.ex(`${this.name} endIndex must be an integer value... defaulting to NOVALUE`)
+							endIndex = false
+						}
+					}
+				}
 				var text = ""
 				node.read(function(text){
-					trmnl.cache.composeText(text)
+					var textToPrint = text
+					if (startIndex){
+						if (endIndex){
+							textToPrint = text.slice(startIndex, endIndex);
+						} else {
+							textToPrint = text.slice(startIndex);
+						}
+					}
+					trmnl.cache.composeText(textToPrint)
 				})
 			}
 		};
 		command.info = {
-			name: 'desc',
+			name: 'info',
 			desc: 'describe a command',
-			syntax: 'desc [COMMAND]',
+			syntax: 'info [NODE]',
 			isAvail : false,
-			ex : function (command) {
+			ex : function (nodeName) {
 				cmd.cache.writeEmptyRow();
 				cmd.cache.writeToVisibleRow(command.longDesc);
 				cmd.cache.writeEmptyRow();
 			},
+		};
+		command.fuckyou = {
+			name : 'fuckyou',
+			isHidden : true,
+			isAvail : false,
+			syntax : 'fuckyou',
+			ex : function () {
+				var cmd = this.parent;
+				cmd.cache.composeText("Right back at ya... cunt.")
+			}
+		}
+		command.rex = {
+			name : 'rex',
+			isAvail : false,
+			syntax : 'rex ...',
+			isHidden: true,
+			ex : function () {
+				var cmd = this.parent;
+				cmd.cache.composeText("If you keep looking around in the source code, I swear to god, I'm gonna be pissed", true, true, 5)
+			}
 		};
 		command.prgms = {
 			name : `prgms`,
@@ -1226,8 +1258,10 @@ export class Terminal {
 				return;
 			}
 			if (!this.command[inputTerms[0]].isAvail ){
-				this.command.error.ex(`${inputTerms[0]} is not a valid command, type "help" for options`);
-				return;
+				if (!this.command[inputTerms[0]].isHidden){
+					this.command.error.ex(`${inputTerms[0]} is not a valid command, type "help" for options`);
+					return;
+				}
 			}
 			if ((this.command[inputTerms[0]].requiresVerification) && !(this.cache.inputBufferVerified)){
 			
@@ -1699,6 +1733,30 @@ export class Terminal {
 				},
 			*/
 			this.command.addCommand.ex(commandObject);
+		};
+		terminalInterface.renameCommand = function (commandName, newName){
+			if (!this.command[commandName]){
+				console.log(`cannot rename a non-existent command`)
+				return;
+			}
+			if (this.command[newName]){
+				console.log(`${newName} already taken, try a different name for renaming ${commandName}`)
+					return;
+				}
+			
+			this.command[newName] = this.command[commandName];
+			var oldSyntax = this.command[newName].syntax
+			var newSyntax = `${newName}` + oldSyntax.slice(oldSyntax.indexOf(" "));
+			this.command[newName].syntax = newSyntax;
+			delete this.command[commandName];
+		};
+		terminalInterface.hideCommand = function (commandName){
+			if(!this.command[commandName]){
+				console.log(`cannot hide a non-existent command`)
+				return;
+			}
+			this.command[commandName].isAvail = false;
+			this.command[commandName].isHidden = true;
 		};
 		terminalInterface.incrementCommandUsedBy = function (commandName) {
 			this.command.incrementCommandUsedBy.ex(commandName);

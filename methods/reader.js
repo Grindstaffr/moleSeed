@@ -425,6 +425,8 @@ export const program = {
 		for (var cmdName in this.installData.commands){
 			this.installData.commands[cmdName].ex = this.installData.commands[cmdName].ex.bind(this);
 		};
+		this.api.renameCommand(`read`, `read_raw`);
+		this.api.hideCommand(`read_raw`);
 		this.api.addCommand(this.installData.commands.read);
 
 

@@ -6,7 +6,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.17.1",
-    "pdfjs-dist": "^2.5.207"
+    "pdfjs-dist": "^2.5.207",
   },
   "engines": {
     "node": "8.11.x"

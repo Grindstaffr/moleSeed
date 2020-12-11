@@ -1,4 +1,6 @@
 import { Terminal } from './terminalClass.js'
+import { buildAnimations } from './fullScreenAnimations.js'
+
 export class TerminalActivator {
 	constructor (canvas, globalProps, nodeVerse) {
 		this.terminals = {};
@@ -9,9 +11,10 @@ export class TerminalActivator {
 		this.activeTerminal = {};
 		this.addTerminal();
 		this.activateTerminal(0);
-		this.activeTerminal.__calcLocAndDim();
+		this.terminalDimensions = this.activeTerminal.__calcLocAndDim();
 		this.activeTerminal.cache.rescaleCache();
 		this.keyHandler = this.keyHandler.bind(this)
+		this.animator = buildAnimations(canvas, this.selectColorScheme(0), this.terminalDimensions, globalProps.letterHeight);
 		
 	}
 	selectColorScheme (int) {
@@ -79,8 +82,11 @@ export class TerminalActivator {
 	}
 
 	draw () {
-	
-		
+		if (this.animator.isDrawing){
+			this.animator.setDimensions(this.activeTerminal.__calcLocAndDim());
+			this.animator.draw();
+			return;
+		}
 		this.activeTerminal.draw();
 	}
 
@@ -95,7 +101,7 @@ export class TerminalActivator {
 					e.preventDefault();
 				}
 				if (!this.devMode){
-					this.activeTerminal.turnOn;
+					this.activeTerminal.turnOn();
 					this.canvas.width = window.screen.width;
 					this.canvas.height = window.screen.height;
 
