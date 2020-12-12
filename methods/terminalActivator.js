@@ -7,7 +7,7 @@ export class TerminalActivator {
 		this.canvas = canvas;
 		this.globalProps = globalProps;
 		this.nodeVerse = nodeVerse;
-		this.devMode = true;
+		this.devMode = false;
 		this.activeTerminal = {};
 		this.addTerminal();
 		this.activateTerminal(0);
@@ -101,7 +101,7 @@ export class TerminalActivator {
 					e.preventDefault();
 				}
 				if (!this.devMode){
-					this.activeTerminal.turnOn();
+					this.activeTerminal.turnOn(this.animator.bootUp);
 					this.canvas.width = window.screen.width;
 					this.canvas.height = window.screen.height;
 

@@ -30,18 +30,45 @@ export class Terminal {
 		this.input = this.constructInput(this);
 		this.keyRouter = this.constructKeyRouter(this);
 		this.blinkyCursor = this.constructBlinkyCursor(this,this.style);
+		this.animations = this.constructAnimations(this.context, this.api);
 
-		this.turnOn()
+		if (terminalActivator.devMode){
+			this.turnOnDev();
+		}
 	}
 
 	turnOff () {
 		this.isOn = false;
 		this.__calcLocAndDim();
 	}
-
-	turnOn () {
+	turnOnDev() {
 		this.isOn = true;
 		this.__calcLocAndDim();
+	}
+
+	turnOn (callbackA) {
+		this.isOn = true;
+		var trmnl = this;
+		trmnl.api.lockInput
+		setTimeout(function (){
+			trmnl.__calcLocAndDim();
+			trmnl.animations.biosAnim.ex()
+		}, 1000)
+
+		setTimeout(function (){
+			trmnl.__calcLocAndDim();
+			trmnl.animations.bootLoaderAnim.ex();
+		}, 7000)
+		
+
+		setTimeout(function () {
+			trmnl.__calcLocAndDim();
+			if (callbackA){
+				callbackA();
+			}
+
+		}, 50000)
+
 	}
 
 	draw () {
@@ -52,7 +79,7 @@ export class Terminal {
 			this.context.fillStyle = "#CCFFFF"
 			var height = window.innerHeight;
 			var width = window.innerWidth;
-			this.context.fillText(`Press 'F11' to start moleSeed.mkr`, ((width/2) - this.letterHeight * 16), ((height/2)-this.letterHeight));
+			this.context.fillText(`Press 'F11' to boot moleSeed.mkr`, ((width/2) - this.letterHeight * 16), ((height/2)-this.letterHeight));
 			return;
 		}
 		//console.log('drawing Terminal')
@@ -1794,6 +1821,217 @@ export class Terminal {
 		};
 		init(this);
 		return terminalInterface;
+	}
+
+	constructAnimations (context, api) {
+		const animations = {};
+		animations.biosAnim =  {
+			ex : function () {
+				const anim = this;
+				var line = '%SEEK<#BIOS> [X.00000000] - [x.00000fff]: Scouring memory for system bios;'
+				this.api.composeText(line, true, true, 5);
+				for (var i = 2; i < anim.api.getRowCount(); i ++){
+					anim.api.writeLine('')
+				}
+				var count = 0;
+				for (var i = 4000; i < 8095; i ++){
+					var func = function () {
+						count = count + 1
+						anim.biosAnim.scour(count)
+					}
+					setTimeout(func , (i/4))
+				}
+				setTimeout(function(){
+					anim.api.clearContiguousRows(0, anim.api.getRowCount())
+
+				anim.api.writeLine('');
+				anim.api.writeLine('');
+				anim.api.writeLine('');
+				anim.api.writeLine('');
+				var line0 = 'RTRN|#FLAG| <= [X.00000000] - [x.00000fff]: Memory flagged; ready for ALOC;'
+				anim.api.composeText(line0, true, true, 5);
+				anim.api.writeLine('');
+				anim.api.writeLine('');
+				anim.api.writeLine('');
+				anim.api.writeLine('');
+
+				var lineA = `%dclr_$wrwm_#trgt<#FLAG_#null>: prepping <rtrn>flag_null`
+				var lineB = `%dclr_$dlwm_#trgt<#FLAG_#scfn>: prepping <rtrn>flag_scfn`
+				var lineC = `%dclr_$rctr_#trgt<#FLAG_#hdwr>: prepping <rtrn>flag_hdwr`
+				var lineD = `%dclr_$caca_#trgt<#FLAG_#dipr>: prepping <rtrn>flag_dipr`
+				
+				anim.api.writeLine("");
+				anim.api.composeText(lineA, true, true, 5);
+				anim.api.writeLine("");
+				
+				
+				anim.api.writeLine("");
+				anim.api.composeText(lineB, true, true, 5);
+				anim.api.writeLine("");
+				
+				
+				anim.api.writeLine("");
+				anim.api.composeText(lineC, true, true, 5);
+				anim.api.writeLine("");
+				
+				
+				anim.api.writeLine("");
+				anim.api.composeText(lineD, true, true, 5);
+				anim.api.writeLine("");
+
+				for (var i = 23; i < anim.api.getRowCount(); i ++){
+					anim.api.writeLine('')
+				};
+				count = 0;
+
+				
+
+				setTimeout(function () {
+					anim.api.clearContiguousRows(0, anim.api.getRowCount())
+					anim.api.writeLine('');
+					var lineF = '%INCH_%SEEK<#FLAG>_%ALOC<&n&> [X.00000000] - [x.00000fff]: Allocating memory for BIOS injection'
+					anim.api.composeText(lineF, true, true, 5);
+					for (var i = 3; i < anim.api.getRowCount(); i ++){
+						anim.api.writeLine('')
+					}
+				}, 1024)
+
+				for (var i = 8000; i < 12095; i ++){
+					var func = function () {
+						count = count + 1
+						anim.biosAnim.allocate(count)
+					}
+					setTimeout(func , (i/4))
+				}
+
+				}, 2048)
+
+				setTimeout(function() {
+					anim.api.clearContiguousRows(0, anim.api.getRowCount())
+				}, 5264)
+
+			}.bind(animations),
+			scour : function (value) {
+				var val = value
+				var memLoc = (val).toString(16)
+				var fill = ("0").repeat(8 - memLoc.length);
+				var addmessage = "%SEEK#|&n&| => _type_stnd_bios --FLAG"
+				if (value % 13 === 0) {
+					addmessage = "%SEEK#|&n&| => _type_null_frag ++%FLAG_#null<&n&>"
+				}
+				if (value % 29 === 0) {
+					addmessage = "%SEEK#|&n&| => _type_scrt_func ++%FLAG_#scfn<&n&>"
+				}
+				if (value % 31 === 0) {
+					addmessage = "%SEEK#|&n&| => _type_dumb_hdwr ++%FLAG_#hdwr<&n&>"
+				}
+				if (value % 87 === 0) {
+					addmessage = "%SEEK#|&n&| => _type_fuck_shit ++%FLAG_#dipr<&n&>"
+				}
+				var line = `%INCH_%SEEK<#BIOS> [X.${fill + memLoc}] : ${addmessage}`
+				this.api.composeText(line, true, true, 5)
+			}.bind(animations),
+			allocate : function (value) {
+				var val = value
+				var memLoc = (val).toString(16)
+				var fill = ("0").repeat(3 - memLoc.length);
+				var message = ""
+				if (value % 13 === 0) {
+					message = `#null#|${fill + memLoc}| => %ALOC_#INJC`
+				}
+				if (value % 29 === 0) {
+					message = `#scfn#|${fill + memLoc}| => %ALOC_#NUKE => %NUKE#|&n&| => %ALOC_#INJC`
+				}
+				if (value % 31 === 0) {
+					message = `#hdwr#|${fill + memLoc}| => %ALOC_#CTRL => $rctr_%rofl`
+				}
+				if (value % 87 === 0) {
+					message = `#dipr#|${fill + memLoc}| => %ALOC_#POOP => %DUMP#|&n&|`
+				}
+				if (message === ""){
+					return
+				}
+				this.api.composeText(message, true, true, 5)
+				return
+				
+			}.bind(animations)
+
+
+		}
+		animations.bootLoaderAnim = {
+			ex : function () {
+				var text = ""; 
+				var anim = this;
+				var rows = anim.api.getRowCount();
+				anim.api.writeToGivenRow('Booting moleSeed.mkr' + ('#').repeat(rows-18),0)
+				for (var i = 1; i < rows; i++){
+					var line = ('')
+					anim.api.writeToGivenRow(('#').repeat(rows + 1), i)
+				}
+				var count = 0;
+				for (var i = 0; i < rows + 8; i ++){
+					setTimeout(function() {
+						count = count + 1;
+						anim.api.writeToGivenRow(anim.bootLoaderAnim.moleMoveL(count), rows - 10);
+					},i*50)
+				}
+				const countArray = [];
+				var counter2 = 0;
+				for (var i = 0; i < rows; i++ ){
+					if (i === (rows - 10)){
+						return;
+					}
+					for (var j = 0; j < rows + 5; j ++){
+						setTimeout(function(){
+							if (!countArray[counter2]){
+								countArray[counter2] = 0;
+								counter2 = counter2 + 1;
+							}
+							countArray[counter2 - 1] = countArray[counter2 - 1] + 1;
+							if (j % 2 === 0){
+								anim.api.writeToGivenRow(anim.bootLoaderAnim.moleMoveR(countArray[i]), counter2)
+								return;
+							}	
+							anim.api.writeToGivenRow(anim.bootLoaderAnim.moleMoveL(countArray[i]), counter2) 
+							return;
+						}, (j *25) + (10*i))
+					}
+				}
+
+
+				//this.api.composeText('', true, true, 5)
+				return;
+			}.bind(animations),
+			moleMoveR : function (frame) {
+				var anim = this;
+				var rows = anim.api.getRowCount() + 1
+				var ground = ("#").repeat(rows);
+				var tunnel = ""
+				if (frame >= 4){
+					tunnel = (" ").repeat(frame - 4);
+				}
+				var mole = "( )="
+				return (tunnel + mole.slice(Math.max(0, 4-frame)) + ground.slice(frame)).slice(0,rows)
+			}.bind(animations),
+			moleMoveL : function (frame) {
+				var anim = this;
+				var rows = anim.api.getRowCount() + 1
+				var ground = ("#").repeat(rows);
+				var tunnel = ""
+				if (frame >= 4){
+					tunnel = (" ").repeat(frame - 4);
+				}
+				var mole = "=( )"
+				return (ground.slice(frame) + mole.slice(Math.max(0, ((0 - rows) + frame))) + tunnel).slice(0,rows)
+			}.bind(animations),
+		}
+
+		const init = function (context, api) {
+			animations.context = context
+			animations.api = api
+		};
+		init(context, api)
+		return animations
 	}
 
 	constructInput  (parent) {
