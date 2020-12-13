@@ -5,9 +5,11 @@ export class TerminalActivator {
 	constructor (canvas, globalProps, nodeVerse) {
 		this.terminals = {};
 		this.canvas = canvas;
+		this.context = canvas.getContext('2d')
 		this.globalProps = globalProps;
 		this.nodeVerse = nodeVerse;
 		this.devMode = false;
+		this.shouldClick = true;
 		this.activeTerminal = {};
 		this.addTerminal();
 		this.activateTerminal(0);
@@ -87,22 +89,70 @@ export class TerminalActivator {
 			this.animator.draw();
 			return;
 		}
+		if (this.helpNeeded){
+			var height = window.innerHeight;
+			var width = window.innerWidth;
+			this.context.fillStyle = this.selectColorScheme(0).text
+			var lineA = `make the browser fullscreen, (don't just maximize)`
+			var lineB = `then press the    ~ \`   key`
+			this.context.fillText(lineA, ((width/2) - (this.globalProps.letterHeight * lineA.length)), (height/2) - (this.globalProps.letterHeight * 2))
+			this.context.fillText(lineB, ((width/2) - (this.globalProps.letterHeight * lineB.length)), (height/2) + (this.globalProps.letterHeight * 2))
+			return;
+		}
+		if (!this.activeTerminal.isOn){
+			this.context.fillStyle = this.selectColorScheme(0).text
+			this.clickX = (this.canvas.width - 20*(this.globalProps.letterHeight))
+			this.clickY = (this.canvas.height - 2*(this.globalProps.letterHeight))
+			console.log(this.clickX)
+			this.context.fillText(`F11 isn't working`, this.clickX, this.clickY )
+		}
 		this.activeTerminal.draw();
 	}
+	mouseHandler(e){
+		if (!this.shouldClick){
+			return;
+		}
+		console.log(`mouseX : ${this.mouseX}   mouseY : ${this.mouseY}`)
+		console.log(`clickX : ${this.clickX}   clickY : ${this.clickY}`)
+		this.mouseX = e.offsetX;
+		this.mouseY = e.offsetY;
+	}
+	clickHandler(e){
+		if (!this.shouldClick){
+			return
+		}
+		if (this.helpNeeded){
+			this.helpNeeded = false;
+		}
+		if ((this.mouseX + 50) >= this.clickX){
+			if ((this.mouseY + 50) >= this.clickY){
+				this.helpNeeded = true;
+			}
+		}
 
+	}
 	keyHandler(e){
 	
 		if(e.keyCode === 8 || e.keyCode === 222 || e.keyCode === 191){
 			e.preventDefault();
 		};
 		if (!this.activeTerminal.isOn){
-			if (e.keyCode === 122){
-				if (!window.screenTop && !window.screenY){
-					e.preventDefault();
+			if (e.keyCode === 122 || e.keyCode === 192){
+				if (e.keyCode === 122){
+					if (!window.screenTop && !window.screenY){
+						e.preventDefault();
+					}
 				}
 				if (!this.devMode){
 					this.canvas.width = window.screen.width;
 					this.canvas.height = window.screen.height;
+					this.shouldClick = false;
+					this.helpNeeded = false;
+					this.canvas.letterspacing = '0px'
+					this.canvas.fontkerning = 'none'
+					this.canvas.style.fontfamily = 'terminalmonospace'
+					this.canvas.style.cursor = "none";
+					this.context.font = `${this.globalProps.letterSize}px terminalmonospace`
 					this.activeTerminal.turnOn(this.animator.bootUp);
 
 					this.activeTerminal.__calcLocAndDim();
@@ -111,9 +161,11 @@ export class TerminalActivator {
 			return;
 		};
 		if (this.activeTerminal.isOn){
-			if (e.keyCode === 122){
+			if (e.keyCode === 122 || e.keyCode === 192){
 				this.activeTerminal.turnOff()
+				this.shouldClick = true
 				this.activeTerminal.__calcLocAndDim();
+				delete this.canvas.style.cursor
 				return;
 			}
 			this.activeTerminal.keyHandler(e);

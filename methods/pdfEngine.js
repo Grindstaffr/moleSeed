@@ -393,6 +393,8 @@ import { TerminalActivator } from './terminalActivator.js'
 		const terminalActivator = new TerminalActivator(document.getElementById('the-canvas'), globalProps, buildNodeVerse());
 
 		window.addEventListener("keydown", terminalActivator.keyHandler);
+		window.addEventListener("click", terminalActivator.clickHandler.bind(terminalActivator));
+		window.addEventListener("mousemove", terminalActivator.mouseHandler.bind(terminalActivator));
 
 		const mainLoop = function(terminal) {
 			cleanCanvasFrame(lacanvasa, ctx)
