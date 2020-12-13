@@ -169,6 +169,18 @@ export class Terminal {
 		this.context.font = `8px terminalmonospace`
 	}
 
+
+	/*
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	Input row spillover functions (in cache)
+	not updated when cursor re-indexing occurred
+	input row needs refactoring.
+	when input strings are longer than this.api.getRowCount()
+	theres some seriously buggy behavior
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+	*/
+
 	drawInputRow  () {
 		var line = this.cache.inputRow.join("")
 		/*
@@ -185,7 +197,7 @@ export class Terminal {
 		if (line.length === 0){
 			return;
 		}
-		for (var i = 0 ; i < Math.min(line.length, this.api.getRowCount()); i ++){
+		for (var i = 0 ; i < Math.min(line.length, (this.api.getRowCount()-1)); i ++){
 			this.context.fillText(`${line[i]}`, this.leftLoc + this.tinyBuff + this.letterHeight/2 + (this.letterHeight * (i + 1)), this.botLoc)
 		}
 	}
@@ -297,7 +309,7 @@ export class Terminal {
 		blinkyCursor.draw = function () {
 			var left_relative = this.position.x * this.parent.letterHeight;
 			var top_relative = ((this.cache.rowCount - this.position.y) * this.parent.letterHeight)
-			var leftTrue = this.parent.leftLoc + left_relative + ((3*this.parent.letterHeight)/2) ;
+			var leftTrue = Math.min((this.parent.leftLoc + left_relative + ((3*this.parent.letterHeight)/2)), (this.parent.leftLoc + ((this.parent.api.getRowCount()-.5)*this.parent.letterHeight)));
 			var topTrue = this.parent.topLoc + top_relative ;
 			this.parent.context.fillStyle = this.style.background
 			this.blink();
@@ -355,7 +367,7 @@ export class Terminal {
 				},
 				right : function () {
 				//	console.log(this.parent.trmnl.maxRowWidth)
-					if (this.x === this.parent.trmnl.maxRowWidth){
+					if (this.x === this.parent.trmnl.api.getRowCount()-2){
 						return;
 					}
 					this.x = this.x + 1;
@@ -906,9 +918,14 @@ export class Terminal {
 		command.ex = {
 			name : 'ex',
 			desc: 'execute a program',
-			syntax: 'ex [PROGRAM]',
+			syntax: 'ex [PROGRAM] ...',
 			isAvail : true,
-			ex : function (programName) {
+			ex : function (programName, bool) {
+				if (bool === 'true'){
+					bool = true;
+				} else {
+					bool = false;
+				}
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
 				if (trmnl.accessibleNodes[programName]){
@@ -923,9 +940,13 @@ export class Terminal {
 				}
 				for (var prgm in trmnl.programs.runningPrograms){
 					console.log(trmnl.programs.runningPrograms)
-					if (!trmnl.programs.runningPrograms[prgm].runsInBackground){
-						cmd.error.ex('conflicting program already executing, stop conflicting programs and try again')
-						return;
+					if (bool){
+
+					} else {
+						if (!trmnl.programs.runningPrograms[prgm].runsInBackground){
+							cmd.error.ex('conflicting program already executing, stop conflicting programs and try again')
+							return;
+						}
 					}
 				}
 				trmnl.programs[programName].ex(trmnl);
@@ -1000,7 +1021,7 @@ export class Terminal {
 					}
 				}
 				var text = ""
-				node.read(function(text){
+				node.read(function(text, shouldUnSpace, shouldTab, tabSize){
 					var textToPrint = text
 					if (startIndex){
 						if (endIndex){
@@ -1009,7 +1030,7 @@ export class Terminal {
 							textToPrint = text.slice(startIndex);
 						}
 					}
-					trmnl.cache.composeText(textToPrint)
+					trmnl.cache.composeText(textToPrint, shouldUnSpace, shouldTab, tabSize)
 				})
 			}
 		};
@@ -1041,7 +1062,22 @@ export class Terminal {
 			isHidden: true,
 			ex : function () {
 				var cmd = this.parent;
-				cmd.cache.composeText("If you keep looking around in the source code, I swear to god, I'm gonna be pissed", true, true, 5)
+				var reqObject = {
+					method : 'POST',
+
+					body : {
+					nodes : [],
+					edges: []
+					},	
+				}
+				const repoRequest = new Request('/rex',reqObject);
+
+				fetch(repoRequest).then(function(response){
+					response.json().then(function(data){
+						console.log(data)
+					})
+				})
+
 			}
 		};
 		command.prgms = {
@@ -1865,6 +1901,10 @@ export class Terminal {
 			this.command.decrementCommandUsedBy.ex(commandName);
 		};
 		terminalInterface.getCommandUsedBy = function (commandName) {
+			if (!this.command[commandName]){
+				console.log(commandName);
+				return;
+			}
 			return this.command[commandName].usedBy
 		};
 		terminalInterface.deleteCommand = function (commandName) {

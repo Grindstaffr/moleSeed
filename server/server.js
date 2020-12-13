@@ -2,6 +2,7 @@ const express = require('express');
 const pdfjsLib = require('pdfjs-dist/es5/build/pdf.js')
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const graphBuilder = require ('./methods/graphBuilder.js')
 
 const fs = require('fs');
 const server = express();
@@ -25,8 +26,12 @@ server.get('/', (req,res) => {
 
 server.get(`/libraryContents`, (req, res) => {
 	fs.readdir( __dirname + `/../assets/libraries/${req.headers[`library-name`]}`, function(err,files){
-		console.log(files)
 		res.send(files)	})
+})
+
+server.post(`/rex`, (req,res) => {
+	graphBuilder.sayHello();
+	res.send({node : 'donkey'})
 })
 
 

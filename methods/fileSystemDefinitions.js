@@ -1,4 +1,5 @@
 import { addressGenerator } from './addressGenerator.js';
+import { base49Map, reverseBase49Map } from './addressGenerator.js';
 
 
 export class Node {
@@ -6,7 +7,10 @@ export class Node {
 		this.Type = 'node';
 		this.type = 'node';
 		this.name = name;
-		this.address = address
+		if (!address){
+			address = addressGenerator(17)
+		}
+		this.address = Node.setAddress(address);
 		this.adjacencies = {};
 		this.visibleAdjacencies = {};
 		this.canOpen = false;
@@ -19,6 +23,48 @@ export class Node {
 		this.recruitable = false;
 		this.moveTriggeredFunctions = [];
 	};
+
+	static lastAddress = -1;
+	static setAddress (address) {
+		if (!address){
+			this.lastAddress = this.lastAddress + 1;
+			return this.lastAddress;
+		}
+		this.lastAddress = this.lastAddress + 1;
+
+		var disguise = this.lastAddress + 7821
+
+		var num_2 = Math.floor(disguise/2401);
+		var num_1 = Math.floor(((disguise % 2401)/49));
+		var num_0 = (disguise % 49);
+
+		var val_0 = base49Map[num_0];
+		var val_1 = base49Map[num_1];
+		var val_2 = base49Map[num_2];
+
+		address = address.substring(0,4) + val_0 + address.substring(5);
+		address = address.substring(0,13) + val_1 + address.substring(14);
+		address = address.substring(0,9) + val_2 + address.substring(10);
+
+		return address;
+	}
+
+	getTrueAddress () {
+		var val_0 = this.address[4];
+		var val_1 = this.address[13];
+		var val_2 = this.address[9];
+
+		var num_0 = reverseBase49Map[val_0];
+		var num_1 = reverseBase49Map[val_1];
+		var num_2 = reverseBase49Map[val_2];
+
+		var decVal_0 = num_0;
+		var decVal_1 = num_1 * 49;
+		var decVal_2 = num_2 * 2401;
+
+		return (decVal_2 + decVal_1 + decVal_0 - 7821);
+	}
+
 	triggerOnMove (context, lastNode) {
 		if (this.moveTriggeredFunctions.length === 0){
 			return;
@@ -51,7 +97,6 @@ export class Node {
 	encryptionBarrier(context, lastNode){
 		var node = this;
 		var lastNode = lastNode
-		console.log(lastNode)
 		this.api.requestInput(function(commandFull){
 			var keyCode = commandFull.split(" ")[0]
 			if (keyCode === node.encryptionData.password){
@@ -613,6 +658,10 @@ export class QRig extends Hardware {
 			doNokhanyo: false,
 			verificationCheck : false,
 			ex : function (nodeName){
+				if (!nodeName){
+					this.api.throwError(`brute force requires a node as a target... try "recruit [hardware] bf [target]"`);
+					return;
+				}
 				var target = this.api.getAccessibleNodes()[nodeName];
 				var qRig = this;
 				var skip = false;
@@ -932,7 +981,11 @@ export class Recruiter extends Malware {
 			superGrabber.call(rctr, terminal, storageLoc, refreshFunc);
 			rctr.methods.arm.ex = rctr.methods.arm.ex.bind(rctr)	
 			rctr.methods.trgt.ex = rctr.methods.trgt.ex.bind(rctr)	
-			rctr.methods.fire.ex = rctr.methods.fire.ex.bind(rctr)	
+			rctr.methods.fire.ex = rctr.methods.fire.ex.bind(rctr)
+
+			if (rctr.api.checkRucksackRunning()){
+				rctr.api.reRenderRucksack(true)
+			}
 						
 		})
 	};
@@ -993,10 +1046,16 @@ export class Mole extends UniqueNode {
 					return;
 				}
 				var mole = this;
+				if (!this.trmnl.accessibleNodes[moleName]){
+					this.api.throwError('declared mole-ware not currently accessible.')
+					return;
+				}
+
 				if (!this.trmnl.accessibleNodes[moleName].moleCommands[command]){
 					this.api.throwError(`declared mole-ware does not support "${command}", try "mole ${moleName} help"`)
 					return;
 				}
+
 				if (this.trmnl.accessibleNodes[moleName].moleCommands[command].requiresVerification && (!this.methods.mole.recentlyVerified)){
 					this.api.verifyCommand('command will expend mole. continue? ', function(bool){
 						if (!bool){
@@ -1100,6 +1159,29 @@ export class Readable extends Node {
 		this.type = 'readable';
 		this.commands.push('read')
 		this.canBeRead = true;
+	}
+}
+
+export class Directory extends Readable {
+	constructor (name, address) {
+		super(name, address);
+		this.type = 'directory';
+	}
+
+	read(callback){
+		var text =  ` --- ${this.name} is adjacent to the following nodes --- \\n`;
+		this.assembleVisibleAdjacencies();
+		Object.keys(this.visibleAdjacencies).forEach(function(nodeName){
+			var abbr = nodeName.substring(0,8);
+			var abbrLength = abbr.length;
+			if (nodeName.length > 8){
+				abbr = abbr.substring(0,7) + "-";
+			}
+			text = text + ` NAME: ${abbr}` + (" ").repeat(10-abbrLength) + `TYPE: ${this.visibleAdjacencies[nodeName].type} \\n` ;
+		}, this)
+		if(callback){
+			callback(text, true, true, 0);
+		}
 	}
 }
 

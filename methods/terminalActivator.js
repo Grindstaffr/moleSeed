@@ -7,7 +7,7 @@ export class TerminalActivator {
 		this.canvas = canvas;
 		this.globalProps = globalProps;
 		this.nodeVerse = nodeVerse;
-		this.devMode = false;
+		this.devMode = true;
 		this.activeTerminal = {};
 		this.addTerminal();
 		this.activateTerminal(0);

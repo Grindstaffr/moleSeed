@@ -1,4 +1,4 @@
-import { Library, Hardware, QRig, Malware, Recruiter, Worm, initializerAlpha, Node, Pdf, Asset, Readable, TerminalStoryPiece, TextDoc, Mole, Program, UniqueNode, Databank, NodeNet } from './fileSystemDefinitions.js'
+import { Directory, Library, Hardware, QRig, Malware, Recruiter, Worm, initializerAlpha, Node, Pdf, Asset, Readable, TerminalStoryPiece, TextDoc, Mole, Program, UniqueNode, Databank, NodeNet } from './fileSystemDefinitions.js'
 
 export const bigBang = function () {
 	const nodeVerse = {};
@@ -15,7 +15,7 @@ export const bigBang = function () {
 	}
 
 	nodeVerse.getDefaultNode = function () {
-		return this.router[`dz019q$$tajz>`][`%81jan222jn*=`][`8i7e36p!y9jig21mw`]
+		return this.router[`dz019q$$tajz>`][`%81jan222jn*=`][`8i7eu6p!y3jigc1mw`]
 	}
 
 
@@ -39,18 +39,6 @@ export const bigBang = function () {
 		const caravanLibrary = new Library(`caravanLibrary`, `d%*a%611!c&tr\"inj`, `../assets/libraries/caravanLibrary`)
 		this.addNode(caravanLibrary);
 
-		const wallysIbsQ19 = new QRig(`wally'sIBSQ19`, 'c6#!k%uvo3yg$<lcx','./wallysIbsQ19.js');
-		this.addNode(wallysIbsQ19);
-
-		const cordyceps = new Recruiter('cordyceps.msh', './cordyceps.js');
-		this.addNode(cordyceps);
-
-		const pegleg = new Recruiter('pegleg.yaar', './pegleg.js');
-		this.addNode(pegleg)
-
-		const silo_ext = new Program('silo.ext','bxbljs00\"3p&*z\"yi' ,'./silo.js')
-		this.addNode(silo_ext)
-
 		const reader_ext = new Program('reader.ext', `a+zya0wtbd&e2fs%o`, './reader.js')
 		this.addNode(reader_ext);
 
@@ -60,10 +48,13 @@ export const bigBang = function () {
 		const sample = new TextDoc('sample',`0&tbiiz4pu1>t657v`, '../assets/txtFiles/sampleTxt.js')
 		this.addNode(sample);
 
-		const directory_dir = new TextDoc('directory',`muflds0?&n*$r5?3e`, '../assets/txtFiles/toasterDirectory.js');
-		this.addNode(directory_dir);
+		const main_dir = new Directory('main',`muflds0?&n*$r5?3e`, '../assets/txtFiles/toasterDirectory.js');
+		this.addNode(main_dir);
 
-		const rucksack_dir = new Node('rucksack',`7k>g+wo\"?jz$e7p&<`);
+		const admin_dir = new Directory('00CE6._x172', false);
+		this.addNode(admin_dir);
+
+		const rucksack_dir = new Directory('rucksack',`7k>g+wo\"?jz$e7p&<`);
 		this.addNode(rucksack_dir);
 
 		const rucksack_ext = new Program('rucksack.ext',`hqch4+?u\"auwujxra`, './rucksack.js');
@@ -83,12 +74,11 @@ export const bigBang = function () {
 
 		const moveHere = new Node('move_here', `*r#!jo>nbhk?>!mgw`);
 		this.addNode(moveHere);
-		moveHere.encrypt(7,`babydiaper`)
 
 		const moveHereNext = new Node('move_here_next', `0hjn?&w?n#onkbk$j`);
 		this.addNode(moveHereNext);
 
-		const nomad_dir = new Node('mole', `4qb1927k+4c*?zwz3`)
+		const nomad_dir = new Directory('mole', `4qb1927k+4c*?zwz3`)
 		this.addNode(nomad_dir);
 
 		const nomad_rdbl = new TextDoc('nomad.rdbl', `*ga#hxf$+9nf$qa?$`, '../assets/txtFiles/nomad.js');
@@ -97,36 +87,102 @@ export const bigBang = function () {
 		const nomad_mole = new Mole('nomad.mole', `n<*c0!pxvhp%0d\"rs`, './nomad.js')
 		this.addNode(nomad_mole);
 
-		const welcomeV2 = new TextDoc('read_this', `8=4f#9>3n\"y!=3$i2`,'../assets/txtFiles/MXthumbIntro.js')
+		const welcomeV2 = new TextDoc('welcome_update', `8=4f#9>3n\"y!=3$i2`,'../assets/txtFiles/MXthumbIntro.js')
 		this.addNode(welcomeV2);
 
-		this.seed.attach(rucksack_ext);
-		this.seed.attach(reader_ext);
-		this.seed.attach(welcome);
-		this.seed.attach(sample);
-		this.seed.attach(nomad_mole);
-		this.seed.attach(silo_ext);
-		this.seed.attach(cordyceps);
-		this.seed.attach(wallysIbsQ19);
-		this.seed.attach(pegleg);
-		this.seed.attach(caravanLibrary);
-		this.seed.attach(biblio);
+		const read_this = new TextDoc('read_this', false, '../assets/txtFiles/firstRead.js');
+		this.addNode(read_this);
+
+		const now_read_this = new TextDoc('now_read_this', false, '../assets/txtFiles/secondRead.js')
+		this.addNode(now_read_this);
+
+		const that = new TextDoc('that', false, '../assets/txtFiles/thirdRead.js')
+		this.addNode(that);
+
+		const uniquekey = new TextDoc('unique_key', false, `../assets/txtFiles/uniquekey.js`);
+		this.addNode(uniquekey);
+
+		const cordyceps = new Recruiter('cordyceps.msh', './cordyceps.js');
+		this.addNode(cordyceps);
+
+		const pegleg = new Recruiter('pegleg.yaar', './pegleg.js');
+		this.addNode(pegleg);
+
+		const silo_ext = new Program('silo.ext','bxbljs00\"3p&*z\"yi' ,'./silo.js')
+		this.addNode(silo_ext);
+
+		const there = new Node('there', false);
+		this.addNode(there);
+
+		const help = new Node('help')
+		this.addNode(help)
+		const oops = new Node('I_made_a_mistake');
+		this.addNode(oops)
+		const oops2 = new Node('I_overwrote_my_only_moleware');
+		this.addNode(oops2)
+		const oops3 = new Node('CaN_I_hAve_a_nEw_1?');
+		this.addNode(oops3)
+
+		const nomad_mole_2 = new Mole('nomad.mole', `n<*c0!pxvhp%0d\"rs`, './nomad.js')
+		this.addNode(nomad_mole);
+
+
+
+		this.seed.attach(admin_dir);
+		admin_dir.attach(rucksack_ext);
+		admin_dir.attach(reader_ext);
+		admin_dir.attach(nomad_mole);
+		admin_dir.attach(silo_ext);
+		admin_dir.attach(cordyceps);
+		admin_dir.attach(pegleg);
+		admin_dir.attach(caravanLibrary);
+		admin_dir.attach(biblio);
+		admin_dir.attach(crawler_ext);
 
 
 		this.seed.attachTo(moveHere);
-		this.move_here.attachTo(moveHereNext);
+
+		this.move_here.attach(read_this);
+		this.move_here.attachTo(there);
+
+		this.there.attach(reader_ext);
+		this.there.attach(now_read_this);
+		this.there.attach(that);
+		this.there.attachTo(main_dir);
+
+		main_dir.attach(welcome);
+		main_dir.attach(welcomeV2);
+		main_dir.attach(rucksack_dir);
+		main_dir.attach(nomad_dir);
+		main_dir.attach(uniquekey);
+		main_dir.attach(help);
+
+		help.attach(oops);
+		oops.attach(oops2);
+		oops2.attach(oops3);
+		oops3.attach(nomad_mole_2);
+		oops3.attachTo(main_dir);
+
+		nomad_dir.attach(nomad_rdbl);
+		nomad_dir.attach(nomad_mole);
+
+		rucksack_dir.attach(rucksack_ext);
+		rucksack_dir.attach(rucksack_rdbl);
+
+		/*
 		this.move_here_next.attachTo(welcome);
-		this.welcome.attach(directory_dir);
-		this.directory.attach(welcomeV2);
-		this.directory.attach(rucksack_dir);
+		this.welcome.attach(main_dir);
+		this.main.attach(welcomeV2);
+		this.main.attach(rucksack_dir);
 		this.rucksack.attach(rucksack_ext);
 		this.rucksack.attach(rucksack_rdbl);
-		this.directory.attach(crawler_dir);
+		this.main.attach(crawler_dir);
 		this.crawler.attach(crawler_ext);
 		this.crawler.attach(crawler_rdbl);
-		this.directory.attach(nomad_dir);
+		this.main.attach(nomad_dir);
 		this.mole.attach(nomad_rdbl);
 		this.mole.attach(nomad_mole);
+		*/
 
 
 	};
@@ -136,12 +192,47 @@ export const bigBang = function () {
 	const __caravan = new NodeNet(`__caravan`);
 	nodeVerse.databanks._PioneerDataServices.addNodeNet(__caravan);
 	nodeVerse.databanks._PioneerDataServices.nodeNets.__caravan.init = function (){
+
 		const portOfArrival = new Node('caravan_entrance');
 		this.addNode(portOfArrival);
-		const tony = new Node('tony');
-		this.addNode(tony);
 
-		tony.attach(portOfArrival)
+		const dir = new Directory('dir', false);
+		this.addNode(dir);
+
+		const newUserRepo_dir = new Directory('new_user_repo', false);
+		newUserRepo_dir.encrypt(7,`v9d%00lk124`)
+		this.addNode(newUserRepo_dir);
+
+		const tonysIbsQ19 = new QRig(`tonys_IBS_Q19`, 'c6#!k%uvo3yg$<lcx','./wallysIbsQ19.js');
+		this.addNode(tonysIbsQ19);
+
+		const cordyceps = new Recruiter('cordyceps.msh', './cordyceps.js');
+		this.addNode(cordyceps);
+
+		const pegleg = new Recruiter('pegleg.yaar', './pegleg.js');
+		this.addNode(pegleg)
+
+		const silo_ext = new Program('silo.ext','bxbljs00\"3p&*z\"yi' ,'./silo.js')
+		this.addNode(silo_ext)
+
+		const demoMessage = new TextDoc('please_read_this', false, '../assets/txtFiles/demoCompleted.js')
+		this.addNode(demoMessage);
+
+		const gate = new Node('locked_gate', false)
+		gate.encrypt(7, 'password=password')
+		this.addNode(gate);
+
+		portOfArrival.attach(dir);
+
+		dir.attach(newUserRepo_dir);
+		dir.attach(tonysIbsQ19);
+		dir.attach(gate)
+
+		newUserRepo_dir.attach(cordyceps);
+		newUserRepo_dir.attach(pegleg);
+		newUserRepo_dir.attach(silo_ext);
+		
+		gate.attach(demoMessage);
 
 	};
 	nodeVerse.databanks._PioneerDataServices.nodeNets.__caravan.init();

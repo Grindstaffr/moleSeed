@@ -163,7 +163,7 @@ export const mole = {
 		mole_class : `Bound Linkage Mole <=> _simple_homing_worm@@CARAVAN-nodeNet`,
 		boundWorm :`_simple_homing_worm@@CARAVAN-nodeNet`,
 		operation_complexity : 'basic',
-		read_this : 'nomad.mole is included with all distributions of moleSeed after v.0.8.00. Since v.1.0.00, nomad.mole is bundled with a worm targeted on CARAVAN-nodeNet. The mole-ware/worm bundle will tunnel a one-way edge to CARAVAN-nodeNet from any vacant node with use of the nomad.mole "deploy" syntax. '
+		read_this : 'nomad.mole is included with all distributions of moleSeed after v.0.8.00. Since v.1.0.00, nomad.mole is bundled with a worm targeted on CARAVAN-nodeNet. The mole-ware/worm bundle will tunnel an edge to CARAVAN-nodeNet from any vacant node with use of the nomad.mole "deploy" syntax. '
 
 
 

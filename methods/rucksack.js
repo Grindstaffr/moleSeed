@@ -8,6 +8,7 @@ export const program = {
 	},
 	settings : {
 		maxNodes : 8,
+		isRunning : false,
 	},
 	methods : {
 		showContents : function () {
@@ -30,8 +31,12 @@ export const program = {
 
 	},
 	installData : {
-		api_triggerReDraw : function () {
-			this.ex();
+		api_triggerReDraw : function (bool) {
+			console.log(this)
+			this.api.runCommand(`ex rucksack.ext ${bool}`);
+		},
+		api_checkRucksackRunning : function () {
+			return this.settings.isRunning
 		},
 		ditch : {
 			name : 'ditch',
@@ -152,9 +157,11 @@ export const program = {
 		this.installData.rummage.ex = this.installData.rummage.ex.bind(this);
 		this.installData.ditch.ex = this.installData.ditch.ex.bind(this);
 		this.installData.api_triggerReDraw = this.installData.api_triggerReDraw.bind(this);
+		this.installData.api_checkRucksackRunning = this.installData.api_checkRucksackRunning.bind(this);
 		this.api.addCommand(this.installData.grab);
 		this.api.addCommand(this.installData.rummage);
 		this.api.addInterfaceFunction(this.installData.api_triggerReDraw,`reRenderRucksack`);
+		this.api.addInterfaceFunction(this.installData.api_checkRucksackRunning, `checkRucksackRunning`)
 
 	},
 	

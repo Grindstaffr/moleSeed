@@ -51,6 +51,15 @@ export const program = {
 				this.data.armedRecruiter = recruiter;
 				this.data.armedRecruiter.arm();
 				this.api.reRenderRucksack(true);
+				var silo = this;
+				if (this.data.hardwareStatus.targeted) {
+					this.data.targetedHardware.getSpecs(function(data){
+					silo.data.hardwareStatus.targeted = true;
+					silo.data.unLinkTime = Math.floor(silo.data.meanUnLinkTime * (silo.data.armedRecruiter.effectiveness/silo.data.targetedHardware.specs.resistance))
+					silo.data.canRecruit = (silo.data.armedRecruiter.crackingAbil >= silo.data.targetedHardware.specs.security)
+					silo.api.reRenderRucksack(true);
+					})
+				}
 			},
 			resetAllData : function (){
 				this.data = {
@@ -117,7 +126,7 @@ export const program = {
 				var silo = this;
 				if (!this.data.canRecruit){
 					this.data.armedRecruiter.failureAnim(this.api, function () {
-						silo.api.log(`  RECRUIT FAILURE: ${silo.armedRecruiter.name} (detected non-exploited Anti-Malware program)`)
+						silo.api.log(`  RECRUIT FAILURE: ${silo.data.armedRecruiter.name} (detected non-exploited Anti-Malware program)`)
 						return;
 					})
 					return;
@@ -176,7 +185,7 @@ export const program = {
 				line = line + "  " + timeHeader;
 			};
 			this.api.writeToGivenRow(line, 1)
-			this.api.writeToGivenRow((' -').repeat((Math.floor(this.api.getRowCount()/2))-4 )+ ' silo.ext',3)
+			this.api.writeToGivenRow((' -').repeat((Math.floor(this.api.getRowCount()/2))-5 )+ ' silo.ext',3)
 		},
 		monitor : function () {
 			//upon running, this should sit in the main draw loop, as it should be triggered A LOT;
@@ -293,7 +302,7 @@ export const program = {
 		this.methods.siloAPI.launchRecruiter = this.methods.siloAPI.launchRecruiter.bind(this);
 		*/
 
-		this.api.patchInterfaceFunction(this.installData.patch_rucksack_ex.bind(this.rucksack), 'reRenderRucksack')
+		//this.api.patchInterfaceFunction(this.installData.patch_rucksack_ex.bind(this.rucksack), 'reRenderRucksack')
 
 		if (this.rucksack.settings.isRunning){
 			this.api.reRenderRucksack(true);

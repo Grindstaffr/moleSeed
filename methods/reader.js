@@ -12,7 +12,7 @@ export const program = {
 		rowCount: 0,
 		blacklistedPageNums : [],
 		lineCensoredTerms : [],
-		pageCensoredTerms : ['C.I.D.'],
+		pageCensoredTerms : [],
 	},
 	settings : {
 		isRunning : false,
@@ -312,6 +312,7 @@ export const program = {
 	},
 	installData : {
 		commands : {
+			/*
 			help : {
 				name : 'help',
 				desc : 'display reader.ext commands',
@@ -320,6 +321,7 @@ export const program = {
 
 				}
 			},
+			*/
 
 			next : {
 				name : 'next',
@@ -396,8 +398,13 @@ export const program = {
 						this.api.throwError('cannot read: node lacks readable data');
 						return;
 					};
+					if (node.type === 'directory'){
+						this.api.runCommand(`read_raw ${nodeName}`)
+						return;
+					}
 
 					//
+					this.methods.resetData();
 					node.read(this.methods.textDocCallback);
 				},
 			},
