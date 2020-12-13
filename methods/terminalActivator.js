@@ -101,9 +101,9 @@ export class TerminalActivator {
 					e.preventDefault();
 				}
 				if (!this.devMode){
-					this.activeTerminal.turnOn(this.animator.bootUp);
 					this.canvas.width = window.screen.width;
 					this.canvas.height = window.screen.height;
+					this.activeTerminal.turnOn(this.animator.bootUp);
 
 					this.activeTerminal.__calcLocAndDim();
 				}

@@ -30,7 +30,7 @@ export class Terminal {
 		this.input = this.constructInput(this);
 		this.keyRouter = this.constructKeyRouter(this);
 		this.blinkyCursor = this.constructBlinkyCursor(this,this.style);
-		this.animations = this.constructAnimations(this.context, this.api);
+		this.animations = this.constructAnimations(this.context, this.api, this);
 
 		if (terminalActivator.devMode){
 			this.turnOnDev();
@@ -49,7 +49,7 @@ export class Terminal {
 	turnOn (callbackA) {
 		this.isOn = true;
 		var trmnl = this;
-		trmnl.api.lockInput
+		trmnl.api.lockInput()
 		setTimeout(function (){
 			trmnl.__calcLocAndDim();
 			trmnl.animations.biosAnim.ex()
@@ -58,16 +58,19 @@ export class Terminal {
 		setTimeout(function (){
 			trmnl.__calcLocAndDim();
 			trmnl.animations.bootLoaderAnim.ex();
-		}, 7000)
+		}, 6350)
 		
 
 		setTimeout(function () {
 			trmnl.__calcLocAndDim();
 			if (callbackA){
-				callbackA();
+				callbackA(function () {
+					trmnl.api.unlockInput();
+					trmnl.api.writeLine('moleSeed v.6.2.31', true, true, 6)
+					trmnl.api.writeLine('boot successful...');
+				});
 			}
-
-		}, 50000)
+		}, 13000)
 
 	}
 
@@ -98,6 +101,68 @@ export class Terminal {
 			})
 		};
 	}
+	generateAddress (number) {
+		const map = {
+		0 : '0',
+		1 : '1',
+		2 : '2',
+		3 : '3',
+		4 : '4',
+		5 : '5',
+		6 : '6',
+		7 : '7',
+		8 : '8',
+		9 : '9',
+		10 : 'a',
+		11 : 'b',
+		12 : 'c',
+		13 : 'd',
+		14 : 'e',
+		15 : 'f',
+		16 : 'g',
+		17 : 'h',
+		18 : 'i',
+		19 : 'j',
+		20 : 'k',
+		21 : 'l',
+		22 : 'm',	
+		23 : 'n',
+		24 : 'o',
+		25 : 'p',
+		26 : 'q',
+		27 : 'r',
+		28 : 's',
+		29 : 't',
+		30 : 'u',
+		31 : 'v',
+		32 : 'w',	
+		33 : 'x',
+		34 : 'y',
+		35 : 'z',
+		36 : '!',
+		37 : '=',
+		38 : '%',
+		39 : '+',
+		40 : '$',
+		41 : '<',
+		42 : '>',
+		43 : '&',
+		44 : '#',
+		45 : '*',
+		46 : '"',
+		47 : '?',
+		48 : ''	,			
+		};
+
+		var output = "";
+
+		for (var i = 0; i < number; i ++){
+			var selector = Math.floor(Math.random() * 48)
+			output = output + map[selector];
+		};
+
+		return output;
+	};
 
 	setContext (context) {
 		this.context = (context)
@@ -114,13 +179,20 @@ export class Terminal {
 		//console.log(this.botLoc)
 		//console.log(this.style.text)
 		this.context.fillStyle = this.style.text
-		this.context.fillText('>',this.leftLoc + 2, this.botLoc)
-		this.context.fillText(`${line}`, this.leftLoc + 2 + this.letterHeight, this.botLoc)
+
+		this.context.fillText('>',this.leftLoc + this.tinyBuff + this.letterHeight/2, this.botLoc)
+
+		if (line.length === 0){
+			return;
+		}
+		for (var i = 0 ; i < Math.min(line.length, this.api.getRowCount()); i ++){
+			this.context.fillText(`${line[i]}`, this.leftLoc + this.tinyBuff + this.letterHeight/2 + (this.letterHeight * (i + 1)), this.botLoc)
+		}
 	}
 
 	drawCurrentRows () {
 		var vStart = this.topLoc + this.letterHeight
-		var hStart = this.leftLoc + 2
+		var hStart = this.leftLoc + this.letterHeight/2 + this.tinyBuff
 		var trmnl = this
 		this.context.fillStyle = this.style.text 
 		this.cache.currentRows.forEach(function(row, rowIndex){
@@ -225,7 +297,7 @@ export class Terminal {
 		blinkyCursor.draw = function () {
 			var left_relative = this.position.x * this.parent.letterHeight;
 			var top_relative = ((this.cache.rowCount - this.position.y) * this.parent.letterHeight)
-			var leftTrue = this.parent.leftLoc + left_relative + this.parent.letterHeight + 2;
+			var leftTrue = this.parent.leftLoc + left_relative + ((3*this.parent.letterHeight)/2) ;
 			var topTrue = this.parent.topLoc + top_relative ;
 			this.parent.context.fillStyle = this.style.background
 			this.blink();
@@ -322,6 +394,7 @@ export class Terminal {
 		var dim = Math.floor((Math.floor(this.canvas.height * (6/7))/this.letterHeight)) * this.letterHeight
 		var vBuff = Math.floor(this.canvas.height * (1/14))
 		var hBuff = ((this.canvas.width - dim)/2)
+		this.tinyBuff = ((dim/this.letterHeight) - Math.floor(dim/this.letterHeight))/2
 		this.leftLoc = hBuff;
 		this.topLoc = vBuff;
 		this.botLoc = vBuff + dim;
@@ -1823,14 +1896,14 @@ export class Terminal {
 		return terminalInterface;
 	}
 
-	constructAnimations (context, api) {
+	constructAnimations (context, api, env) {
 		const animations = {};
 		animations.biosAnim =  {
 			ex : function () {
 				const anim = this;
 				var line = '%SEEK<#BIOS> [X.00000000] - [x.00000fff]: Scouring memory for system bios;'
 				this.api.composeText(line, true, true, 5);
-				for (var i = 2; i < anim.api.getRowCount(); i ++){
+				for (var i = 2; i < anim.api.getRowCount() - 2 ; i ++){
 					anim.api.writeLine('')
 				}
 				var count = 0;
@@ -1963,42 +2036,27 @@ export class Terminal {
 				var text = ""; 
 				var anim = this;
 				var rows = anim.api.getRowCount();
-				anim.api.writeToGivenRow('Booting moleSeed.mkr' + ('#').repeat(rows-18),0)
-				for (var i = 1; i < rows; i++){
-					var line = ('')
-					anim.api.writeToGivenRow(('#').repeat(rows + 1), i)
+				
+				anim.api.writeToGivenRow("booting new instance of moleSeed terminal...", 1)
+
+				var count = 0
+				for (var k = 0; k < 150; k ++){
+					setTimeout(function () {
+						count = count+1
+						for (var i = 0; i < rows ; i ++){
+							for (var j = 0; j < rows; j ++){
+								var shouldSkip = Math.floor((Math.random()*count)) + Math.floor(count*count/100) + (i);
+								anim.api.writeToCoordinate(anim.trmnl.generateAddress(1),i,j)
+								if (shouldSkip > 100){
+									anim.api.writeToCoordinate(" ", i, j);
+								}
+							}
+						}
+					}, 1600 + (k)*50)
 				}
-				var count = 0;
-				for (var i = 0; i < rows + 8; i ++){
-					setTimeout(function() {
-						count = count + 1;
-						anim.api.writeToGivenRow(anim.bootLoaderAnim.moleMoveL(count), rows - 10);
-					},i*50)
-				}
+				
 				const countArray = [];
 				var counter2 = 0;
-				for (var i = 0; i < rows; i++ ){
-					if (i === (rows - 10)){
-						return;
-					}
-					for (var j = 0; j < rows + 5; j ++){
-						setTimeout(function(){
-							if (!countArray[counter2]){
-								countArray[counter2] = 0;
-								counter2 = counter2 + 1;
-							}
-							countArray[counter2 - 1] = countArray[counter2 - 1] + 1;
-							if (j % 2 === 0){
-								anim.api.writeToGivenRow(anim.bootLoaderAnim.moleMoveR(countArray[i]), counter2)
-								return;
-							}	
-							anim.api.writeToGivenRow(anim.bootLoaderAnim.moleMoveL(countArray[i]), counter2) 
-							return;
-						}, (j *25) + (10*i))
-					}
-				}
-
-
 				//this.api.composeText('', true, true, 5)
 				return;
 			}.bind(animations),
@@ -2026,11 +2084,12 @@ export class Terminal {
 			}.bind(animations),
 		}
 
-		const init = function (context, api) {
+		const init = function (context, api, env) {
 			animations.context = context
 			animations.api = api
+			animations.trmnl = env;
 		};
-		init(context, api)
+		init(context, api, env)
 		return animations
 	}
 

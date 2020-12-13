@@ -14,11 +14,17 @@ export function buildAnimations (canvas, styleObject, dimensions, letterHeight) 
 		animationsObject.drawStack = [];
 		animationsObject.frameNum = 0;
 		animationsObject.indexMap = {};
+		animationsObject.callback = function () {};
 	}
 
 	animationsObject.bootUp = function (callback) {
 		this.isDrawing = true;
 		this.drawStack.push(this.bootUpSequence.ex)
+		
+		if (callback){
+			this.callback = callback;
+		}
+		
 	}.bind(animationsObject);
 
 	
@@ -51,7 +57,7 @@ export function buildAnimations (canvas, styleObject, dimensions, letterHeight) 
 			if (!this.hasInitialized){
 				this.bootUpSequence.init();
 			}
-			this.bootUpSequence.finalizer(2000);
+			this.bootUpSequence.finalizer(666);
 
 			this.frameNum = this.frameNum + 4;
 
@@ -62,17 +68,19 @@ export function buildAnimations (canvas, styleObject, dimensions, letterHeight) 
 		this.context.strokeStyle = this.style.stroke;
 		this.drawWindow();
 
-		this.draw_lc_m(props.hStart + (0 * props.hStrokeWidth) , 24, 0, 500);
-		this.draw_lc_o(props.hStart + (12 * props.hStrokeWidth), 24, (9 * props.hStrokeWidth), 500)
-		this.draw_lc_l(props.hStart + (19 * props.hStrokeWidth), 16, (6 * props.hStrokeWidth), 500)
-		this.draw_lc_e(props.hStart + (23 * props.hStrokeWidth), 24, (9 * props.hStrokeWidth), 500)
+		this.draw_lc_m(props.hStart + (0 * props.hStrokeWidth) , 24, 0, 666);
+		this.draw_lc_o(props.hStart + (12 * props.hStrokeWidth), 24, (9 * props.hStrokeWidth), 666)
+		this.draw_lc_l(props.hStart + (19 * props.hStrokeWidth), 16, (6 * props.hStrokeWidth), 666)
+		this.draw_lc_e(props.hStart + (23 * props.hStrokeWidth), 24, (9 * props.hStrokeWidth), 666)
 
-		this.draw_uc_s(props.hStart + (28 * props.hStrokeWidth), 40, (9 * props.hStrokeWidth), 500)
-		this.draw_lc_e(props.hStart + (41 * props.hStrokeWidth), 50, (20 * props.hStrokeWidth), 500)
-		this.draw_lc_e(props.hStart + (48 * props.hStrokeWidth), 50, (20 * props.hStrokeWidth), 500)
-		this.draw_lc_d(props.hStart + (55 * props.hStrokeWidth), 50, (20 * props.hStrokeWidth), 500)
+		this.draw_uc_s(props.hStart + (28 * props.hStrokeWidth), 40, (9 * props.hStrokeWidth), 666)
+		this.draw_lc_e(props.hStart + (41 * props.hStrokeWidth), 50, (20 * props.hStrokeWidth), 666)
+		this.draw_lc_e(props.hStart + (48 * props.hStrokeWidth), 50, (20 * props.hStrokeWidth), 666)
+		this.draw_lc_d(props.hStart + (55 * props.hStrokeWidth), 50, (20 * props.hStrokeWidth), 666)
 
-		this.drawVersionNumber(props.hStart, 350, (28 * props.hStrokeWidth), 500)
+		this.drawVersionNumber(props.hStart, this.indexMap[45], (25 * props.hStrokeWidth), 666);
+
+		this.drawLoadingBar(80, (this.top + Math.floor((7* this.dim) /8)), (25 * props.hStrokeWidth), 666)
 		this.context.fillStyle = fillStyle
 
 
@@ -83,10 +91,18 @@ export function buildAnimations (canvas, styleObject, dimensions, letterHeight) 
 			if (this.frameNum < frameStart){
 				return;
 			}
+			var anim = this;
+			console.log(this.isDrawing)
 			this.isDrawing = false;
 			this.hasInitialized = false;
 			this.frameNum = 0;
 			this.drawStack.splice(this.drawStack.indexOf(this.bootUpSequence.ex), 1);
+		
+			setTimeout(function () {
+				anim.callback();
+				anim.callback = function () {}
+			}, 500);
+			
 			return;
 		}.bind(animationsObject),
 	}
@@ -122,7 +138,55 @@ export function buildAnimations (canvas, styleObject, dimensions, letterHeight) 
 		return;
 	};
 
+	animationsObject.drawLoadingBar = function ( percentOfScreen, vStart, frameStart, frameEnd){
+		if (this.frameNum < frameStart){
+			return;
+		}
+		if (this.frameNum > frameEnd){
+			return;
+		}
+		
+		var hLength = (percentOfScreen * this.dim)/100
+		var rectDim = this.letterHeight;
+		var rectCount = Math.floor((hLength/(2*rectDim)));
+		var buffer = ((100 - percentOfScreen)/100 * ((this.dim))/2);
+		var totalTime = frameEnd - frameStart;
+		var relFrame = Math.floor(this.frameNum - frameStart);
+		var rectsPerTime = rectCount/ totalTime;
+		var avgRectsDrawn = relFrame * rectsPerTime;
+		var x_0 = this.left + buffer;
+		this.context.beginPath()
+		this.context.fillStyle = "#FFFFFF";
+		
 
+		for (var i = 0; i < Math.min(avgRectsDrawn, Math.floor(rectCount/4)); i ++){
+			var x = Math.floor(x_0 + ((2*i) * (rectDim))) 
+			this.context.fillRect(x, vStart, rectDim, rectDim);
+		}
+		if (relFrame < totalTime/4){
+			return;
+		}
+		for (var i = 0; i < Math.min((1.25*avgRectsDrawn), Math.floor(rectCount/2)); i++){
+			var x = Math.floor(x_0 + ((2*i) * (rectDim))) 
+			this.context.fillRect(x,vStart,rectDim, rectDim);
+		}
+		if (relFrame < totalTime/2){
+			return;
+		}
+		for (var i = 0; i < Math.min((.75*avgRectsDrawn), Math.floor((3 * rectCount)/5)); i ++){
+			var x = Math.floor(x_0 + ((2*i) * (rectDim))) 
+			this.context.fillRect(x,vStart,rectDim, rectDim);
+		}
+		if (relFrame < ((3*totalTime)/5)){
+			return;
+		}
+		for (var i = 0; i < Math.min(avgRectsDrawn, rectCount); i ++){
+			var x = Math.floor(x_0 + ((2*i) * (rectDim))) 
+			this.context.fillRect(x,vStart,rectDim, rectDim);
+		}
+		return;
+
+	}.bind(animationsObject);
 
 
 	animationsObject.initializeIndexMap = function (vStart, vStop) {
