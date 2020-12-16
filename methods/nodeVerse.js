@@ -36,7 +36,7 @@ export const bigBang = function () {
 		const biblio = new Program(`biblio.ext`, `usi8p6diw<82ihv37`, `./biblio.js`);
 		this.addNode(biblio);
 
-		const caravanLibrary = new Library(`caravanLibrary`, `d%*a%611!c&tr\"inj`, `../assets/libraries/caravanLibrary`)
+		const caravanLibrary = new Library(`moleSeed_docs`, `d%*a%611!c&tr\"inj`, `../assets/libraries/moleSeed_docs`)
 		this.addNode(caravanLibrary);
 
 		const reader_ext = new Program('reader.ext', `a+zya0wtbd&e2fs%o`, './reader.js')
@@ -135,10 +135,11 @@ export const bigBang = function () {
 		admin_dir.attach(silo_ext);
 		admin_dir.attach(cordyceps);
 		admin_dir.attach(pegleg);
-		admin_dir.attach(caravanLibrary);
-		admin_dir.attach(biblio);
 		admin_dir.attach(crawler_ext);
 
+
+		//seed.attach(caravanLibrary);
+		//seed.attach(biblio);
 
 		this.seed.attachTo(moveHere);
 
@@ -199,8 +200,14 @@ export const bigBang = function () {
 		const dir = new Directory('dir', false);
 		this.addNode(dir);
 
+		const biblio = new Program(`biblio.ext`, `usi8p6diw<82ihv37`, `./biblio.js`);
+		this.addNode(biblio);
+
+		const caravanLibrary = new Library(`moleSeed_docs`, false, `../assets/libraries/moleSeed_docs`)
+		this.addNode(caravanLibrary);
+
 		const newUserRepo_dir = new Directory('new_user_repo', false);
-		newUserRepo_dir.encrypt(7,`v9d%00lk124`)
+		newUserRepo_dir.encrypt(7,`v9d%00&5k24`)
 		this.addNode(newUserRepo_dir);
 
 		const tonysIbsQ19 = new QRig(`tonys_IBS_Q19`, 'c6#!k%uvo3yg$<lcx','./wallysIbsQ19.js');
@@ -218,7 +225,7 @@ export const bigBang = function () {
 		const demoMessage = new TextDoc('please_read_this', false, '../assets/txtFiles/demoCompleted.js')
 		this.addNode(demoMessage);
 
-		const gate = new Node('locked_gate', false)
+		const gate = new Node('portcullis', false)
 		gate.encrypt(7, 'password=password')
 		this.addNode(gate);
 
@@ -226,11 +233,13 @@ export const bigBang = function () {
 
 		dir.attach(newUserRepo_dir);
 		dir.attach(tonysIbsQ19);
-		dir.attach(gate)
+		dir.attach(gate);
+		dir.attach(caravanLibrary);
 
 		newUserRepo_dir.attach(cordyceps);
 		newUserRepo_dir.attach(pegleg);
 		newUserRepo_dir.attach(silo_ext);
+		newUserRepo_dir.attach(biblio);
 		
 		gate.attach(demoMessage);
 

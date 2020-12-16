@@ -11,7 +11,7 @@ export const program = {
 		currentPageText : [],
 		rowCount: 0,
 		blacklistedPageNums : [],
-		lineCensoredTerms : [],
+		lineCensoredTerms : [`SWARM`, `SWARM/phoenix`, `phoenix`],
 		pageCensoredTerms : [],
 	},
 	settings : {
@@ -76,19 +76,19 @@ export const program = {
 			if (page.length && page.length > 0){
 				currentPage = page;
 			};
-			if (page.length === this.api.getRowCount() - 10){
+			if (page.length === this.api.getRowCount() - 12){
 				this.data.pages.push(page);
 				doc.pages.push(page);
 				this.data.pageCount = doc.pages.length;
 				return this.methods.constructNewPage();
 			}
-			if (page.length >= this.api.getRowCount() - 10){
+			if (page.length >= this.api.getRowCount() - 12){
 				if (page[page.length - 1] === ""){
 					page.splice(page.length - 1, 1);
 					this.data.pages.push(page);
 					doc.pages.push(page);
 					this.data.pageCount = doc.pages.length;
-					if (page.length === this.api.getRowCount() - 10){
+					if (page.length === this.api.getRowCount() - 12){
 						return this.methods.constructNewPage();
 					}
 				}
@@ -335,6 +335,7 @@ export const program = {
 					}
 					this.data.currentPageNum = this.data.currentPageNum + 1;
 					console.log(this.data.pages[this.data.currentPageNum])
+					this.api.clearReservedRows();
 					this.methods.composeText(this.data.boundDoc,this.data.pages[this.data.currentPageNum]);
 					this.api.log(`    incrementing page`)
 					this.methods.drawWindow();
@@ -351,6 +352,7 @@ export const program = {
 						return;
 					}
 					this.data.currentPageNum = this.data.currentPageNum - 1;
+					this.api.clearReservedRows();
 					this.methods.composeText(this.data.boundDoc,this.data.pages[this.data.currentPageNum])
 					this.api.log(`    decrementing page`)
 					this.methods.drawWindow();
@@ -402,6 +404,9 @@ export const program = {
 						this.api.runCommand(`read_raw ${nodeName}`)
 						return;
 					}
+					if (this.api.commandAvailCheck(`stop`)){
+						this.api.runCommand('stop')
+					}
 
 					//
 					this.methods.resetData();
@@ -441,7 +446,11 @@ export const program = {
 	ex : function (nodeName) {
 		var reader = this;
 		this.api.warn(`use of "ex reader.ext" deprecated, use "read [NODE]" instead`)
-		this.api.extendCommand(this.methods.read, 'read which node?')
+		if (nodeName){
+			this.methods.read.ex(nodeName)
+		}
+		return;
+		//this.api.extendCommand(this.methods.read, 'read which node?')
 		//this.methods.read(nodeName)
 	},
 	stop : function () {

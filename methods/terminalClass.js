@@ -427,6 +427,38 @@ export class Terminal {
 		return programs;
 	}
 
+	constructCredentials () {
+		const credentials = {};
+
+		
+		credentials.getCredentials = function () {
+
+		};
+
+		credentials.addCredential = function () {
+
+		};
+
+		credentials.deleteCredential = function () {
+
+		};
+
+		credentials.overwriteCredential = function () {
+
+		};
+
+		const init = function () {
+			const data = {};
+			data.service = "";
+			data.name = "";
+			data.authKey = "";
+
+			credentials.data = data;
+		}
+
+		return credentials;
+	}
+
 	constructCache  () {
 		var cache = {}
 		cache.parent = this;
@@ -928,6 +960,9 @@ export class Terminal {
 				}
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
+				if (cmd.stop.isAvail){
+					cmd.stop.ex();
+				}
 				if (trmnl.accessibleNodes[programName]){
 					if (trmnl.accessibleNodes[programName].Type === 'malware'){
 						trmnl.accessibleNodes[programName].ex(trmnl);
@@ -1840,6 +1875,12 @@ export class Terminal {
 			this.command.addCommand.ex(commandObj);
 			this.command[commandObj.name].isAvail = false;
 		};
+		terminalInterface.commandAvailCheck = function (commandName){
+			if (!this.command[commandName]){
+				return false;
+			}
+			return (this.command[commandName].isAvail)
+		}
 		terminalInterface.commandExistenceCheck = function (commandName){
 			if (this.command[commandName]){
 				return true;
@@ -1917,7 +1958,7 @@ export class Terminal {
 			this.command.unblockCommand.ex(commandName);
 		};
 		terminalInterface.defeatedMalware = function (malwareName, malwareType) {
-			var text = `moleSeed's built-in anti-malware has scrubbed ${malwareName} from your system`
+			var text = `moleSeed's built-in anti-malware has scrubbed ${malwareName} from this terminal remote`
 			var text2 = `residual effects of ${malwareName} may be indeterminate`
 			var text3 = `try not to install or execute any more ${malwareType}s while you're bumbling aimlessly about... I mean... uh... If you wanna mess with that stuff... there are MUCH better ways of going about it.`
 			this.cache.composeText(text)
@@ -2278,8 +2319,6 @@ export class Terminal {
 						var command = this.retrieveBufferedInput()
 						this.messages.verify = this.messages.default_verify;
 						this.toggleFilterOff('verify');
-
-						console.log(toggle.toggle)
 						if (toggle.toggle){
 							this.filtersPassed.verify = true;
 							return command;
@@ -2292,7 +2331,8 @@ export class Terminal {
 						this.messages.verify = this.messages.default_verify;
 						this.toggleFilterOff('verify');
 						if (this.callbacks.verify){
-							this.callbacks.verify(false, false);
+							this.callbacks.verify(false, toggle);
+							this.callbacks.verify = function () {};
 						}
 					return `User_cannot_answer_a_simple_yes_or_no_question`
 

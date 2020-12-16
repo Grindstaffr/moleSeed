@@ -103,7 +103,6 @@ export class TerminalActivator {
 			this.context.fillStyle = this.selectColorScheme(0).text
 			this.clickX = (this.canvas.width - 20*(this.globalProps.letterHeight))
 			this.clickY = (this.canvas.height - 2*(this.globalProps.letterHeight))
-			console.log(this.clickX)
 			this.context.fillText(`F11 isn't working`, this.clickX, this.clickY )
 		}
 		this.activeTerminal.draw();
@@ -112,8 +111,7 @@ export class TerminalActivator {
 		if (!this.shouldClick){
 			return;
 		}
-		console.log(`mouseX : ${this.mouseX}   mouseY : ${this.mouseY}`)
-		console.log(`clickX : ${this.clickX}   clickY : ${this.clickY}`)
+		
 		this.mouseX = e.offsetX;
 		this.mouseY = e.offsetY;
 	}

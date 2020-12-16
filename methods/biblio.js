@@ -330,7 +330,7 @@ export const program = {
 							}
 							var command = inputTerms[indexStart];
 							if (!prgm.methods.commands[command]){
-								prgm.api.throwError(`input command is not recognized by ${this.name} parser`)
+								prgm.api.throwError(`input command is not recognized by ${this.name} parser, try "biblio help"`)
 								biblio.errorState = true;
 								return;
 							}

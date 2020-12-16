@@ -255,7 +255,7 @@ export class Library extends Node {
 
 	detachAllFiles() {
 		Object.keys(this.adjacencies).forEach(function(adjacentNodeName){
-			if (this.adjacencies[adjacentNodeName].type === `libraryFile`){
+			if (this.adjacencies[adjacentNodeName].type === `library_file`){
 				this.adjacencies[adjacentNodeName].detachFromAll();
 			}
 		}, this)
@@ -370,6 +370,14 @@ export class Library extends Node {
 					}
 			}, this)
 		},this)
+		outputArray.forEach(function(fileName, index){
+			if (outputArray.indexOf(fileName) !== outputArray.lastIndexOf(fileName)){
+				outputArray.splice(index, 1);
+			}
+			if (outputArray.indexOf(fileName) !== index){
+				outputArray.splice(index, 1)
+			}
+		})
 		library.searchComplete = true;
 		return outputArray;
 
