@@ -8,7 +8,7 @@ export class TerminalActivator {
 		this.context = canvas.getContext('2d')
 		this.globalProps = globalProps;
 		this.nodeVerse = nodeVerse;
-		this.devMode = false;
+		this.devMode = true;
 		this.shouldClick = true;
 		this.activeTerminal = {};
 		this.addTerminal();

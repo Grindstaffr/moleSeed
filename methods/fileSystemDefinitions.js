@@ -11,6 +11,8 @@ export class Node {
 			address = addressGenerator(17)
 		}
 		this.address = Node.setAddress(address);
+		console.log
+		this.synonyms = Node.generateSynonyms(name);
 		this.adjacencies = {};
 		this.visibleAdjacencies = {};
 		this.canOpen = false;
@@ -24,6 +26,7 @@ export class Node {
 		this.moveTriggeredFunctions = [];
 	};
 
+	static defaultFileExtension = "";
 	static lastAddress = -1;
 	static setAddress (address) {
 		if (!address){
@@ -47,6 +50,41 @@ export class Node {
 		address = address.substring(0,9) + val_2 + address.substring(10);
 
 		return address;
+	}
+
+	static generateSynonyms (name){
+		
+		
+		const synArray = [];
+		//push name w or w/o file extensions
+		synArray.push(name)
+		if (name.split('.')[0] !== name){
+			synArray.push(name.split('.')[0])
+		}
+
+		//push names missing a character?
+		var prevLetter = "";
+		for (var i = 0; i < (name.length - 1); i ++){
+			var clone = name;
+			if (clone[i] === prevLetter){
+				continue;
+			}
+			prevLetter = clone[i]
+			synArray.push(clone.substring(0,i) + clone.substring(i+1)); 
+			if (i ===( name.length - 2)){
+				synArray.push(clone.substring(0,i +1))
+			}
+		}
+
+		synArray.forEach(function(value, index){
+			if (!synArray.includes(value.toLowerCase())){
+				synArray.push(value.toLowerCase())
+			}
+		}, this)
+
+
+
+		return synArray
 	}
 
 	getTrueAddress () {
@@ -496,6 +534,7 @@ export class Program extends Node {
 		this.type = 'program';
 		this.url = url;
 		this.hasBeenInstalled = false;
+		this.isNodelet = true;
 		this.commands.push('install')
 	}
 	install(callback){
@@ -805,7 +844,7 @@ export class UniqueNode extends Node {
 };
 export class Malware extends UniqueNode {
 	constructor (name, address, url){
-		super();
+		super(name);
 		this.url = url;
 		this.name = name;
 		this.address = `FUCK YOURSELF`
@@ -1227,6 +1266,7 @@ export class LibraryFile extends TextDoc {
 		super(name, address, url);
 		this.address = 'Non_Addressable_Nodelet';
 		this.type = `library_file`;
+		this.isNodelet = true;
 	}
 }
 

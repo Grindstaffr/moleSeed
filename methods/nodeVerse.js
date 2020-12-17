@@ -137,10 +137,14 @@ export const bigBang = function () {
 		admin_dir.attach(pegleg);
 		admin_dir.attach(crawler_ext);
 
-
-		//seed.attach(caravanLibrary);
-		//seed.attach(biblio);
-
+		/*
+		seed.attach(caravanLibrary);
+		seed.attach(biblio);
+		seed.attach(reader_ext);
+		seed.attach(welcome);
+		seed.attach(welcomeV2);
+		*/
+		
 		this.seed.attachTo(moveHere);
 
 		this.move_here.attach(read_this);

@@ -15,11 +15,11 @@ import { TerminalActivator } from './terminalActivator.js'
     pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 }
 */
-		var pdfjsLib = window['pdfjs-dist/build/pdf'];
+	//	var pdfjsLib = window['pdfjs-dist/build/pdf'];
 
-		var samplePDFURL = '../assets/pdfs/Second Export Gorp.pdf';
+	//	var samplePDFURL = '../assets/pdfs/Second Export Gorp.pdf';
 
-		pdfjsLib.GlobalWorkerOptions.workerSRC = '..node_modules/pdfjs-dist/build/pdf.worker.js';
+	//	pdfjsLib.GlobalWorkerOptions.workerSRC = '..node_modules/pdfjs-dist/build/pdf.worker.js';
 
 
 

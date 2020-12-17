@@ -286,6 +286,7 @@ export const program = {
 				this.data.blacklistedPageNums = doc.blacklistedPageNums;
 			};
 			this.settings.isRunning = true;
+			this.api.appendToRunningPrograms('reader.ext', true)
 			this.data.textName = doc.name;
 			this.data.boundDoc = doc;
 			this.data.text = doc.text;
@@ -305,7 +306,14 @@ export const program = {
 					this.api.addCommand(this.installData.commands[cmd])
 				}
 			}
-			this.api.narrowCommand([`help`,`stop`,`next`,`prev`,`read`])
+			var api = this.api
+			var whiteListArray = [`stop`,`next`,`prev`,`read`];
+			if (this.api.checkIfInstalled(`biblio.ext`) && (this.api.getActiveNode().type === 'library')){
+				whiteListArray.push(`biblio`);
+			}
+			this.api.narrowCommand(whiteListArray, function () {
+				api.composeText( `reader.ext is currently restricting commands... The following commands are available: ${whiteListArray.join(", ")}` , true, false, 0)
+			},"")
 
 		},
 		
@@ -407,12 +415,14 @@ export const program = {
 					if (this.api.commandAvailCheck(`stop`)){
 						this.api.runCommand('stop')
 					}
+						this.api.readyCommand(`stop`)
 
 					//
 					this.methods.resetData();
 					node.read(this.methods.textDocCallback);
 				},
 			},
+			/*
 			stop : {
 				name : 'stop',
 				desc : 'stop reader.ext',
@@ -422,6 +432,7 @@ export const program = {
 					return;
 				},
 			},
+			*/
 		},
 
 	},
@@ -445,10 +456,11 @@ export const program = {
 	},
 	ex : function (nodeName) {
 		var reader = this;
-		this.api.warn(`use of "ex reader.ext" deprecated, use "read [NODE]" instead`)
-		if (nodeName){
-			this.methods.read.ex(nodeName)
+		if (nodeName === "false"){
+			return;
 		}
+		this.api.warn(`use of "ex reader.ext" deprecated, use "read [NODE]" instead`)
+		
 		return;
 		//this.api.extendCommand(this.methods.read, 'read which node?')
 		//this.methods.read(nodeName)

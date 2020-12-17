@@ -441,6 +441,10 @@ export const program = {
 
 	},
 	ex : function (trmnl) {
+		if (this.api.commandAvailCheck(`stop`)){
+			this.api.runCommand('stop')
+		}
+			this.api.readyCommand('stop')
 		var thisNode = this.api.getActiveNode();
 		if (thisNode.type !== `library`){
 			this.api.throwError(`${this.name} operates as a library interface; move to a library node in order to execute ${this.name} or use its command interface`)

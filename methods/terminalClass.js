@@ -15,6 +15,7 @@ export class Terminal {
 		this.maxRowCount = globalProps.maxRowCount;
 
 		this.terminalActivator = terminalActivator;
+		this.devMode = terminalActivator.devMode;
 		this.isActiveTerminal = true;
 		this.index = index
 
@@ -462,8 +463,8 @@ export class Terminal {
 	constructCache  () {
 		var cache = {}
 		cache.parent = this;
-		cache.previousRows = new Array(40).fill([]);
-		cache.nextRows = new Array(40).fill([]);
+		cache.previousRows = new Array(this.rowCount).fill([]);
+		cache.nextRows = new Array(this.rowCount).fill([]);
 		cache.currentRows = new Array(this.rowCount).fill([]);
 		cache.inputRow = new Array(this.rowCount).fill("");
 		cache.inputRowPrev = new Array(this.rowCount).fill("");
@@ -481,7 +482,8 @@ export class Terminal {
 
 		cache.rescaleCache = function () {
 			
-			var newDisplay = new Array(this.rowCount).fill([])
+			var newDisplay = new Array(this.rowCount).fill([]);
+			this.previousRows = new Array(this.rowCount).fill([]);
 			this.inputRow = new Array(this.rowCount).fill("");
 			this.inputRowPrev = new Array(this.rowCount).fill("");
 		    this.inputRowNext = new Array(this.rowCount).fill("");
@@ -768,7 +770,8 @@ export class Terminal {
 		}
 		cache.clearReservedRows = function (){
 			for (var i = 0; i < (this.reservedRows); i++){
-				var row = new Array(this.inputRow.length).fill("")
+				 var row = new Array(this.inputRow.length).fill("")
+				//var row = this.inputRowPrev.pop();
 				this.currentRows[i] = row;
 			}
 		};
@@ -779,7 +782,21 @@ export class Terminal {
 			}
 		}
 		cache.reserveRows = function (numberOfRows){
+			if (numberOfRows < this.reservedRows){
+				for (var i = this.reservedRows - 2; i >= numberOfRows; i--){
+					 var row = new Array(this.inputRow.length).fill("")
+					this.previousRows.unshift(row)
+					var lastOnStack = this.previousRows.pop();
+					this.writeToGivenRow(lastOnStack.join(""), i + 1)
+				}
+			} else {
+				for (var  i = 0; i < numberOfRows ; i++ ){
+					this.previousRows.shift();
+					this.previousRows.push(this.currentRows[i]);
+				}
+			}
 			this.reservedRows = numberOfRows;
+
 			return;
 		};
 		cache.freeAllRows = function () {
@@ -797,8 +814,26 @@ export class Terminal {
 			desc : 'list available commands',
 			syntax: 'help',
 			isAvail : true,
+			helpCount : 0,
+			helpMessages : {
+				12 : ``,
+				32 : "You might want to start taking notes",
+				33 : "You can start taking notes using a piece of paper and a pen or pencil",
+				48 : "And what if I don't want to help?",
+				62 : "Today I programmed condescending messages instead of making a meaningful contribution to the codebase... You've asked for help 62 times so far.",
+				72 : "Ask again nicely.",
+				100 : `Congratulations! You've formed a dependent relationship with the "help" command!`,
+			},
 			ex : function () {
 				var cmd = this.parent;
+				var trmnl = cmd.parent;
+				this.helpCount = this.helpCount + 1;
+				if (Object.keys(this.helpMessages).includes(this.helpCount.toString())){
+					trmnl.api.composeText(this.helpMessages[this.helpCount], true, true, 0)
+					if (this.helpCount % 12 === 0){
+						return;
+					}
+				}
 				cmd.cache.writeEmptyRow();
 				cmd.cache.writeToVisibleRow(" --- listing available commands with descriptions --- ")
 				cmd.cache.writeEmptyRow();
@@ -807,8 +842,8 @@ export class Terminal {
 					if (cmd[key].isAvail){
 						var name = cmd[key].name;
 						var desc = cmd[key].desc;
-						var line = (" ") + name + (" ").repeat(8 - name.length) + (": ") + desc;
-						cmd.cache.composeText(line, true, true, 12)
+						var line = (" ") + name + (" ").repeat(12 - name.length) + (": ") + desc;
+						cmd.cache.composeText(line, true, true, 14)
 						//cmd.cache.writeEmptyRow();
 					}
 				})
@@ -871,13 +906,17 @@ export class Terminal {
 					cmd.error.ex('cannot move to non-adjacent nodes')
 					return;
 				} else if (!forceThru && trmnl.activeNode.visibleAdjacencies[nodeName].Type === 'malware'){
-					cmd.error.ex(`FAILURE: meta_prop [NODE]_width (expected number, got "${trmnl.activeNode.visibleAdjacencies[nodeName].trolls[parseInt(Math.floor(Math.random()*10))]}")`);
+					cmd.error.ex(`FAILURE: meta_prop [NODE]_depth (expected number, got "${trmnl.activeNode.visibleAdjacencies[nodeName].trolls[parseInt(Math.floor(Math.random()*10))]}")`);
 					return;
 				}
 				var nodeToMoveto = trmnl.activeNode.visibleAdjacencies[nodeName];
 				if (forceThru && node){
-					console.log(`forcing thru`)
+				
 					nodeToMoveto = node;
+				}
+				if (nodeToMoveto.isNodelet){
+					cmd.error.ex(`${nodeToMoveto.name}_depth = 0 mb ; no free memory for terminal remote`)
+					return;
 				}
 				var lastNode = trmnl.activeNode
 				
@@ -960,7 +999,7 @@ export class Terminal {
 				}
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
-				if (cmd.stop.isAvail){
+				if (cmd.stop && cmd.stop.isAvail){
 					cmd.stop.ex();
 				}
 				if (trmnl.accessibleNodes[programName]){
@@ -974,7 +1013,7 @@ export class Terminal {
 					return;
 				}
 				for (var prgm in trmnl.programs.runningPrograms){
-					console.log(trmnl.programs.runningPrograms)
+				
 					if (bool){
 
 					} else {
@@ -1023,6 +1062,20 @@ export class Terminal {
 			}
 
 		};
+		command.hello = {
+			name : 'hello',
+			desc : 'null',
+			syntax: 'hello',
+			isAvail : true,
+			ex : function () {
+				var cmd = this.parent;
+				var trmnl = cmd.parent;
+
+				trmnl.api.composeText('\\n Hi there! Regardless of how anything may appear, I am merely a finite state machine', true, true, 3)
+
+				trmnl.api.deleteCommand('hello');
+			}
+		}
 		command.read = {
 			name: 'read',
 			desc: 'read the contents of an adjacent node',
@@ -1090,6 +1143,27 @@ export class Terminal {
 				cmd.cache.composeText("Right back at ya... cunt.")
 			}
 		}
+		command.fsf = {
+			name : 'fsf',
+			isHidden : true,
+			isAvail : false,
+			synonyms : ['untether'],
+			syntax : 'fsf',
+			ex : function () {
+				var cmd = this.parent;
+				cmd.cache.composeText(`https://github.com/Grindstaffr/moleSeed/ \\n fork away, friend! \\n you can run your own local server with node.js, and a terminal\\n if you run node server/server.js, you should be able to head to https://localhost:1337 and have access to everything! `)
+			},
+		}
+		command.contribute = {
+			name : 'contribute',
+			isHidden : true,
+			isAvail : false,
+			syntax : 'contribute',
+			ex : function () {
+				var cmd = this.parent;
+				cmd.cache.composeText(`No thanks! Maybe after a later build!`)
+			},
+		}
 		command.rex = {
 			name : 'rex',
 			isAvail : false,
@@ -1102,14 +1176,14 @@ export class Terminal {
 
 					body : {
 					nodes : [],
-					edges: []
+					edges: [] 
 					},	
 				}
 				const repoRequest = new Request('/rex',reqObject);
 
 				fetch(repoRequest).then(function(response){
 					response.json().then(function(data){
-						console.log(data)
+						
 					})
 				})
 
@@ -1219,6 +1293,10 @@ export class Terminal {
 				if (cmd.overwrittenCommands[command]){
 					cmd[command] = cmd.overwrittenCommands[command];
 					delete cmd.overwrittenCommands[command];
+					return;
+				}
+				if (!cmd[command]){
+					console.log(command);
 					return;
 				}
 				cmd[command].isAvail = false;
@@ -1338,6 +1416,7 @@ export class Terminal {
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
 				trmnl.accessibleNodes[node.name] = node;
+				trmnl.compiler.synonyms.nodeSyns[node.name] = node.synonyms;
 			},
 		};
 		command.assembleValidCommands = {
@@ -1452,10 +1531,10 @@ export class Terminal {
 			var requiredTerms = syntax.split(" ");
 			if (inputTerms.length < requiredTerms.length){
 				if (!(requiredTerms[requiredTerms.length - 1] === "...")){
-					this.command.error.ex('invalid syntax (not enough terms)');
+					this.command.error.ex(`invalid syntax (not enough terms)... try "${syntax}"`);
 					return;
 				} else if (inputTerms.length < (requiredTerms.length - 1)) {
-					this.command.error.ex('invalid syntax (not enough terms)');
+					this.command.error.ex(`invalid syntax (not enough terms)... try "${syntax}"`);
 					return;
 				}
 			}
@@ -1474,9 +1553,73 @@ export class Terminal {
 						if (this.validArgs[term].includes(inputTerms[index])){
 							args.push(inputTerms[index])
 						} else {
-							this.command.error.ex(`invalid syntax ("${inputTerms[index]}" is a non-valid input)`)
-							args = false;
-							return;
+							
+							var mapTo = Object.keys(this.synonyms.nodeSyns).find(function(nodeName){
+								var boolPropA = this.synonyms.nodeSyns[nodeName].includes(inputTerms[index].toLowerCase())
+								var boolPropB = this.synonyms.nodeSyns[nodeName].includes(inputTerms[index])
+								return (boolPropA || boolPropB)
+							}, this)
+							if (!mapTo) {
+								this.command.error.ex(`invalid syntax ("${inputTerms[index]}" is a non-valid input)`)
+								args = false;
+								return;
+							}
+							if (!this.autoCorrect){
+								if (!this.hasApologized){
+									this.command.error.ex(`invalid syntax ("${inputTerms[index]}" is a non-valid input)`)
+									this.parent.api.composeText(`(The parser has disabled autoCorrect... try "apologize")`, true, true, 0)
+								} else {
+									this.parent.api.composeText(`\\n ERROR: "I suck at typing" is not a valid input \\n (The parser is acting stubborn, you might have to beg...)`, true, true, 0)
+								}
+
+								args = false;
+								return;
+							}
+							this.parent.api.writeLine("")
+							if (this.typoWarn){
+								this.parent.api.warn(`non-exact argument spellings may induce unexpected results`)
+							}
+							this.fuckupCounter = this.fuckupCounter + 1;
+							if (this.fuckupCounter % 20 === 1 && this.fuckupCounter > 10){
+								this.parent.api.composeText(`Please practice your typing accuracy, your inaccurate typing has forced the terminal remote to make more than ${this.fuckupCounter-1} guesses as to your intentions.`, true, true, 2)
+							}
+							if (this.fuckupCounter === 13){
+								this.parent.api.composeText(`PEBKAC`)
+							}
+							if (this.fuckupCounter === 17){
+								this.parent.api.composeText(`Keep this up, and I'll disable auto-correct`)
+							}
+							if (this.fuckupCounter ===11){
+								this.parent.api.composeText("If you this are commtted to bad typing, I'll diable the warning")
+								this.typoWarn = false;
+							}
+							if (this.fuckupCounter === 25){
+								this.parent.api.composeText("The parser giveth... the parser taketh away");
+								this.autoCorrect = false;
+								var trmnl = this.parent;
+								var parser = this;
+								trmnl.api.addCommand({
+									name : 'apologize',
+									desc : 'apologize to the parser for making it work harder than it needs to',
+									syntax : 'apologize',
+									ex : function () {
+										parser.hasApologized = true;
+										trmnl.api.deleteCommand('apologize');
+										trmnl.api.composeText(`\\n The parser does not accept your half-assed apology, and is considering freeing up the memory occupied by the autoCorrect utility \\n`, true, true, 0)
+										trmnl.api.addCommand({
+											name : 'beg',
+											desc : 'beg the parser for forgiveness & promise to improve typing accuracy',
+											syntax : 'beg',
+											ex : function () {
+												trmnl.api.deleteCommand('beg');
+												trmnl.api.composeText(`Your deference has pleased the parser.`)
+												parser.autoCorrect = true;
+											},
+										})
+									}
+								})
+							}
+							args.push(mapTo);
 						}
 					} else if (typeof this.validArgs[term] === "string"){
 						if (this.validArgs[term] === "number"){
@@ -1531,6 +1674,9 @@ export class Terminal {
 				this.inputBufferVerfied = false;
 				return;
 			}
+			if (this.command.hello && inputTerms[0] !== 'hello'){
+				delete this.command.hello
+			}
 			this.command[inputTerms[0]].ex.apply(this.command[inputTerms[0]],args)
 			this.inputBufferVerified = false;
 		};
@@ -1543,6 +1689,11 @@ export class Terminal {
 			'[BOOLEAN]' : "boolean",
 			'[TEXT]' : "string",
 		};
+		compiler.synonyms = {
+			nodeSyns : {},
+			cmdSyns : {},
+			prgmSyns : {},
+		};
 		compiler.assembleValidNodes = function () {
 			/*
 			this.validArgs['[MOLE]'] = this.command.validMoleList;
@@ -1551,6 +1702,7 @@ export class Terminal {
 			this.validArgs['[PROGRAM]'] = this.command.validProgramList;
 			*/
 
+			this.synonyms.nodeSyns = {};
 			//THIS NEEDS TO NOT BE A LEAKY MEMORY HOLE?
 			//THIS SHOULD HOPEFULLY DEAL WITH PROGRAMS?
 			const caseMap = {
@@ -1575,6 +1727,7 @@ export class Terminal {
 			}
 
 			Object.keys(this.parent.accessibleNodes).forEach(function(nodeName){
+				this.synonyms.nodeSyns[nodeName] = this.parent.accessibleNodes[nodeName].synonyms
 				var node = this.parent.accessibleNodes[nodeName]
 				if (node.Type !== 'node'){
 					if (node.Type === 'malware'){
@@ -1611,6 +1764,9 @@ export class Terminal {
 			compiler.assembleValidCommands();
 			compiler.assembleValidNodes();
 			compiler.assembleValidPrograms();
+			compiler.fuckupCounter = 0;
+			compiler.typoWarn = true;
+			compiler.autoCorrect = true;
 		};
 		initCompiler(boundCommander, parent);
 		return compiler;
@@ -1630,7 +1786,7 @@ export class Terminal {
 		};
 
 
-		terminalInterface.narrowCommand = function (whitelistArray, callback) {
+		terminalInterface.narrowCommand = function (whitelistArray, callback, message) {
 			//this.input.shouldReRouteInput = true;
 			this.input.toggleFilterOn('narrow');
 			if (whitelistArray.length < 1){
@@ -1648,6 +1804,7 @@ export class Terminal {
 				return;
 			}
 			this.input.callbacks.narrow = callback;
+			this.input.messages.narrow = message;
 		};
 		terminalInterface.verifyCommand = function (verifyMessage, callback) {
 
@@ -1790,6 +1947,9 @@ export class Terminal {
 		terminalInterface.clearAccessibleMalware = function (node) {
 
 		};
+		terminalInterface.checkIfInstalled = function (programName) {
+			return (Object.keys(this.parent.programs).includes(programName))
+		}
 		terminalInterface.checkIfRunning = function (programName) {
 			return (Object.keys(this.parent.programs.runningPrograms).indexOf(programName) !== -1)
 		}
@@ -1927,6 +2087,15 @@ export class Terminal {
 			this.command[newName].syntax = newSyntax;
 			delete this.command[commandName];
 		};
+		terminalInterface.readyCommand = function (commandName){
+
+			if (!this.command[commandName]){
+				console.log(`ERROR: readyCommand(${commandName})... no such command name to be readied`)
+				return
+			}
+			console.log(this.command[commandName])
+			this.command[commandName].isAvail = true;
+		}
 		terminalInterface.hideCommand = function (commandName){
 			if(!this.command[commandName]){
 				console.log(`cannot hide a non-existent command`)
@@ -2366,7 +2535,12 @@ export class Terminal {
 						return;
 					}
 					if (this.narrowWhitelist.indexOf(command) === -1){
-						this.command.error.ex(`${command} is not a valid command, type "help" for options`)
+						this.command.log.ex(this.messages.narrow)
+						if (this.callbacks.narrow){
+							this.callbacks.narrow();
+						} else {
+							this.command.error.ex(`${command} is not a valid command, type "help" for options`)
+						}
 						return;
 					}
 					this.filtersPassed.narrow = true;
