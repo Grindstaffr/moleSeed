@@ -1,5 +1,4 @@
 const express = require('express');
-const pdfjsLib = require('pdfjs-dist/es5/build/pdf.js')
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const graphBuilder = require ('./methods/graphBuilder.js')
