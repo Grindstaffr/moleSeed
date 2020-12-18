@@ -144,7 +144,7 @@ export const bigBang = function () {
 		seed.attach(welcome);
 		seed.attach(welcomeV2);
 		*/
-		
+
 		this.seed.attachTo(moveHere);
 
 		this.move_here.attach(read_this);
@@ -201,6 +201,12 @@ export const bigBang = function () {
 		const portOfArrival = new Node('caravan_entrance');
 		this.addNode(portOfArrival);
 
+		const seed = new Node('seed')
+		this.addNode(seed);
+
+		const welcome = new TextDoc('welcome', `*431hsa&cgciq>5tdi`,'../assets/txtFiles/intro.js');
+		this.addNode(welcome);
+
 		const dir = new Directory('dir', false);
 		this.addNode(dir);
 
@@ -229,6 +235,12 @@ export const bigBang = function () {
 		const demoMessage = new TextDoc('please_read_this', false, '../assets/txtFiles/demoCompleted.js')
 		this.addNode(demoMessage);
 
+		const nurSilo_doc = new TextDoc('silo.rdbl', false, '../assets/txtFiles/silo.js')
+		this.addNode(nurSilo_doc);
+
+		const nurBiblio_doc = new TextDoc('biblio.rdbl', false, '../assets/txtFiles/biblio.js')
+		this.addNode(nurBiblio_doc);
+
 		const gate = new Node('portcullis', false)
 		gate.encrypt(7, 'password=password')
 		this.addNode(gate);
@@ -239,11 +251,14 @@ export const bigBang = function () {
 		dir.attach(tonysIbsQ19);
 		dir.attach(gate);
 		dir.attach(caravanLibrary);
+		dir.attach(welcome);
 
 		newUserRepo_dir.attach(cordyceps);
 		newUserRepo_dir.attach(pegleg);
 		newUserRepo_dir.attach(silo_ext);
+		newUserRepo_dir.attach(nurSilo_doc);
 		newUserRepo_dir.attach(biblio);
+		newUserRepo_dir.attach(nurBiblio_doc);
 		
 		gate.attach(demoMessage);
 

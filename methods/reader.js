@@ -213,7 +213,7 @@ export const program = {
 				page[i] = single row;
 
 			*/
-			console.log(`compiling`)
+			
 			var fullString = this.methods.filterOutMetaChars(text);
 			fullString = this.methods.replaceTabs(text);
 			this.methods.writeLinesToPages(fullString, doc);
@@ -263,7 +263,7 @@ export const program = {
 			};
 
 			var rowIndex = 0;
-			console.log(currentPage)
+			
 			currentPage.forEach(function(line,index,page){
 				this.api.writeToGivenRow(line,index + 2);
 			},this);
@@ -276,7 +276,7 @@ export const program = {
 
 		textDocCallback : function (text, doc){
 			if ((doc.name === this.data.textName) && (doc.pages.length === this.data.pages.length)){
-				console.log(`did this`)
+				
 				this.methods.composeText(this.data, this.data.pages[this.data.currentPageNum]);
 				this.methods.drawWindow();
 				return;
@@ -294,7 +294,7 @@ export const program = {
 			this.data.rowCount = this.api.getRowCount();
 			this.data.activeNode = this.api.getActiveNode();
 			this.data.rowCount = this.api.getRowCount() - 8
-			console.log(this.data.rowCount)
+		
 			this.api.reserveRows(this.data.rowCount);
 			this.api.clearReservedRows();
 			this.methods.compileText(text,doc);
@@ -336,13 +336,13 @@ export const program = {
 				desc : 'compose next page to terminal',
 				syntax: 'next',
 				ex : function () {
-					console.log(this.data.currentPageNum)
+					
 					if (this.data.currentPageNum === this.data.pageCount - 1){
 						this.api.throwError(`cannot increment higher than maximum`)
 						return;
 					}
 					this.data.currentPageNum = this.data.currentPageNum + 1;
-					console.log(this.data.pages[this.data.currentPageNum])
+					
 					this.api.clearReservedRows();
 					this.methods.composeText(this.data.boundDoc,this.data.pages[this.data.currentPageNum]);
 					this.api.log(`    incrementing page`)
@@ -374,7 +374,7 @@ export const program = {
 				hasDefault : true,
 				ex : function (nodeName) {
 					
-					console.log(nodeName)
+				
 					this.data.activeNode = this.api.getActiveNode();
 					if (!nodeName){
 						nodeName = this.data.activeNode.name;

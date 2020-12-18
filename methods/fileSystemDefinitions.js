@@ -138,9 +138,11 @@ export class Node {
 		this.api.requestInput(function(commandFull){
 			var keyCode = commandFull.split(" ")[0]
 			if (keyCode === node.encryptionData.password){
+				node.api.log(' ')
 				node.api.log(` :: KEYCODE CORRECT :: `)
 				return;
 			} else {
+				node.api.log(' ')
 				node.api.log(` :: KEYCODE INCORRECT ::`)
 				node.api.verifyCommand(`try again? `, function (bool) {
 					if (!bool){
@@ -359,8 +361,9 @@ export class Library extends Node {
 		const eliminateDuplicates = function (searchTerm, array){
 			if (array.indexOf(searchTerm) !== array.lastIndexOf(searchTerm)){
 				array.splice(array.indexOf(searchTerm), 1)
-				eliminateDuplicates(searchTerm, array)
+				return eliminateDuplicates(searchTerm, array)
 			}
+			return array
 		}
 		
 		const terminatingCharacters = [" ", ",", ".", "?", "!", ";", ":", ")", "(", "/"]
@@ -415,6 +418,9 @@ export class Library extends Node {
 			if (outputArray.indexOf(fileName) !== index){
 				outputArray.splice(index, 1)
 			}
+		})
+		outputArray.forEach(function(fileName, index){
+			eliminateDuplicates(fileName, outputArray)
 		})
 		library.searchComplete = true;
 		return outputArray;

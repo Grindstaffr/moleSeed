@@ -2088,12 +2088,10 @@ export class Terminal {
 			delete this.command[commandName];
 		};
 		terminalInterface.readyCommand = function (commandName){
-
 			if (!this.command[commandName]){
 				console.log(`ERROR: readyCommand(${commandName})... no such command name to be readied`)
 				return
 			}
-			console.log(this.command[commandName])
 			this.command[commandName].isAvail = true;
 		}
 		terminalInterface.hideCommand = function (commandName){
