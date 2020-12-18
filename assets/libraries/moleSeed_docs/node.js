@@ -2,6 +2,7 @@ export const doc = {
 	name : `nodes`,
 	text : `--- User documentation for moleSeed ---
 	\\n   - Description and Classification of Nodes - 
+    \\n   -- MX --
 	\\n
 	\\n SECTION 1A - Introduction
 	\\n \\t The term "node" comes from graph theory, a field of mathematics concerning graphs. A "graph" is a set of vertices and edges, where each edge consists of a pair of vertices. For example consider graph "G":

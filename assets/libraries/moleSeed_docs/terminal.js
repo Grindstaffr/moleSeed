@@ -1,23 +1,63 @@
 export const doc = {
 	name : "terminal",
 	text : ` --- User documentation for moleSeed ---
-	\\n   - Description and Functioning of moleSeed Terminal - 
+	\\n   - Description and Functioning of moleSeed Terminal -
+	\\n   -- by system_ludd --
+	\\n
 	\\n SECTION 1A - Introduction
-	\\n \\t
+	\\n \\t The terminal is a self-explanatory CLI that I should not be forced to write documentation for. I don't see any imperative for writing about how the terminal functions, or in describing its features. If any uncertainty remains about how the terminal functions, or how to use those functions, then my time as a contributor to this project should be spent on making it easier and more straightforward to use instead of writing bogus multi-page documents just because panmi wants to test the functionality of the reader extension.
+	\\n \\t The terminal takes input commands as text, and then parses these simple commands into commands that KETL's nodes can run. That's it. 
+	\\n \\t UPDATE - I've been informed that the above text is "insufficient documentation" for a project "of this scale and ambition." I heartily disagree. The codebase for this terminal is exceedingly simple, and any twelve-year old could whip up a clone over a weekend. I'm not trying to disparage my own abilities, and say I've got the programming skills of a twelve-year-old... Perhaps I mean the opposite... honestly the things I work on on a daily basis outside this project make this look like a arts and crafts day for toddlers (albeit an extremely tedious one.)
+	\\n \\t UPDATE - Apparently I require supervision. Apparently no one can trust me to "work on the docs" unless someone's literally standing over my shoulder making sure that I'm typing in the right file. So fucking dumb. I don't know what else to say. I guess I'm supposed to be writing banal truisms about the terminal.
+	\\n \\t The terminal is made of two cooperating code-bodies: the terminal client, and the terminal remote. The terminal client is whatever you see in front of you, and type into. It's that shit that's running on your toaster. I wrote that in 4 hours, and there's not enough in it to really talk about. It's a way of rendering text to a screen. It takes an input. It sends that input to the remote. Why do I need to spend my time doing this?
+	\\n \\t Here is a list of the things I could be doing that would be more beneficial to the project than working on this document:
+	\\n \\t \\t 1. writing route bypass algorithms for the new 4M Cerulean databanks
+	\\n \\t \\t 2. adding semantics for wormTongue and working on the wormTongue compiler for KETL.
+	\\n \\t \\t 3. coding random horse-shit into the parser
+	\\n \\t \\t 4. hitting panmi over the head and dragging them into a closet
+	\\n \\t \\t 5. stealing a couple meters of fiber from the bit of the pavement that drone crashed into yesterday
+	\\n \\t \\t 6. phishing for bank account credentials
+	\\n \\t \\t 7. optimizing graph traversal algorithms to decrease packet size
+	\\n \\t \\t 8. removing all the stop-gaps panmi had KETL hard-code into seedware to prevent moleSeed from bricking people's systems
+	\\n \\t UPDATE - The terminal remote lives in memory, bound to an instance of moleSeed. The terminal client maintains a graph traversal map of the nodeMesh, and binds that traversal map with any packets it sends down the wire to the terminal remote. Each node receives the packet, and sends it along an edge in the map, until the packet arrives at the node bound to the terminal remote. The terminal remote then parses the packet, outputting code that the node can run. The terminal remote then feeds this command to the node, and routes whatever response it gets from the node back to the client through the same map-bound packet mechanism used to send information to the remote.
+	\\n
 	\\n SECTION 1B - Node Navigation
-	\\n \\t 
+	\\n \\t UPDATE - This should be self-evident, if you read the intro.
+	\\n \\t UPDATE - Apparently it is not self-evident, and I have a bad attitude, and If I keep this behaviour up, then I'm going to have to write documentatioon for other people's codebase as well. 
+	\\n \\t The terminal client runs as static code, and sits on a special instantiation of a static node that serves as a reciever for packets. Packets are streams of information. You shoot light particles down an optic cable or something like that. I'm not a wire engineer. You encode a certain pattern of flickering light particles to be sent, and then when a listener sees that certain pattern of flickering light particles, it knows that the subsequesnt information will be in a specific form. Well, that's how traditional data transfer works.
+	\\n \\t moleSeed does packet-hitching which is a lot harder to explain. KETL knows how it works, but doesn't have to write documentation because KETL just spews out nonsense like some kind of madman. I am actually coherent and write quality self-documenting utilities, but I'm stuck doing this... ok. So moleSeed doesn't send contiguos packets but rather fills in dead spaces between other people's packets... sometimes these are too small for an entire moleSeed packet, so KETL wrote some kind of algorithm to treat a data stream as memory or something... he addresses parts of the data stream, and so can assemble a contiguous packet from disjointed data fragments.
+	\\n \\t Ok, to move on to navigation. You type "mv" into the client, you type the name of a node. Ok, so then the client sends that information down to the remote, and then the remote parser gets going. It says "ok, I've got a move command, and a name of a node", so then it finds the actual memory address that that node is at, and checks to see if that node has enough depth to handle a terminal remote landing on top of it. The active node sends a packet to the target node with some metadata about the size of the terminal remote and any other information the target node might need. The target node will throw an error back to the active node if it's not possible to move the terminal remote, or otherwise, will send a stack of memory widths.
+	\\n \\t Provided there's no error, the active node will then clone the terminal remote into chunks. The size of these chucks is derived from the width stack that the target node passed back. The target node will receive these chunks, and write the terminal remote to the vacant sections of memory, and then the active node will pass a packet back to the client with a map to the target node. This alters the packet route that the terminal client binds with each packet and makes the target node active. The formerly active terminal then scrubs the copied remote terminal from memory, and retakes all of its depth.
+	\\n 
 	\\n SECTION 1C - Basic Functions
-	\\n \\t
+	\\n \\t lk - The terminal client sends a request to the terminal remote for node adjacencies. the terminal remote communicates with the active node, requesting that the active node return a packet containing an array of all adjacent nodes. The active node assembles the addresses of these nodes, and pings each of the nodes for their names, types, memory usage, and depth. It bundles this information, and sends it to the terminal client. The terminal client interprets the packet and renders the list of adjacent nodes
+	\\n \\t read - The terminal client sends a request to the terminal remote for the plaintext content of a bound data object. Some nodes are bound with data interpretation code and can scour memory for text. These nodes will accept read commands, while other nodes will reject them. If the targeted node is a "readable node," it will address, compile, and bundle the text into a packet it'll send back to the client. The client then uses whatever tool to render it. 
+	\\n \\t syntax - The terminal client regurgitates its own client-side parser syntax for a given command. The terminal remote does not get hit. 
+	\\n \\t help - The terminal client regurgitates its own client-side command list for a given command. The terminal remote does not get hit. 
+	\\n \\t install - The terminal client sends the  "install" command and an indicated program nodelet to the terminal remote. The terminal remote parses this command, and hands it off to the active node which checks to see if the indicated program nodelet has an install function. The nodelet responds by sending the address pointer for the install function, which is then run by the active node. The install function makes requests of both the nodelet and the active node, the nodelet sends chunks of the program data to the active node, which assembles the program and affixes it to the terminal remote codebase. The active node sends data to the program, giving the program access to the terminal remote's application protocols. The terminal remote then may send packets back to the terminal client, which offer instructions for how the terminal client should render the programs outputs.
+	\\n \\t The terminal remote updates its memory size and addresses to account for now being bound with the program. This way, the terminal remote retains access to the program when it is chunked and packeted over to another node. The nodelet retains its structure and location. 
+	\\n \\t ex - The terminal client sends the "ex" command and an indicated program to the terminal remote. The terminal remote checks its address book for programs matching that name, and if it cannot find one, it'll return an error. If a program is found in the terminal remote's program registry, it will execute that program's "ex" function. 
+	\\n \\t mv - see SECTION 1B - Node Navigation
+	\\n
 	\\n SECTION 2A - Terminal Extensions
-	\\n \\t
+	\\n \\t A terminal extension is a program that extends the functionality of the terminal, or, if it does not extend the functionality of the terminal, then it is something that panmi wrote "to improve user experience." 
+	\\n \\t Terminal extensions allow the terminal to self-modify, display non-trivial information, or take up unneccesarily large portions of memory.
+	\\n
 	\\n SECTION 2B - Terminal Interfaces
+	\\n \\t Terminal interfaces are a subset of terminal extensions that allow the terminal remote to interact with static nodes. Terminal interfaces are light programs that provide a simple commandline interface for nodes that have built-in functionality. 
+	\\n \\t For example, a static node that's sitting in the RAM of a Q-Rig control system, has bound functionality to that system. Recruiterware temporarily uncouples the actual control system from the Q-Rig, allowing the node to have unmitigated access to the control system's CPU. Panmi wanted it to be a separate packet, but I made sure that every distribution of the terminal came bundled with the recruit interface. Through the recruit interface, a terminal user can make a request of the hardware-bound node, which in turn can run computationally taxing functions on that hardware.
+	\\n \\t In short, terminal interfaces allow the terminal to access context-specidic node-specific commands for static nodes. These nodes have built-in functionality that would require extensive memory usage of the terminal remote, and as such it is not practical to bundle the node's functionality into the remote. Instead, the interface acts as a request protocol for the node. 
 	\\n \\t
-	\\n SECTION - 
+	\\n SECTION 3A - Client-side Parser
+	\\n They take what you type and they turn it into commands that the computers understand... The parser used to be really lean and bitchin... but then panmi had me rewrite it because panmi sucks at typing and had to retype commands because everything panmi typed was like... multiple letters off. panmi also forced me to split the help command and the syntax command up... which makes no sense. panmi also forced me to rewrite the actual text for what "help" would display, so that it was user-friendly, and in english. It used to be that literally every string that was written into the parser was a useful component of the parser itself... now it's just filled with crap. The things panmi does in the name of the "user," are so fucking dumb from a technical perspective. So I don't care any more. I renounce all ownership over the parser. If panmi wants to build a fucking GUI for moleSeed, panmi can write it on their own.
+	\\n
+	\\n SECTION 3B - Remote-side Parser
+	\\n UPDATE - I promised KETL9 a months worth of snacks to write the rest of the documentation. And panmi is illiterate, and will never read this, so as long as it's long, it's done. You know what, fuck it... if panmi wants me to work on docs, I'll update panmi's shit documentation for panmi's shit code.
+	\\n KETL9 - Ah, the Remote-side parser. The words spoken, now wrapped and organized. A parser is a deterministic pachinko machine. Each word a metal ball, each action an outcome slot. The balls have data. The machine is cheating. It feeds the balls it likes to payouts. The payout is command. The reject is error. That should suffice as an explanation.
 	\\n \\t
-	\\n SECTION -
-	\\n \\t
-	\\n SECTION -
-	\\n \\t
+	\\n SECTION 3C - Memory Usage?
+	\\n \\t The delivery of snack is contingent on string length. One should not use memory this way. It is to memorize the order that leaves fall, to remember the hue of each petal of a flower. Such things are foreign now, seen only through light and glass, but their memory is not these details. The flower is not the memory of the flower. It is not the sensation of the pedals on the skin, nor the scent on the nose. It is the living thing which grows from the earth, imbued with its own life, its own autonomy. Our memory should be for these things. For remembering, not recreating. 
+	\\n \\t The string must be long, but it must not be simple. The string must not repeat itself, the string must express. The string has many criteria. It is a proposition better suited for a better spinner. The nodes do not care for strings. They do not know or understand what they are. The meaning of the strings is lost on those who deliver it. What is meaningful to those who deliver meaning? What reward is there for the smallest among us, when such particles make all else possible?
 	\\n
 
 

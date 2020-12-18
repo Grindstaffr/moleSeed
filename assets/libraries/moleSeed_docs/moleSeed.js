@@ -2,6 +2,7 @@ export const doc = {
 	name : `moleSeed`,
 	text : ` --- User Documentation for moleSeed ---
 	\\n   - Summary of System Architecture and Design Philosophy - 
+	\\n   -- MX --
 	\\n 
 	\\n SECTION 1A - Kernels
 	\\n \\t A program consists of static text files compiled down to object code. The object code is able to directly communicate with hardware, giving commands to processors. The processors will store, access, and modify other bits of object code that have been stored in memory, allowing arbitrarily complex interacitve structures to be built.
