@@ -64,7 +64,7 @@ export class Terminal {
 				callbackA(function () {
 					trmnl.api.unlockInput();
 					trmnl.api.writeLine('moleSeed v.6.2.31', true, true, 6)
-					trmnl.api.writeLine('boot successful...');
+					trmnl.api.writeLine('relink successful...');
 				});
 			}
 		}, 7650)
