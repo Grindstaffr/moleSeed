@@ -50,6 +50,26 @@ export class Terminal {
 	turnOn (callbackA) {
 		this.isOn = true;
 		var trmnl = this;
+		if (this.hasBooted) {
+			trmnl.api.clearContiguousRows(0)
+			trmnl.api.lockInput()
+			setTimeout(function (){
+			trmnl.api.unlockInput();
+			trmnl.__calcLocAndDim();
+			trmnl.animations.reBootLoaderAnim.ex()
+			}, 1000)
+			setTimeout(function () {
+			trmnl.__calcLocAndDim();
+			if (callbackA){
+				callbackA(function () {
+					trmnl.api.unlockInput();
+					trmnl.api.writeLine('moleSeed v.6.2.31', true, true, 6)
+					trmnl.api.writeLine('boot successful...');
+				});
+			}
+		}, 7650)
+			return;
+		}
 		trmnl.api.lockInput()
 		setTimeout(function (){
 			trmnl.__calcLocAndDim();
@@ -69,6 +89,7 @@ export class Terminal {
 					trmnl.api.unlockInput();
 					trmnl.api.writeLine('moleSeed v.6.2.31', true, true, 6)
 					trmnl.api.writeLine('boot successful...');
+					trmnl.hasBooted = true;
 				});
 			}
 		}, 13000)
@@ -86,6 +107,7 @@ export class Terminal {
 			this.context.fillText(`Press 'F11' to boot moleSeed.mkr`, ((width/2) - this.letterHeight * 16), ((height/2)-this.letterHeight));
 			return;
 		}
+
 		//console.log('drawing Terminal')
 		this.context.strokeStyle = this.style.stroke
 		this.context.beginPath();
@@ -192,19 +214,21 @@ export class Terminal {
 		//console.log(this.botLoc)
 		//console.log(this.style.text)
 		this.context.fillStyle = this.style.text
-
-		this.context.fillText('>',this.leftLoc + this.tinyBuff + this.letterHeight/2, this.botLoc)
+		var bot = this.botLoc - (this.letterHeight/2 + this.tinyBuff)
+	
+		this.context.fillText('>',this.leftLoc + this.tinyBuff + this.letterHeight/2, bot)
 
 		if (line.length === 0){
 			return;
 		}
 		for (var i = 0 ; i < Math.min(line.length, (this.api.getRowCount()-1)); i ++){
-			this.context.fillText(`${line[i]}`, this.leftLoc + this.tinyBuff + this.letterHeight/2 + (this.letterHeight * (i + 1)), this.botLoc)
+			this.context.fillText(`${line[i]}`, this.leftLoc + this.tinyBuff + this.letterHeight/2 + (this.letterHeight * (i + 1)), bot)
 		}
 	}
 
 	drawCurrentRows () {
-		var vStart = this.topLoc + this.letterHeight
+		
+		var vStart = this.topLoc + this.letterHeight + this.letterHeight/2 + this.tinyBuff
 		var hStart = this.leftLoc + this.letterHeight/2 + this.tinyBuff
 		var trmnl = this
 		this.context.fillStyle = this.style.text 
@@ -311,7 +335,10 @@ export class Terminal {
 			var left_relative = this.position.x * this.parent.letterHeight;
 			var top_relative = ((this.cache.rowCount - this.position.y) * this.parent.letterHeight)
 			var leftTrue = Math.min((this.parent.leftLoc + left_relative + ((3*this.parent.letterHeight)/2)), (this.parent.leftLoc + ((this.parent.api.getRowCount()-.5)*this.parent.letterHeight)));
-			var topTrue = this.parent.topLoc + top_relative ;
+			var topTrue = (this.parent.botLoc - (this.parent.letterHeight/2 + this.parent.tinyBuff)) - this.parent.letterHeight
+			//console.log( this.botLoc + '<-bl lh->' + this.letterHeight + 'tb->' + this.tinyBuff) 
+			//this.parent.botLoc - this.parent.letterHeight - (this.position.y * this.parent.letterHeight)
+			//this.parent.topLoc + top_relative ;
 			this.parent.context.fillStyle = this.style.background
 			this.blink();
 			this.parent.context.fillRect(leftTrue, topTrue, this.parent.letterHeight, this.parent.letterHeight)
@@ -418,6 +445,8 @@ export class Terminal {
 		this.rowCount = Math.floor(dim/this.letterHeight) - 1
 		if (this.cache){
 			this.cache.rowCount = this.rowCount
+			this.cache.rescaleCache();
+			console.log(this.rowCount + "<- rc    cr.l ->" + this.cache.currentRows.length)
 		}
 		return [dim, this.leftLoc, this.topLoc, this.rowCount];
 	}
@@ -482,17 +511,35 @@ export class Terminal {
 
 		cache.rescaleCache = function () {
 			
-			var newDisplay = new Array(this.rowCount).fill([]);
+			var newDisplay = new Array(this.rowCount - 1).fill([]);
 			this.previousRows = new Array(this.rowCount).fill([]);
 			this.inputRow = new Array(this.rowCount).fill("");
 			this.inputRowPrev = new Array(this.rowCount).fill("");
 		    this.inputRowNext = new Array(this.rowCount).fill("");
-		    this.currentRows.forEach(function(row, index){
-		    	if (row.length > 0){
-		    		newDisplay[index] = row
+		    var currentCacheLength = this.currentRows.length;
+		    var diff = currentCacheLength - this.rowCount;
+		    if (diff === 0){
+			    this.currentRows.forEach(function(row, index){
+			    	if (row.length > 0){
+			    		newDisplay[index] = row
+			    	}
+			    },this)
+		    } else if (diff > 0){
+		    	for (var i = diff; i < currentCacheLength; i ++){
+		    		if (this.currentRows[i].length > 0){
+		    			newDisplay[(i)-(diff + 1)] = this.currentRows[i]
+		    		}
 		    	}
-		    },this)
-			this.currentRows = newDisplay;
+		    } else {
+		    	for (var i = 0; i < currentCacheLength ; i ++){
+		    		if (this.currentRows[i].length > 0){
+		    			newDisplay[(i)-(diff + 1)] = this.currentRows[i]
+		    		}
+		    	}
+
+		    }
+
+			this.currentRows = newDisplay.slice(0,this.rowCount-1);
 		}.bind(cache)
 
 		cache.reservedRows = 0;
@@ -776,6 +823,10 @@ export class Terminal {
 			}
 		};
 		cache.clearContiguousRows = function (startRow, endRow){
+			console.log(`cleariung contiguous rows`)
+			if (!endRow){
+				endRow = this.currentRows.length;
+			}
 			for (var i = startRow; i < endRow; i ++){
 				var row = new Array(this.inputRow.length).fill("");
 				this.currentRows[i] = row;
@@ -1886,6 +1937,9 @@ export class Terminal {
 				this.command.error.ex(`Can only write one character per cell`);
 				return;
 			};
+			if (!this.cache.currentRows[rowIndex]){
+				return;
+			}
 			this.cache.currentRows[rowIndex][columnIndex] = string;
 			return;
 		}
@@ -2286,6 +2340,58 @@ export class Terminal {
 				var rows = anim.api.getRowCount();
 				
 				anim.api.writeToGivenRow("booting new instance of moleSeed terminal...", 1)
+
+				var count = 0
+				for (var k = 0; k < 150; k ++){
+					setTimeout(function () {
+						count = count+1
+						for (var i = 0; i < rows ; i ++){
+							for (var j = 0; j < rows; j ++){
+								var shouldSkip = Math.floor((Math.random()*count)) + Math.floor(count*count/100) + (i);
+								anim.api.writeToCoordinate(anim.trmnl.generateAddress(1),i,j)
+								if (shouldSkip > 100){
+									anim.api.writeToCoordinate(" ", i, j);
+								}
+							}
+						}
+					}, 1600 + (k)*50)
+				}
+				
+				const countArray = [];
+				var counter2 = 0;
+				//this.api.composeText('', true, true, 5)
+				return;
+			}.bind(animations),
+			moleMoveR : function (frame) {
+				var anim = this;
+				var rows = anim.api.getRowCount() + 1
+				var ground = ("#").repeat(rows);
+				var tunnel = ""
+				if (frame >= 4){
+					tunnel = (" ").repeat(frame - 4);
+				}
+				var mole = "( )="
+				return (tunnel + mole.slice(Math.max(0, 4-frame)) + ground.slice(frame)).slice(0,rows)
+			}.bind(animations),
+			moleMoveL : function (frame) {
+				var anim = this;
+				var rows = anim.api.getRowCount() + 1
+				var ground = ("#").repeat(rows);
+				var tunnel = ""
+				if (frame >= 4){
+					tunnel = (" ").repeat(frame - 4);
+				}
+				var mole = "=( )"
+				return (ground.slice(frame) + mole.slice(Math.max(0, ((0 - rows) + frame))) + tunnel).slice(0,rows)
+			}.bind(animations),
+		}
+		animations.reBootLoaderAnim = {
+			ex : function () {
+				var text = ""; 
+				var anim = this;
+				var rows = anim.api.getRowCount();
+				
+				anim.api.writeToGivenRow("linking instance of moleSeed terminal remote...", 1)
 
 				var count = 0
 				for (var k = 0; k < 150; k ++){

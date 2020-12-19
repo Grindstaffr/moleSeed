@@ -431,13 +431,16 @@ export const program = {
 		this.api.addCommand(this.installData.biblio)
 	},
 	stop : function () {
-		this.settings.isRunning = false;
-		this.data.library.powerDown();
-		this.data.library = {};
 		this.api.clearReservedRows(0);
 		this.api.reserveRows(0);
 		this.api.unblockCommand('mv');
 		this.api.clearSubmitTriggeredFunction();
+		if (!this.settings.isRunning){
+			return;
+		}
+		this.data.library.powerDown();
+		this.settings.isRunning = false;
+		this.data.library = {};
 
 	},
 	ex : function (trmnl) {

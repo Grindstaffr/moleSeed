@@ -355,6 +355,9 @@ export class Library extends Node {
 			options.quickSearch = false;
 			options.matchCase = false;
 		}
+		if (!string){
+			return [];
+		}
 		if (this.checkCensorStatus(string)){
 			return[];
 		}
