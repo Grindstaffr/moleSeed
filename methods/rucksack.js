@@ -180,7 +180,7 @@ export const program = {
 		this.api.writeLine(``)
 		this.api.writeLine(`rummaging thru contents of rucksack.ext`)
 		this.api.writeLine(``)
-		this.api.blockCommand('mv','cannot move nodes while rummaging through rucksack.ext')
+		//this.api.blockCommand('mv','cannot move nodes while rummaging through rucksack.ext')
 		this.methods.showContents();
 		this.methods.drawWindow();
 		this.data.storedNodes.forEach(function(node){

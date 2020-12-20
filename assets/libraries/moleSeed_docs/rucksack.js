@@ -9,7 +9,7 @@ export const doc = {
 \\n \\t "grab" takes 2 arguments (node, slot) separated by an "into," or, if you are familiar with reading moleSeed syntax "grab [NODE] into [NUMBER]".
 \\n \\t e.g. "grab seed into 1"
 \\n  
-\\n \\t The term "rummage" acts as a shortcut for "ex rucksack.ext", which displays stored nodes in the top third of the terminal, and allows you to treat them as adjacent nodes for the purposes of node-specific commands.
+\\n \\t The term "rummage" acts as a shortcut for "ex rucksack.ext", which displays stored nodes in the top third of the terminal, and allows you to treat them as accessible nodes for the purposes of node-specific commands.
 \\n \\t NOTE: rucksack.ext does not store node adjacencies.
 \\n \\t UPDATE (MX) - rucksack.ext is currently on iteration v.2.3.12, and while panmi coerces other people into writing documentation, panmi's own stuff is often outdated and misleading. panmi wrote rucksack to be arbitrarily large, and then got a whole nodeNet fragged when panmi brought a couple gigs into a 4M databank. panmi thought it was due to having 900 nodes, but node count is irrelevant. It's all about memory usage. KETL and ludd rewrote node nav to keep panmi-type behaviour from bringing nets down, so now movement is a little slower, cause everyone's gotta handshake. PanOptic doesn't fucking matter. It's outdated. But thanks to panmi, rucksack now has a child-lock on it that panmi believes is entirely necessary for other users. Even though ludd explained the node nav update. `
 }

@@ -205,6 +205,11 @@ export class Node {
 		delete this.adjacencies[name];
 	}
 
+	jettison(){
+		this.adjacencies = {};
+		this.visibleAdjacencies = {};
+	}
+
 	assembleVisibleAdjacencies(){
 		for (var nodeName in this.adjacencies){
 			if (this.adjacencies[nodeName].isInvisible){
@@ -580,7 +585,7 @@ export class Hardware extends Node {
 			desc : `unlink linked hardware`,
 			syntax : `unlink`,
 			ex : function () {
-				this.jettison();
+				this.unlink();
 			},
 		}
 		this.methods.recruit = {
@@ -684,7 +689,7 @@ export class Hardware extends Node {
 		this.api.addCommand(this.methods.recruit);
 	}
 
-	jettison () {
+	unlink () {
 		this.api.deleteCommand(`unlink`);
 		this.api.deleteCommand(`recruit`);
 		this.siloApi.clearDataAfterLinkExpires();
@@ -1103,7 +1108,7 @@ export class Mole extends UniqueNode {
 				}
 				var mole = this;
 				if (!this.trmnl.accessibleNodes[moleName]){
-					this.api.throwError('declared mole-ware not currently accessible.')
+					this.api.throwError('"mole" command requires a moleware node as the first argument... e.g. "mole somemole.mole help"')
 					return;
 				}
 

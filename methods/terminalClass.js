@@ -242,7 +242,8 @@ export class Terminal {
 	}
 
 	keyHandler  (e) {
-		if (e.keyCode === 27){
+		if (e.keyCode === 27 || e.keyCode === 9){
+			console.log(e.keyCode)
 			e.preventDefault();
 			this.keyRouter.route(e)
 			return;
@@ -266,15 +267,20 @@ export class Terminal {
 					this.handleGeneralCase(e);
 				}
 			},
-			specialKeys : ['8','13','16','37','38','39','40'],
+			specialKeys : ['8','9','13','16','37','38','39','40'],
 			'8' : function () {
-				
 				var cache = this.defineCache();
 				cache.deleteFromInput();
 				//cache.deletedText.push(cache.inputRow.pop());
 				//THIS WILL CHANGE IF WE IMPLEMENT HIGHLIGHTING
 				this.parent.blinkyCursor.position.leadTheText();		
 			},//backspace
+			'9' : function () {
+				console.log('firing tab')
+				var cache = this.defineCache();
+				cache.wipeInput();
+				cache.retrieveNextArchivedInput();
+			},
 			'13' : function () {
 				
 				this.parent.input.inputCommand();
@@ -501,7 +507,7 @@ export class Terminal {
 		cache.inputIndex = 0;
 		cache.inputLength = 0;
 		cache.deletedText = new Array(20).fill("");
-		cache.previousInputIndex = -1;
+		cache.previousInputIndex = 0;
 		cache.previousInputRows = new Array(10).fill([]);
 		cache.previousInputSelector = 0;
 		cache.vRowOffset = 0;
@@ -512,12 +518,16 @@ export class Terminal {
 		cache.rescaleCache = function () {
 			
 			var newDisplay = new Array(this.rowCount - 1).fill([]);
+			var newInput = new Array(this.rowCount).fill("");
 			this.previousRows = new Array(this.rowCount).fill([]);
-			this.inputRow = new Array(this.rowCount).fill("");
 			this.inputRowPrev = new Array(this.rowCount).fill("");
 		    this.inputRowNext = new Array(this.rowCount).fill("");
 		    var currentCacheLength = this.currentRows.length;
 		    var diff = currentCacheLength - this.rowCount;
+		    var inputLength = this.inputRow.indexOf("");
+		    for (var i = 0; i < inputLength; i++){
+		    	 newInput[i] = this.inputRow[i]
+		    }
 		    if (diff === 0){
 			    this.currentRows.forEach(function(row, index){
 			    	if (row.length > 0){
@@ -538,7 +548,7 @@ export class Terminal {
 		    	}
 
 		    }
-
+		    this.inputRow = newInput.slice(0,this.rowCount-1)
 			this.currentRows = newDisplay.slice(0,this.rowCount-1);
 		}.bind(cache)
 
@@ -651,11 +661,35 @@ export class Terminal {
 
 		};
 		cache.archiveInput = function () {
-			var fullInput = [this.inputRowPrev, this.inputRow, this.inputRowNext]
-			if (this.previousInputIndex < this.previousInputRows.length - 2){
-				this.previousInputSelector = this.previousInputIndex;
-				this.previousInputIndex = this.previousInputIndex + 1;
+			var fullInput = "";
+			this.inputRowPrev.forEach(function(letter){
+				if (letter === ""){
+					return;
+				}
+				fullInput.push(letter);
+				return;
+			})
+			this.inputRow.forEach(function(letter){
+				if (letter === ""){
+					return;
+				}
+				fullInput = fullInput + letter;
+				return;
+			})
+			this.inputRowNext.forEach(function(letter){
+				if (letter === ""){
+					return;
+				}
+				fullInput = fullInput + letter;
+				return;
+			})
+			if (fullInput === ""){
+				return;
+			}
+			if (this.previousInputIndex < this.previousInputRows.length ){
 				this.previousInputRows[this.previousInputIndex] = fullInput
+				this.previousInputIndex = this.previousInputIndex + 1;
+				this.previousInputSelector = this.previousInputIndex;
 			} else {
 				this.previousInputSelector = this.previousInputIndex;
 				this.previousInputRows.shift();
@@ -663,20 +697,48 @@ export class Terminal {
 			}
 		};
 		cache.retrieveNextArchivedInput = function () {
+			console.log(this.previousInputIndex)
 			if (this.previousInputIndex < 0){
 				return;
 			}
 			if (this.previousInputSelector > 0){
-				var fullInput = this.previousInputRows[this.previousInputSelector]
+				var fullInput = this.previousInputRows[this.previousInputSelector - 1]
+				for (var i = 0; i < this.rowCount; i ++){
+					if (fullInput[i] === ""){
+						break;
+					}
+					if (!fullInput[i]){
+						break;
+					}
+					this.writeToInputRow(fullInput[i])
+				}
+				/*
 				this.inputRow = fullInput[1];
 				this.inputRowPrev = fullInput[0];
 				this.inputRowNext = fullInput[2]
+				*/
 				this.previousInputSelector = this.previousInputSelector - 1;
 			} else {
 				var fullInput = this.previousInputRows[this.previousInputSelector]
+				console.log(this.previousInputRows);
+				console.log(this.previousInputSelector);
+				for (var i = 0; i < Math.min(this.rowCount, fullInput.length); i ++){
+					/*
+					if (fullInput[i] === ""){
+						break;
+					}
+					if (!fullInput[i]){
+						break;
+					}
+					*/
+					this.writeToInputRow(fullInput[i])
+					console.log(this.inputRow)
+				}
+				/*
 				this.inputRow = fullInput[1];
 				this.inputRowPrev = fullInput[0];
 				this.inputRowNext = fullInput[2]
+				*/
 				this.previousInputSelector = this.previousInputIndex;
 			}
 		};
@@ -690,6 +752,7 @@ export class Terminal {
 		cache.submitInput = function (){
 		
 			this.archiveInput();
+			console.log(this.previousInputRows)
 			
 			this.moveInputToDisplay();
 			
@@ -1467,6 +1530,9 @@ export class Terminal {
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
 				trmnl.accessibleNodes[node.name] = node;
+				if (node.name === '[EMPTY SLOT]'){
+					return;
+				}
 				trmnl.compiler.synonyms.nodeSyns[node.name] = node.synonyms;
 			},
 		};
@@ -1606,18 +1672,22 @@ export class Terminal {
 						} else {
 							
 							var mapTo = Object.keys(this.synonyms.nodeSyns).find(function(nodeName){
+								console.log(nodeName)
+								if (nodeName === '[EMPTY SLOT]'){
+									return;
+								}
 								var boolPropA = this.synonyms.nodeSyns[nodeName].includes(inputTerms[index].toLowerCase())
 								var boolPropB = this.synonyms.nodeSyns[nodeName].includes(inputTerms[index])
 								return (boolPropA || boolPropB)
 							}, this)
 							if (!mapTo) {
-								this.command.error.ex(`invalid syntax ("${inputTerms[index]}" is a non-valid input)`)
+								this.command.error.ex(`invalid syntax ("${inputTerms[index]}" is a non-valid input)...  try ${syntax}`)
 								args = false;
 								return;
 							}
 							if (!this.autoCorrect){
 								if (!this.hasApologized){
-									this.command.error.ex(`invalid syntax ("${inputTerms[index]}" is a non-valid input)`)
+									this.command.error.ex(`invalid syntax ("${inputTerms[index]}" is a non-valid input)...  try ${syntax}`)
 									this.parent.api.composeText(`(The parser has disabled autoCorrect... try "apologize")`, true, true, 0)
 								} else {
 									this.parent.api.composeText(`\\n ERROR: "I suck at typing" is not a valid input \\n (The parser is acting stubborn, you might have to beg...)`, true, true, 0)
@@ -1704,6 +1774,7 @@ export class Terminal {
 					cmdIsExtendable = true;
 				} else {
 					if (requiredTerms[index] !== inputTerms[index]){
+						console.log(syntax[index])
 						this.command.error.ex(`invalid syntax (expected ${syntax[index]}, got "${inputTerms[index]}")`)
 						args = false;
 						return;

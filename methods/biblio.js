@@ -354,8 +354,9 @@ export const program = {
 						return;
 					}
 				let foundRealCommand = true
+				console.log(biblio.cmd)
 				if (!this.methods.commands[biblio.cmd]){
-				
+					console.log("no command found")
 					foundRealCommand = false;
 					Object.keys(this.data.pseudonyms).forEach(function(recognizedCommandName){
 						if (this.data.pseudonyms[recognizedCommandName].indexOf(biblio.cmd) === -1){
@@ -365,9 +366,12 @@ export const program = {
 						biblio.cmd = recognizedCommandName;
 						return;
 					}, this)
+					console.log(biblio.cmd)
+					console.log(foundRealCommand)
 				}
 				if (!foundRealCommand){
-					this.methods.changeLibraryMessage(`command unrecognized by ${this.name} parser`)
+					this.methods.changeLibraryMessage(`command unrecognized by ${this.name} parser... try "${this.name} help"`);
+					this.api.throwError(`command unrecognized by ${this.name} parser... try "${this.name} help"`)
 					biblio.cmdExtVer = false;
 					biblio.wantsMoreCommands = false;
 					return;

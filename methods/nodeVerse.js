@@ -144,6 +144,7 @@ export const bigBang = function () {
 		seed.attach(welcome);
 		seed.attach(welcomeV2);
 		*/
+		
 
 		this.seed.attachTo(moveHere);
 
