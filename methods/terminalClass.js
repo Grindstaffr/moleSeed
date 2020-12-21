@@ -1007,6 +1007,7 @@ export class Terminal {
 			syntax: 'mv [NODE]',
 			isAvail: true,
 			prevNodes : [],
+			moveTriggeredFunctions: {},
 			ex: function (nodeName, forceThru, node) {
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
@@ -1043,6 +1044,11 @@ export class Terminal {
 				trmnl.activeNode.triggerOnMove(trmnl, lastNode);
 				cmd.assembleAccessibleNodes.ex();
 				cmd.assembleValidNodes.ex();
+				console.log(Object.keys(trmnl.accessibleNodes))
+				Object.keys(cmd.mv.moveTriggeredFunctions).forEach(function(funcName){
+					cmd.mv.moveTriggeredFunctions[funcName].func();
+				}, this)
+				console.log(Object.keys(trmnl.accessibleNodes))
 				cmd.compiler.assembleValidNodes();
 			},
 			addToPrevNodes: function(node){
@@ -1636,6 +1642,20 @@ export class Terminal {
 				this.command.verify.ex();
 				return;
 			}
+			if (inputTerms[0] === 'help'){
+				if (this.command[inputTerms[1]]){
+					if (this.command[inputTerms[1]].hasHelp){
+						this.parent.api.composeText(this.command[inputTerms[1]].longHelp)
+						return;
+					} else {
+						this.command.log.ex(" ")
+						this.command.log.ex(`declared command has no bound help text... running "help"`)
+					}
+				} else {
+					this.command.log.ex(" ")
+					this.command.warn.ex(`syntax "help (term)" : (term) must be [COMMAND]... running "help"`)
+				}
+			}
 			var syntax = this.command[inputTerms[0]].syntax
 			var cmdIsExtendable = false;
 			if (this.command[inputTerms[0]].takesFlexibleArgCount){
@@ -2093,6 +2113,27 @@ export class Terminal {
 				this.parent.command.stop.isAvail = true;
 				return;
 			}
+		}
+		terminalInterface.addMoveTriggeredFunction = function (funcName, func){
+			if(!funcName){
+				return
+			}
+			if (!func){
+				return
+			}
+			if (this.command.mv.moveTriggeredFunctions[funcName]){
+				return;
+			}
+			this.command.mv.moveTriggeredFunctions[funcName] = {
+				func :func,
+				name : funcName,
+			};
+		}
+		terminalInterface.deleteMoveTriggeredFunction = function (funcName){
+			if (! this.command.mv.moveTriggeredFunctions[funcName]){
+				return;
+			}
+			delete (this.command.mv.moveTriggeredFunctions[funcName])
 		}
 		terminalInterface.clearSubmitTriggeredFunction = function () {
 			this.submitTriggerFunction = false;

@@ -167,23 +167,34 @@ export const program = {
 	
 	stop : function () {
 		this.settings.isRunning = false;
+		this.api.deleteMoveTriggeredFunction('append');
 		this.api.clearReservedRows();
 		this.api.reserveRows(0);
 		this.api.unblockCommand('mv')
 
 	},
-	ex : function () {
+	ex : function (bool) {
+		var rucksack = this;
 		// this.api.composeText(this.data.readMe)
+		if (!this.settings.isRunning){
+			this.api.addMoveTriggeredFunction('append', function(){
+				rucksack.api.runCommand(`ex rucksack.ext true`);
+			});
+			
+		}
+		if (!bool) {
+			this.api.writeLine(``)
+			this.api.writeLine(`rummaging thru contents of rucksack.ext`)
+			this.api.writeLine(``)
+		}
 		this.api.reserveRows(20);
 		this.api.clearReservedRows();
 		this.settings.isRunning = true;
-		this.api.writeLine(``)
-		this.api.writeLine(`rummaging thru contents of rucksack.ext`)
-		this.api.writeLine(``)
 		//this.api.blockCommand('mv','cannot move nodes while rummaging through rucksack.ext')
 		this.methods.showContents();
 		this.methods.drawWindow();
 		this.data.storedNodes.forEach(function(node){
+			console.log('appendingNodes')
 			this.api.appendAccessibleNodes(node)
 		},this)
 	},

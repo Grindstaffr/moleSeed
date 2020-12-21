@@ -231,6 +231,7 @@ export const program = {
 			// AT some later point, we may wanna upgrade silo from a patch upgrade for rucksack to being standalone... but not now!
 			this.api.unblockCommand('mv');
 			this.api.clearAccessibleMalware();
+			this.api.deleteMoveTriggeredFunction(`append`);
 			
 			if (this.silo.data.armedRecruiter.isArmed){
 				this.api.appendAccessibleMalware(this.silo.data.armedRecruiter);
@@ -242,6 +243,13 @@ export const program = {
 			
 		},
 		patch_rucksack_ex : function (bool) {
+			var rucksack = this;
+		// this.api.composeText(this.data.readMe)
+			if (!this.settings.isRunning){
+				this.api.addMoveTriggeredFunction('append',function(){
+					rucksack.api.runCommand(`ex rucksack.ext false`);
+				});
+			}
 			this.api.reserveRows(23);
 			this.api.clearReservedRows();
 			this.settings.isRunning = true;
@@ -250,7 +258,7 @@ export const program = {
 				this.api.writeLine(`rummaging thru contents of rucksack.ext (+S)`)
 				this.api.writeLine(``)
 			}
-			this.api.blockCommand('mv','cannot move nodes while rummaging through rucksack.ext (+S)')
+			//this.api.blockCommand('mv','cannot move nodes while rummaging through rucksack.ext (+S)')
 			this.methods.showContents();
 			this.methods.drawWindow();
 			this.methods.drawSilo();

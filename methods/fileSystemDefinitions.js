@@ -592,13 +592,29 @@ export class Hardware extends Node {
 			name : `recruit`,
 			desc : `declare linked hardware to operate terminal commands on declared hardware`,
 			syntax : `recruit [HARDWARE] ...`,
+			hasHelp : true,
+			longHelp : `--- Operation Guide for "recruit" syntax ---
+			\\n 
+			\\n recruit 
+			\\n \\t function: declares a linked hardware instance as the recipient of the subsequent command. Terminal remote then routes the command to the linked hardware node, which then executes the command on the recruited system.
+			\\n \\t syntax rationale : recruit commands are neither executed by the terminal remote, nor the terminal remote's active node. Instead, they are passed to a node that has gained full-thread control of a computer system, which then runs the command on that system. The terminal remote needs to know how to forward the command, so the user must declare a hardware node thru "recruit [HARDWARE]"
+			\\n \\t syntax : recruit [instance_of_recruited_hardware] [command to do]`,
 			ex : function (hardwareName, command, commandArg, commandArg2){
+				var hardware = this;
 				if (!command){
-
-					this.api.extendCommand() //(input?)
+				this.api.requestInput(function(commandFull){
+						var inputTerms = commandFull.split(" ");
+						var indexStart = 0;
+						if (inputTerms[indexStart] === ""){
+							indexStart = indexStart + 1;
+						}
+						var command = inputTerms[indexStart];
+						hardware.api.writeLine("")
+						hardware.api.runCommand(`recruit ${hardwareName} ${command}`)
+						return;
+					}, `${hardwareName} recruited. Which command? ${Object.keys(this.methods.hardwareCommands)}`) //(input?)
 					return;
 				}
-				var hardware = this;
 				var linkedHardware = this.siloApi.getLinkedHardware();
 				if (hardwareName !== linkedHardware.name){
 					this.api.throwError(`cannot access non-linked hardware. ${linkedHardware.name} is currently linked`);
@@ -1098,6 +1114,13 @@ export class Mole extends UniqueNode {
 			desc : 'declare mole-ware to utilize actions specific to declared .mole program',
 			syntax : `mole [MOLE] ...`,
 			recentlyVerified : false,
+			hasHelp : true,
+			longHelp : `--- Operation Guide for "mole" syntax ---
+			\\n 
+			\\n mole 
+			\\n \\t function: declares a moleware node as the recipient of the subsequent command. Terminal remote then routes the command to the moleware node, which then uses the active node to execute a component program of the moleware bundle.
+			\\n \\t syntax rationale : mole commands are not executed by the terminal remote, and the commands do not run code contained in the terminal remote's active node. Instead, they act as pointers to executables contained within the moleware node, and when they are passed to the active node for executing, the active node requires the sub-address within the moleware node. Moleware bundles vary in their utility functions, and as such, commands that utilize these functions must be routed first through the moleware's dedicated on-node parser."
+			\\n \\t syntax : mole [moleware] [command_to_do]`,
 			ex: function (moleName, command, commandArg, commandArg2) {
 				if (!command){
 					//THIS STAYS UNTIL THERE'S A MULTILINE INPUT BUFFER,
@@ -1108,6 +1131,7 @@ export class Mole extends UniqueNode {
 				}
 				var mole = this;
 				if (!this.trmnl.accessibleNodes[moleName]){
+					console.log(this.trmnl.accessibleNodes)
 					this.api.throwError('"mole" command requires a moleware node as the first argument... e.g. "mole somemole.mole help"')
 					return;
 				}

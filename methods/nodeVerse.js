@@ -114,6 +114,10 @@ export const bigBang = function () {
 		const there = new Node('there', false);
 		this.addNode(there);
 
+		const tonysIbsQ19 = new QRig(`tonys_IBS_Q19`, 'c6#!k%uvo3yg$<lcx','./wallysIbsQ19.js');
+		this.addNode(tonysIbsQ19);
+
+		
 		const help = new Node('help')
 		this.addNode(help)
 		const oops = new Node('I_made_a_mistake');
@@ -143,8 +147,10 @@ export const bigBang = function () {
 		seed.attach(reader_ext);
 		seed.attach(welcome);
 		seed.attach(welcomeV2);
+		seed.attach(tonysIbsQ19);
+		seed.attach(silo_ext);
+		seed.attach(cordyceps)
 		*/
-		
 
 		this.seed.attachTo(moveHere);
 

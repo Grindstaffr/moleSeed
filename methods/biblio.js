@@ -273,6 +273,13 @@ export const program = {
 			name : "biblio",
 			desc : "biblio-specific command syntax",
 			syntax: "biblio ...",
+			hasHelp: true,
+			longHelp:  `--- Operation Guide for "biblio" syntax ---
+			\\n 
+			\\n biblio
+			\\n \\t function: routes a request through the biblio.ext parser into an active library node.  
+			\\n \\t syntax rationale : library nodes contain functionality that is unique to nodes. As such, the vanilla build of the terminal remote does not have a program interface for communicating with special library utilities. Library nodes must be capable of running algorithms over large sets of data, so biblio acts as a protocol and router for directing requests to the library node. "
+			\\n \\t syntax : biblio [library_command] (term)`,
 			wantsMoreCommands : false,
 			cmdExtVer : false,
 			cmd:"",
