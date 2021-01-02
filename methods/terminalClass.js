@@ -1053,7 +1053,7 @@ export class Terminal {
 					cmd.mv.moveTriggeredFunctions[funcName].func();
 				}, this)
 				console.log(Object.keys(trmnl.accessibleNodes))
-				cmd.compiler.assembleValidNodes();
+				//cmd.compiler.assembleValidNodes();
 			},
 			addToPrevNodes: function(node){
 				var cmd = this.parent;
