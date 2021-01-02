@@ -1,3 +1,5 @@
+import {compilerBuilder} from './compiler.js'
+
 export class Terminal {
 	constructor (canvas, globalProps, node, colorScheme, terminalActivator, index) {
 		this.activeNode = node;
@@ -26,8 +28,9 @@ export class Terminal {
 		this.programs = this.constructPrograms();
 		this.cache = this.constructCache();
 		this.command = this.constructCommands(this.cache, this);
-		this.compiler = this.constructCompiler(this.command, this);
+		//this.compiler = this.constructCompiler(this.command, this);
 		this.api = this.constructAPI();
+		this.compiler = compilerBuilder(this)
 		this.input = this.constructInput(this);
 		this.keyRouter = this.constructKeyRouter(this);
 		this.blinkyCursor = this.constructBlinkyCursor(this,this.style);
@@ -926,7 +929,7 @@ export class Terminal {
 		command.help = {
 			name : 'help',
 			desc : 'list available commands',
-			syntax: 'help',
+			syntax: 'help (command/node)',
 			isAvail : true,
 			helpCount : 0,
 			helpMessages : {
@@ -939,6 +942,7 @@ export class Terminal {
 				100 : `Congratulations! You've formed a dependent relationship with the "help" command!`,
 			},
 			ex : function () {
+				console.log(this)
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
 				this.helpCount = this.helpCount + 1;
@@ -966,7 +970,7 @@ export class Terminal {
 		command.syntax = {
 			name : 'syntax',
 			desc : 'display syntax for a command',
-			syntax : 'syntax [COMMAND]',
+			syntax : 'syntax [command]',
 			requiresVerification : false,
 			isAvail : true,
 			ex : function (commandName) {
@@ -1004,7 +1008,7 @@ export class Terminal {
 		command.mv = {
 			name : 'mv',
 			desc: 'move to an adjacent node',
-			syntax: 'mv [NODE]',
+			syntax: 'mv [node]',
 			isAvail: true,
 			prevNodes : [],
 			moveTriggeredFunctions: {},
@@ -1072,7 +1076,7 @@ export class Terminal {
 		command.install = {
 			name : 'install',
 			desc : 'install a program',
-			syntax : 'install [PROGRAM]',
+			syntax : 'install [program]',
 			triggerFuncs : [function () {}],
 			isAvail : true,
 			ex : function (programName) {
@@ -1109,7 +1113,7 @@ export class Terminal {
 		command.ex = {
 			name : 'ex',
 			desc: 'execute a program',
-			syntax: 'ex [PROGRAM] ...',
+			syntax: 'ex [program] ...',
 			isAvail : true,
 			ex : function (programName, bool) {
 				if (bool === 'true'){
@@ -1199,7 +1203,7 @@ export class Terminal {
 		command.read = {
 			name: 'read',
 			desc: 'read the contents of an adjacent node',
-			syntax: 'read [NODE] ...',
+			syntax: 'read [readable] (number) (number)',
 			isAvail: true,
 			ex : function (nodeName, startIndex, endIndex) {
 				var cmd = this.parent;
@@ -1287,7 +1291,7 @@ export class Terminal {
 		command.rex = {
 			name : 'rex',
 			isAvail : false,
-			syntax : 'rex ...',
+			syntax : 'rex (command) ...',
 			isHidden: true,
 			ex : function () {
 				var cmd = this.parent;
@@ -2629,10 +2633,11 @@ export class Terminal {
 		input.sendToCompiler = function (commandFull){
 			this.bufferInput(commandFull)
 			this.command.assembleValidNodes.ex();
-			this.compiler.assembleValidPrograms(); // HOT FIX for the rewrite of assembleValidNOdes (MUST SIT b4 assemble ValidNOdes)
-			this.compiler.assembleValidNodes();
+			//this.compiler.assembleValidPrograms(); // HOT FIX for the rewrite of assembleValidNOdes (MUST SIT b4 assemble ValidNOdes)
+			//this.compiler.assembleValidNodes();
 			this.api.raiseSubmitFlag();
-			this.compiler.compileAndExecuteCommand(commandFull)
+			//this.compiler.compileAndExecuteCommand(commandFull)
+			this.compiler.parseInput(commandFull)
 		};
 
 		input.bufferInput= function (commandFull){
