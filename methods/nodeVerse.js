@@ -133,6 +133,7 @@ export const bigBang = function () {
 
 
 		this.seed.attach(admin_dir);
+		this.seed.attach(rucksack_ext);
 		admin_dir.attach(rucksack_ext);
 		admin_dir.attach(reader_ext);
 		admin_dir.attach(nomad_mole);
@@ -141,7 +142,7 @@ export const bigBang = function () {
 		admin_dir.attach(pegleg);
 		admin_dir.attach(crawler_ext);
 
-		/*
+		
 		seed.attach(caravanLibrary);
 		seed.attach(biblio);
 		seed.attach(reader_ext);
@@ -150,7 +151,7 @@ export const bigBang = function () {
 		seed.attach(tonysIbsQ19);
 		seed.attach(silo_ext);
 		seed.attach(cordyceps)
-		*/
+		
 
 		this.seed.attachTo(moveHere);
 

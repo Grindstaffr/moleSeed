@@ -611,6 +611,7 @@ export class Terminal {
 				tabSize = 5;
 			}
 			if (!shouldUnSpace){
+			
 				this.writeEmptyRow();
 			}
 			var maxSubstring = string.substring(0,this.inputRow.length);
@@ -618,18 +619,23 @@ export class Terminal {
 			if (metaCharIndex >= 0){
 				if (string[metaCharIndex + 1] === `n`){
 					this.writeToVisibleRow(maxSubstring.substring(0,metaCharIndex));
-					this.writeEmptyRow();
+					
+						
+						this.writeEmptyRow();
+					
 					var newString = string.substring(metaCharIndex + 2);
 					if (shouldTab){
 						newString = "     " + newString;
 					}
-					this.composeText(newString, shouldUnSpace, shouldTab);
+					this.composeText(newString, shouldUnSpace, shouldTab, tabSize);
 					return;
 				}
 			}
 			if (string.length < this.inputRow.length){
 				this.writeToVisibleRow(string);
-				this.writeEmptyRow();
+				
+					this.writeEmptyRow();
+				
 				return;
 			} else {
 				var appropriateIndex = maxSubstring.lastIndexOf(" ");
@@ -638,13 +644,14 @@ export class Terminal {
 				}
 				this.writeToVisibleRow(string.substring(0, appropriateIndex));
 				if (!shouldUnSpace){
+				
 					this.writeEmptyRow();
 				}
 				var newString = string.slice(appropriateIndex, string.length);
 				if (shouldTab){
 						newString = (" ").repeat(tabSize) + newString;
 					}
-				this.composeText(newString, shouldUnSpace, shouldTab);
+				this.composeText(newString, shouldUnSpace, shouldTab, tabSize);
 				return;
 			}
 		};
@@ -755,7 +762,7 @@ export class Terminal {
 		cache.submitInput = function (){
 		
 			this.archiveInput();
-			console.log(this.previousInputRows)
+		//	console.log(this.previousInputRows)
 			
 			this.moveInputToDisplay();
 			
@@ -931,6 +938,12 @@ export class Terminal {
 			desc : 'list available commands',
 			syntax: 'help (command/node)',
 			isAvail : true,
+			hasHelp : true,
+			longHelp: ` ---help help---
+			\\n If you need help, type help for help,
+			\\n If you want help with help, then type help help for help help,
+			\\n If you want help with "x", then type help "x," which will only help if "x" is something help can help with,
+			\\n If help doesn't help, then help help help by writing help for help to help with. `,
 			helpCount : 0,
 			helpMessages : {
 				12 : ``,
@@ -941,10 +954,18 @@ export class Terminal {
 				72 : "Ask again nicely.",
 				100 : `Congratulations! You've formed a dependent relationship with the "help" command!`,
 			},
-			ex : function () {
-				console.log(this)
+			ex : function (target) {
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
+				var targetType = null;
+				if (target !== undefined){
+					if (Object.keys(cmd).includes(target)){
+						targetType = "command"
+					}
+					if (Object.keys(trmnl.accessibleNodes).includes(target)){
+						targetType = "node"
+					}
+				}
 				this.helpCount = this.helpCount + 1;
 				if (Object.keys(this.helpMessages).includes(this.helpCount.toString())){
 					trmnl.api.composeText(this.helpMessages[this.helpCount], true, true, 0)
@@ -952,30 +973,66 @@ export class Terminal {
 						return;
 					}
 				}
-				cmd.cache.writeEmptyRow();
-				cmd.cache.writeToVisibleRow(" --- listing available commands with descriptions --- ")
-				cmd.cache.writeEmptyRow();
-				cmd.cache.writeEmptyRow();
-				Object.keys(cmd).forEach(function(key){
-					if (cmd[key].isAvail){
-						var name = cmd[key].name;
-						var desc = cmd[key].desc;
-						var line = (" ") + name + (" ").repeat(12 - name.length) + (": ") + desc;
-						cmd.cache.composeText(line, true, true, 14)
-						//cmd.cache.writeEmptyRow();
+				
+				if (targetType === null){
+					cmd.cache.writeToVisibleRow(" --- listing available commands with descriptions --- ")
+					cmd.cache.writeEmptyRow();
+					cmd.cache.writeEmptyRow();
+					Object.keys(cmd).forEach(function(key){
+						if (cmd[key].isAvail && !cmd[key].isHidden){
+							var name = cmd[key].name;
+							var desc = cmd[key].desc;
+							var line = (" ") + name + (" ").repeat(12 - name.length) + (": ") + desc;
+							cmd.cache.composeText(line, true, true, 14)
+							//cmd.cache.writeEmptyRow();
+						}
+					})
+				} else if (targetType === "command"){
+					if (!cmd[target].hasHelp){
+						trmnl.api.throwError(`additional help text not found for command "${target}"`);
+						return;
 					}
-				})
+					var message = cmd[target].longHelp
+					trmnl.api.composeText(message, true, false, 8);
+					trmnl.api.writeLine("")
+
+				} else if (targetType === "node"){
+					if (!trmnl.accessibleNodes[target].hasHelp){
+						trmnl.api.throwError(`additional help text not found for node "${target}"`);
+						return;
+					}
+					var message = trmnl.accessibleNodes[target].longHelp
+					trmnl.api.composeText(message, true, false, 1);
+					trmnl.api.writeLine("")
+				}
 			},
 		};
 		command.syntax = {
 			name : 'syntax',
 			desc : 'display syntax for a command',
 			syntax : 'syntax [command]',
+			hasHelp: true,
+			longHelp : ` --- Syntax Help ---
+			 \\n "syntax" takes a single required term, that term must be an available command.
+			\\n
+			\\n "syntax" will print the "syntax string" for the declared command term used by the moleSeed terminal remote's parser.
+			\\n [] - square brackets indicate a REQUIRED TERM. Commands that are missing a required term will be rejected by the parser.
+			\\n () - parenthesis indicate an OPTIONAL TERM. Commands may include or not include optional terms.
+			\\n [someletters] - text found inside the brackets or parenthesis indicate what type of term is accepted by the command.
+			\\n /  - forward slashes indicate a command term that can be one of multiple types.
+			\\n 
+			\\n EXAMPLE: 
+			\\n the result of "syntax" with the declared command term "help"... "syntax help" will return: "help (command/node)" 
+			\\n Help takes an optional single term, which must either be a command or a node.
+			\\n As such the following would all be acceptable syntaxes for "help":
+			\\n - "help" ... help (nothing),
+			\\n - "help syntax" ... help (command),
+			\\n - "help ${this.activeNode.name}" ... help (node) `,
 			requiresVerification : false,
 			isAvail : true,
 			ex : function (commandName) {
 				var cmd = this.parent;
-				cmd.cache.writeEmptyRow();
+			
 				cmd.cache.writeToVisibleRow(`Valid syntax for command -- ${commandName} --`)
 				cmd.cache.writeEmptyRow();
 				cmd.cache.writeToVisibleRow(`${cmd[commandName].syntax}`);
@@ -986,11 +1043,13 @@ export class Terminal {
 			name : 'lk',
 			desc : 'look at current node and adjacencies',
 			syntax: 'lk',
+			hasHelp: false,
+			longHelp: ``,
 			isAvail: true,
 			ex : function () {
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
-				cmd.cache.writeEmptyRow();
+				
 				cmd.cache.writeToVisibleRow(` --- Current Node ---`)
 				cmd.cache.writeEmptyRow();
 				cmd.cache.writeToVisibleRow(`      NAME: ${trmnl.activeNode.name}      TYPE: ${trmnl.activeNode.type}`)
@@ -1010,13 +1069,19 @@ export class Terminal {
 			desc: 'move to an adjacent node',
 			syntax: 'mv [node]',
 			isAvail: true,
+			hasHelp: true,
+			longHelp: ` --- move help ---
+			\\n "mv" takes a single required term. That term must be an adjacent node.
+			\\n The targeted adjacent node must have a depth greater than the terminal remote's memory usage. 
+			\\n The "mv" command depends on communication between nodes. As such, the targeted node must share an edge with the active node and have processor access.
+			\\n IN DETAIL: The terminal remote sends a packet to the targeted node containing metadata about the terminal remote. The target node determines if it can rebase the terminal remote and all of its addons, programs, extensions, and their associated data. If it can, it sends a signal back with an array of fragment sizes. The active node then assembles, chunks, and packets the terminal remote into discrete binary streams the size of each fragment, and sends these to the target node. The target node then writes these packets to memory, and addresses them. When the target node has assembled and addressed a deep copy of the terminal remote, it passes its edge address to the active node, which passes it back along the edge chain to the terminal client, which then recognizes the target node as the active node. The (former) active node then unaddresses the terminal remote, reclaiming depth formerly occpuied by the TR.`,
 			prevNodes : [],
 			moveTriggeredFunctions: {},
 			ex: function (nodeName, forceThru, node) {
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
 				if (trmnl.activeNode.name === nodeName){
-					cmd.cache.writeEmptyRow();
+				
 					cmd.cache.writeToVisibleRow(`moved nowhere`)
 					cmd.cache.writeEmptyRow();
 					trmnl.activeNode.triggerOnMove(trmnl, this.retrieveLastPrevNode());
@@ -1039,7 +1104,6 @@ export class Terminal {
 				}
 				var lastNode = trmnl.activeNode
 				
-				cmd.cache.writeEmptyRow();
 				cmd.cache.writeToVisibleRow(`moved to ${nodeName}`)
 				cmd.cache.writeEmptyRow();
 				trmnl.activeNode = nodeToMoveto;
@@ -1048,11 +1112,11 @@ export class Terminal {
 				trmnl.activeNode.triggerOnMove(trmnl, lastNode);
 				cmd.assembleAccessibleNodes.ex();
 				cmd.assembleValidNodes.ex();
-				console.log(Object.keys(trmnl.accessibleNodes))
+				//console.log(Object.keys(trmnl.accessibleNodes))
 				Object.keys(cmd.mv.moveTriggeredFunctions).forEach(function(funcName){
 					cmd.mv.moveTriggeredFunctions[funcName].func();
 				}, this)
-				console.log(Object.keys(trmnl.accessibleNodes))
+				//console.log(Object.keys(trmnl.accessibleNodes))
 				//cmd.compiler.assembleValidNodes();
 			},
 			addToPrevNodes: function(node){
@@ -1078,6 +1142,12 @@ export class Terminal {
 			desc : 'install a program',
 			syntax : 'install [program]',
 			triggerFuncs : [function () {}],
+			hasHelp: true,
+			longHelp: ` --- install help ---
+			\\n "install" takes a single required term. That term must be an accessible program.
+			\\n "install" passes an API key from the terminal remote to the targeted program, allowing the program to access and modify parts of the terminal remote's codebase.
+			\\n The program uses the terminal remote's API to inject code into the terminal remote. Properly installed program nodes are treated as accessible regardless of the node containing the install file's location.
+			\\n Installed programs utilize the active node's processor and memory access through the same interface that the terminal remote uses.`,
 			isAvail : true,
 			ex : function (programName) {
 				var cmd = this.parent;
@@ -1100,7 +1170,7 @@ export class Terminal {
 								callback(program, program)
 							});
 							cmd.prgms.isAvail = true;
-							cmd.cache.writeEmptyRow();
+					
 							cmd.cache.writeToVisibleRow(`${programName} installed successfully`);
 							cmd.cache.writeEmptyRow();
 						})
@@ -1114,6 +1184,10 @@ export class Terminal {
 			name : 'ex',
 			desc: 'execute a program',
 			syntax: 'ex [program] ...',
+			hasHelp: true,
+			longHelp: ` ---execute help---
+			\\n "ex" takes a single required term. That term must be an installed program.
+			\\n "ex" triggers an installed program's primary executable function.`,
 			isAvail : true,
 			ex : function (programName, bool) {
 				if (bool === 'true'){
@@ -1141,7 +1215,7 @@ export class Terminal {
 					if (bool){
 
 					} else {
-						if (!trmnl.programs.runningPrograms[prgm].runsInBackground){
+						if (!trmnl.programs.runningPrograms[prgm].runsInBackground && false){
 							cmd.error.ex('conflicting program already executing, stop conflicting programs and try again')
 							return;
 						}
@@ -1152,15 +1226,13 @@ export class Terminal {
 				trmnl.command.stop.isAvail = true;
 				cmd.assembleValidCommands.ex();
 				cmd.assembleValidNodes.ex();
-				cmd.compiler.assembleValidCommands();
-				cmd.compiler.assembleValidNodes();
 			}
 
 		};
 		command.stop = {
 			name : 'stop',
 			desc : `stop an executing program`,
-			syntax : 'stop ...',
+			syntax : 'stop (program)',
 			isAvail : false,
 			hasDefault: true,
 			ex : function (programName) {
@@ -1181,14 +1253,12 @@ export class Terminal {
 				cmd.assembleValidCommands.ex();
 				cmd.assembleAccessibleNodes.ex();
 				cmd.assembleValidNodes.ex();
-				cmd.compiler.assembleValidCommands();
-				cmd.compiler.assembleValidNodes();
 			}
-
 		};
 		command.hello = {
 			name : 'hello',
 			desc : 'null',
+			isHidden: true,
 			syntax: 'hello',
 			isAvail : true,
 			ex : function () {
@@ -1270,7 +1340,7 @@ export class Terminal {
 		command.fsf = {
 			name : 'fsf',
 			isHidden : true,
-			isAvail : false,
+			isAvail : true,
 			synonyms : ['untether'],
 			syntax : 'fsf',
 			ex : function () {
@@ -1290,7 +1360,7 @@ export class Terminal {
 		}
 		command.rex = {
 			name : 'rex',
-			isAvail : false,
+			isAvail : true,
 			syntax : 'rex (command) ...',
 			isHidden: true,
 			ex : function () {
@@ -1313,6 +1383,34 @@ export class Terminal {
 
 			}
 		};
+		command.smell = {
+			name : 'smell',
+			isHidden : true,
+			syntax : `smell ...`,
+			isAvail : true,
+			ex : function (smell){
+				this.parent.parent.api.composeText(`You smell.`)
+			}
+		};
+		command.randomshit = {
+			name : 'randomshit',
+			isHidden : true,
+			syntax: 'randomshit',
+			isAvail : true,
+			ex : function () {
+				this.parent.parent.api.warn(`typing random shit into the terminal is deprecated... try "thinking"?`);
+				return;
+			}
+		}
+		command.diaper = {
+			name : 'diaper',
+			isHidden : true,
+			syntax: 'diaper',
+			isAvail : true,
+			ex : function () {
+				this.parent.parent.api.composeText(`Name's Diaper... Poopy Diaper.`)
+			} 
+		}
 		command.prgms = {
 			name : `prgms`,
 			desc: `list installed and executing programs`,
@@ -1363,7 +1461,6 @@ export class Terminal {
 			syntax: '',
 			ex : function (text) {
 				var cmd = this.parent;
-				cmd.cache.writeEmptyRow();
 				cmd.cache.composeText(`ERROR: ${text}`, true);
 				//cmd.cache.writeEmptyRow();
 			},
@@ -1402,7 +1499,7 @@ export class Terminal {
 				cmd[command.name] = command;
 				cmd[command.name].isAvail = true;
 				cmd.assembleValidCommands.ex();
-				cmd.compiler.assembleValidCommands();
+				//cmd.compiler.assembleValidCommands();
 			},
 		};
 		command.addSilentCommand = {
@@ -1543,7 +1640,7 @@ export class Terminal {
 				if (node.name === '[EMPTY SLOT]'){
 					return;
 				}
-				trmnl.compiler.synonyms.nodeSyns[node.name] = node.synonyms;
+				//trmnl.compiler.synonyms.nodeSyns[node.name] = node.synonyms;
 			},
 		};
 		command.assembleValidCommands = {
@@ -2072,7 +2169,7 @@ export class Terminal {
 			return this.command.log.ex(string);
 		};
 		terminalInterface.runCommand = function (string){
-			return this.compiler.compileAndExecuteCommand(string);
+			return this.compiler.parseInput(string);
 		};
 		terminalInterface.setActiveNode = function (node) {
 			if (node.Type !== node) {
@@ -2086,7 +2183,7 @@ export class Terminal {
 		}
 		terminalInterface.getAccessibleNodes = function () {
 			return this.parent.accessibleNodes;
-		}
+		};
 		terminalInterface.appendAccessibleNodes = function (node) {
 			this.command.appendAccessibleNodes.ex(node);
 		};
@@ -2622,7 +2719,7 @@ export class Terminal {
 				this.reRouteInput(commandFull);
 				return;
 			} else {
-				
+				this.api.writeLine("")
 				this.sendToCompiler(commandFull);
 			}
 			if (this.api.submitTriggerFunction){

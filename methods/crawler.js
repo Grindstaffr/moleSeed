@@ -143,7 +143,7 @@ export const program = {
 		inspect : {
 			name : 'inspect',
 			desc : 'inspect a node in the crawler for viable commands',
-			syntax: 'inspect [NODE]',
+			syntax: 'inspect [node]',
 			ex : function (node) {
 				if (this.data.activeNode.name === node){
 					this.settings.inspectedNode = this.data.activeNode;

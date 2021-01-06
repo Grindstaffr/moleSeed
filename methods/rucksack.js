@@ -38,10 +38,26 @@ export const program = {
 		api_checkRucksackRunning : function () {
 			return this.settings.isRunning
 		},
+		api_getStoredNodes : function () {
+			var output = {};
+			this.data.storedNodes.forEach(function(storedNode){
+				if (storedNode.name === '[EMPTY SLOT]'){
+					return;
+				}
+				output[storedNode.name] = storedNode;
+			}, this)
+			return output;
+		},
+		api_getEmptyRucksackSlot : function () {
+			var output = this.data.storedNodes.findIndex(function(storedNode){
+				return (storedNode.name === '[EMPTY SLOT]') 
+			})
+			return output;
+		},
 		ditch : {
 			name : 'ditch',
 			desc : 'ditch contents of a numbered slot in rucksack.ext',
-			syntax : 'ditch [NUMBER]',
+			syntax : 'ditch [number]',
 			verificationRequired : true,
 			ex : function (number) {
 				var trueVal = (number % 8);
@@ -65,7 +81,6 @@ export const program = {
 				if (this.settings.isRunning){
 					this.methods.showContents();
 				}
-				this.api.writeLine('')
 				this.api.writeLine(`ditched ${nodeName} from slot ${trueVal}`)
 				this.api.writeLine('')
 				return;
@@ -75,20 +90,43 @@ export const program = {
 		grab : {
 			name : 'grab',
 			desc : 'grab a node and store it in numbered rucksack.ext slot',
-			syntax : 'grab [NODE] into [NUMBER]',
+			syntax : 'grab [node] into [number]',
 			ex : function (nodeName, number) {
 				var activeNode = this.api.getActiveNode();
 				var adjNodes = this.api.getAdjacentNodes();
 				var node = {name : '[EMPTY SLOT]'}
-				if (activeNode.name == nodeName){
-					node = activeNode;
-				} else if ( adjNodes[nodeName].name === nodeName){
-					node = adjNodes[nodeName]
-				};
 				var trueVal = (number % 8);
 				if (trueVal === -1){
 					trueVal = 7;
 				};
+				if (activeNode.name == nodeName){
+					node = activeNode;
+				} else if (!adjNodes[nodeName]){
+					var inSack = false;
+					var swapIndex = null;
+					this.data.storedNodes.forEach(function(storedNode, index){
+						if (inSack === true){
+							return;
+						};
+						if (storedNode.name === nodeName){
+							inSack = true;
+							swapIndex = index
+							return;
+						}
+					})
+					if (inSack){
+						var tempNode = this.data.storedNodes[swapIndex];
+						this.data.storedNodes[swapIndex] = node;
+						node = tempNode;
+	
+					} else {
+						this.api.throwError(`cannot grab a non-accessable node.`)
+						return;
+					}
+				} else if ( adjNodes[nodeName].name === nodeName){
+					node = adjNodes[nodeName]
+				}
+				console.log(trueVal)
 				if (!this.data.storedNodes[trueVal].name === '[EMPTY SLOT]' ){
 					//need to throw a verify here.... but current verify syntax is all tangled, so I can't just throw one in the middle...
 				}
@@ -114,7 +152,6 @@ export const program = {
 				}
 
 				this.api.appendAccessibleNodes(node);
-				this.api.writeLine('')
 				this.api.writeLine(`grabbed ${nodeName} into slot ${trueVal}`)
 				this.api.writeLine('')
 			},
@@ -158,10 +195,14 @@ export const program = {
 		this.installData.ditch.ex = this.installData.ditch.ex.bind(this);
 		this.installData.api_triggerReDraw = this.installData.api_triggerReDraw.bind(this);
 		this.installData.api_checkRucksackRunning = this.installData.api_checkRucksackRunning.bind(this);
+		this.installData.api_getStoredNodes = this.installData.api_getStoredNodes.bind(this);
+		this.installData.api_getEmptyRucksackSlot = this.installData.api_getEmptyRucksackSlot.bind(this);
 		this.api.addCommand(this.installData.grab);
 		this.api.addCommand(this.installData.rummage);
 		this.api.addInterfaceFunction(this.installData.api_triggerReDraw,`reRenderRucksack`);
 		this.api.addInterfaceFunction(this.installData.api_checkRucksackRunning, `checkRucksackRunning`)
+		this.api.addInterfaceFunction(this.installData.api_getStoredNodes, `getRucksackContents`)
+		this.api.addInterfaceFunction(this.installData.api_getEmptyRucksackSlot, `getFirstOpenRucksackSlot`)
 
 	},
 	

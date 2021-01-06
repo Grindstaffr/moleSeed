@@ -176,7 +176,7 @@ export const program = {
 			search : {
 				name : "search",
 				desc : "search this library for input text",
-				syntax : "biblio search [TEXT] ...",
+				syntax : "biblio search [text]",
 				ex : function (text) {
 					//need ability to specify other search parameters here!
 					//see Library class for details, and feel free to tack on stuff if you want more search functionality.
@@ -216,7 +216,7 @@ export const program = {
 			request : {
 				name : "request",
 				desc : "request a file by name",
-				syntax : "biblio request [TEXT]",
+				syntax : "biblio request [text]",
 				ex : function (text) {
 					var requestFile = text;
 					if (!this.data.library.readyToAcceptCommands){
@@ -272,7 +272,7 @@ export const program = {
 		biblio : {
 			name : "biblio",
 			desc : "biblio-specific command syntax",
-			syntax: "biblio ...",
+			syntax: "biblio (bcommand) ...",
 			hasHelp: true,
 			longHelp:  `--- Operation Guide for "biblio" syntax ---
 			\\n 
@@ -377,8 +377,8 @@ export const program = {
 					console.log(foundRealCommand)
 				}
 				if (!foundRealCommand){
-					this.methods.changeLibraryMessage(`command unrecognized by ${this.name} parser... try "${this.name} help"`);
-					this.api.throwError(`command unrecognized by ${this.name} parser... try "${this.name} help"`)
+					this.methods.changeLibraryMessage(`command unrecognized by ${`biblio`} parser... try "${this.name} help"`);
+					this.api.throwError(`command unrecognized by ${`biblio`} parser... try "${this.name} help"`)
 					biblio.cmdExtVer = false;
 					biblio.wantsMoreCommands = false;
 					return;
@@ -438,7 +438,14 @@ export const program = {
 		}, this)
 
 		this.installData.biblio.ex = this.installData.biblio.ex.bind(this);
-
+		const bcmds = Object.keys(this.methods.commands) 
+		this.api.addParserTypeCheckFunc('bcommand', function (string, index) {
+			var foundBiblioCommand = bcmds.includes(string);
+			if (!foundBiblioCommand){
+				this.setTypeCheckError('bcommand', `(expected biblio-specific command, got "${string}")...try "biblio help" to print a list of bcommands`, index)
+			}
+			return foundBiblioCommand
+		})
 		this.api.addCommand(this.installData.biblio)
 	},
 	stop : function () {

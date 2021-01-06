@@ -19,6 +19,120 @@ export const program = {
 	},
 	settings : {},
 	methods : {
+		commands : {
+			arm : {
+				name: "arm",
+				desc : "",
+				syntax : "silo arm [recruiter]",
+				argType : "r",
+				acceptedTypes : ['recruiter'],
+				ex : function (malwareName) {
+					var malware = this.api.getAccessibleNodes()[malwareName]
+					if (Object.keys(this.api.getRucksackContents()).includes(malwareName)){
+						this.methods.siloApi.armRecruiter(malwareName);
+						return;
+					}
+					if (!Object.keys(this.api.getRucksackContents()).includes(malwareName)){
+						var openSlot = this.api.getFirstOpenRucksackSlot();
+						if (openSlot === -1){
+							this.api.throwError(`to arm ${malware.type}, ${malwareName} must be in rucksack.ext ... ditch something or arm a grabbed ${malware.type}`)
+							return;
+						}
+						this.api.runCommand(`grab ${malwareName} into ${openSlot}`);
+						this.methods.siloApi.armRecruiter(malwareName);
+					}
+					return;
+				}
+			},
+			trgt : {
+				name: "trgt",
+				desc : "",
+				syntax : "silo trgt [hardware]",
+				argType : "r",
+				acceptedTypes : ['hardware'],
+				ex : function (hardwareName) {
+					this.methods.siloApi.targetHardware(hardwareName);
+					return;
+				},
+			},
+			fire : {
+				name: "fire",
+				desc : "",
+				syntax : "silo fire (recruiter)",
+				argType : "o",
+				acceptedTypes : ['recruiter'],
+				verificationCheckA : false,
+				verificationCheckB : false,
+				verificationCheckC : false,
+				ex : function (malwareName) {
+					if (malwareName === undefined){
+						if (!this.data.armedRecruiter || this.data.armedRecruiter.isDummy){
+							this.api.throwError(`No armed executable. Cannot "fire" nothing.`)
+							return;
+						}
+						malwareName = this.data.armedRecruiter.name;
+					};
+					var malware = this.api.getAccessibleNodes()[malwareName];
+					if (malware === undefined || malware.Type !== 'malware'){
+						this.api.throwError(`invalid "fire" call: ${malwareName} is an invalid term.`)
+					};
+					if (malwareName !== this.data.armedRecruiter.name){
+						this.api.throwError(`${malwareName} unarmed... cannot fire an unarmed ${malware.type} (${this.methods.siloApi.getArmedRecruiterName()} is currently armed)`)
+					};
+					if (!this.data.armedRecruiter.isArmed){
+						this.api.throwError(`exception : uncaught error... armed ${this.data.armedRecruiter.type} is not armed... `)
+					}
+					var launchControl = this.methods.commands.fire
+					var api = this.api
+					if (!launchControl.verificationCheckA){
+					this.api.verifyCommand(`armed recruiter: ${malwareName}, targeted hardware: ${api.getTargetedHardwareName()}, confirm? `,function(bool){
+						if (!bool){
+							return;
+						}
+						launchControl.verificationCheckA = true;
+						api.log(``)
+					});
+						return;
+					};
+					if (!launchControl.verificationCheckB){
+						this.api.verifyCommand(`Use of recruiter-Ware is prohibited by the fucking cops and shit... Continue? `,function(bool){
+							if (!bool){
+								return;
+							}
+							launchControl.verificationCheckB = true;
+							api.log(``)
+						});
+						return;
+					}
+					if (!launchControl.verificationCheckC){
+						this.api.verifyCommand(`Instance of ${recruiter.name} is single-use... fire command will expend usage. Continue?`,function(bool){
+							if (!bool){
+								return;
+							}
+							launchControl.verificationCheckC = true;
+							api.log(``)
+						});
+						return;
+					}
+
+					launchControl.verificationCheckA = false; 		
+					launchControl.verificationCheckB = false;				
+					launchControl.verificationCheckC = false;	
+					this.methods.siloApi.launchRecruiter(this.data.armedRecruiter)
+				},
+			},
+			help : {
+				name : "help",
+				desc : "print a list of silo-specific commands",
+				syntax : "silo help (scommand)",
+				argType : "o",
+				acceptedTypes : ['scommand'],
+				ex : function (commandName) {
+
+
+				},
+			},
+		},
 		siloApi : {
 			getLinkedHardware : function () {
 				if (!this.data.hardwareStatus.linked){
@@ -47,7 +161,11 @@ export const program = {
 				}
 				return this.data.targetedHardware.name
 			},
-			armRecruiter : function (recruiter) {
+			armRecruiter : function (recruiterName) {
+				var recruiter = this.api.getAccessibleNodes()[recruiterName]
+				if (!recruiter.arm){
+					this.api.throwError(`targeted node not compatible with silo... aborting...`)
+				}
 				this.data.armedRecruiter = recruiter;
 				this.data.armedRecruiter.arm();
 				this.api.reRenderRucksack(true);
@@ -207,6 +325,42 @@ export const program = {
 
 	},
 	installData : {
+		silo : {
+			name : "silo",
+			desc : "silo-specific command syntax",
+			syntax : "silo [scommand] (text)",
+			hasHelp: true,
+			longhelp : ` --- Operation Guide for "silo" syntax ---
+			\\n
+			\\n silo
+			\\n \\t function : declares that the subsequent command is to be routed to the silo subroutine.
+			\\n \\t syntax rationale : silo is useful in managing and handling volatile executables that should not gain access to the terminal remote. silo.ext maintains a partitioned heap with no backward access to the remote, allowing a one way communication with these executables through silo's "arm"/"trgt"/"fire" syntax.
+			\\n \\t syntax : silo [arm/trgt/fire] [armable_node/hardware/armable_node] -OR- silo help (silo_command)`,
+			ex : function (siloCommand, nodeName) {
+				var node = null;
+				var cmd = null;
+				if (nodeName && nodeName !== undefined){
+					node = nodeName;
+				}
+				if (siloCommand && siloCommand !==undefined){
+					if (!Object.keys(this.methods.commands).includes(siloCommand)){
+						this.api.throwError(`--SILO-- sCommand not recognized... aborting...`);
+						return;
+					}
+					cmd = siloCommand;
+				}
+				if (!cmd){
+					this.api.throwError(`--SILO-- no command found... aborting...`)
+					return;
+				}
+				if (!node && this.methods.commands[cmd].argType === "r"){
+					this.api.throwError(`--SILO-- 1 term required... no terms found... aborting...`);
+					return;
+				}
+				this.methods.commands[cmd].ex(nodeName);
+				return;
+			}
+		},
 		patch_showContents : function () {
 			this.data.storedNodes.forEach(function(node, index){
 				if (node.name === `[EMPTY SLOT]`){
@@ -303,6 +457,9 @@ export const program = {
 		Object.keys(this.methods.siloApi).forEach(function(key){
 			this.methods.siloApi[key] = this.methods.siloApi[key].bind(this);
 		}, this);
+		Object.keys(this.methods.commands).forEach(function(key){
+			this.methods.commands[key].ex = this.methods.commands[key].ex.bind(this)
+		}, this)
 
 		/*
 		this.methods.siloAPI.armRecruiter = this.methods.siloAPI.armRecruiter.bind(this);
@@ -311,7 +468,36 @@ export const program = {
 		*/
 
 		//this.api.patchInterfaceFunction(this.installData.patch_rucksack_ex.bind(this.rucksack), 'reRenderRucksack')
+		this.installData.silo.ex = this.installData.silo.ex.bind(this);
+		this.api.addCommand(this.installData.silo)
+		var siloCommands = this.methods.commands
+		var siloCommandNames = Object.keys(siloCommands);
 
+		this.api.addParserTypeCheckFunc('scommand', function (string, index) {
+			var foundSiloCommand = siloCommandNames.includes(string);
+			if (!foundSiloCommand){
+				this.setTypeCheckError('scommand', `(expected silo-specific command, got "${string}")... try "silo help" to print a list of scommands`, index)
+			} else {
+				console.log(this.buffer.syntax)
+				var nodeTypes = siloCommands[string].acceptedTypes
+				var argType = siloCommands[string].argType
+				var syntaxObj = {};
+				syntaxObj[argType] = nodeTypes
+				var tbsa = this.buffer.syntax.args
+				var reqArgs = this.buffer.syntax.requiredArgs
+				if (tbsa[tbsa.length - 1] && tbsa[tbsa.length - 1].o.length && tbsa[tbsa.length - 1].o[0] === 'text'){
+					tbsa.pop();
+					tbsa.push(syntaxObj);
+					console.log(argType)
+					if (argType === "r"){
+						reqArgs.push(nodeTypes)
+					}
+					this.buffer.syntax.raw = siloCommands[string].syntax
+				}
+				this.buffer.repeatTermCount = true;
+			}
+			return foundSiloCommand
+		})
 		if (this.rucksack.settings.isRunning){
 			this.api.reRenderRucksack(true);
 		}

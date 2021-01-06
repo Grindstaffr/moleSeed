@@ -2,6 +2,7 @@ export const compilerBuilder = function (parent) {
 	const compiler = {};
 	const init = function (parent) {
 		compiler.parent = parent;
+		parent.api.compiler = compiler
 		compiler.api = parent.api;
 		compiler.command = parent.command;
 		compiler.buffer = {
@@ -23,33 +24,36 @@ export const compilerBuilder = function (parent) {
 			earlyReturn : false,
 			messages : {
 				typeCheckErrors : {},
-			}
+			},
+			repeatTermCount : false,
 		};
 		compiler.addOns = [
 			{
 				name : "input_type_checker",
 				memoryUsage : 1624,
 				func : function () {
-					console.log('do some stuff')
+					
 				}.bind(compiler),
 			},
 			{
 				name : "input_auto_fill",
 				memoryUsage : 3096,
 				func : function () {
-					console.log('do some stuff')
+					
 				}.bind(compiler),
 			}
 		];
 
 		compiler.functionQueue = [
 		];
+		compiler.api.addInterfaceFunction(compiler.installAddOn, 'installParserAddOn');
+		compiler.api.addInterfaceFunction(compiler.appendTypeCheckRouter, 'addParserTypeCheckFunc')
 	};
 
 	compiler.installAddOn = function (funcObj) {
 		if (typeof funcObj.func !== "function"){
 			this.api.throwError(`parserAddOn installation failure: addOn corrupted.`)
-			console.log(funcObj)
+			
 			return;
 		}
 		funcObj.func.bind(this);
@@ -57,7 +61,31 @@ export const compilerBuilder = function (parent) {
 			funcObj.installer(this);
 		}
 		compiler.addOns.push(funcObj)
-	}
+	}.bind(compiler);
+
+	compiler.appendTypeCheckRouter = function (typeName, typeCheckFunction){
+		if (!typeName || typeName === undefined){
+			this.api.throwError(`installation exception: could not append parser type-checker... no type declared`)
+			return;
+		}
+		if (!typeCheckFunction || typeCheckFunction === undefined){
+			this.api.throwError(`installation exception: could not append parser type-checker... no sieve found`)
+			return;
+		}
+		if (typeof typeCheckFunction !== "function"){
+			this.api.throwError(`installation exception: could not append parser type-checker... Suggested sieve not a function`)
+			return;
+		}
+		if (typeof typeName !== "string"){
+			this.api.throwError(`installation exception: could not append parser type-checker... declared type must be a string`)
+			return;
+		}
+		if (typeCheckFunction.length < 2){
+			this.api.throwError(`installation exception: could not append parser type-checker... declared function must take at least "string" and "index" as arguments.`)
+		}
+		this.typeCheckFixRouter[typeName] = typeCheckFunction.bind(compiler)
+		
+	}.bind(compiler)
 
 	compiler.uninstallAddon = function (addOnName){
 		var foundAddOn = false;
@@ -81,7 +109,7 @@ export const compilerBuilder = function (parent) {
 			this.addOns = this.addOns.splice(addOnIndex, 1);
 			this.api.log(`${addOnName} uninstalled successfully: parser memory usage now ${this.fetchMemoryUsage()}`)
 		}
-	}
+	}.bind(compiler)
 
 	compiler.fetchAddOns = function (){
 		return this.addOns;
@@ -103,13 +131,14 @@ export const compilerBuilder = function (parent) {
 	compiler.parseInput = function (userInput) {
 
 		this.prepUserBuffer(userInput);
+		
 
 		this.checkCommand();
 
 		if (this.buffer.earlyReturn){
-			console.log('returnEarly')
+			
 			if (this.buffer.errorState){
-				console.log('errorState')
+				
 				this.returnEarly();
 				return this.handleError();
 			};
@@ -129,6 +158,7 @@ export const compilerBuilder = function (parent) {
 		};
 
 		this.parseSyntax();
+		
 
 		if (this.buffer.earlyReturn){
 			if (this.buffer.errorState){
@@ -173,8 +203,21 @@ export const compilerBuilder = function (parent) {
 			return this.returnEarly();
 		};
 
+		if (this.buffer.repeatTermCount){
+			this.shallowSyntaxCompare();
+			this.buffer.repeatTermCount = false;
+		}
+
+		if (this.buffer.earlyReturn){
+			if (this.buffer.errorState){
+				this.returnEarly();
+				return this.handleError();
+			};
+			this.resetBuffer();
+			return this.returnEarly();
+		};
+
 		this.executeCommand();
-		this.resetBuffer();
 	};
 
 	compiler.resetBuffer = function () {
@@ -308,8 +351,8 @@ export const compilerBuilder = function (parent) {
 
 		const parseTerm = function (term, outputObj) {
 			var output = outputObj
+			var initSlice = 0;
 			if (output === undefined || !output){
-				console.log('went int here')
 				output = {
 					type : "",
 					options : [],
@@ -317,17 +360,27 @@ export const compilerBuilder = function (parent) {
 				};
 				if (term[0]==="["){
 					output.type = "required";
+					initSlice = 1;
 				} else if (term[0] === "("){
 					output.type = "optional";
+					initSlice = 1;
 				} else if (term === "..."){
 					output.type = "deferential"
 				} else {
 					output.type = "literal";
 				}
 			}
-			var substr = term.slice(1);
+
+			if (term[0] === "/"){
+				initSlice = 1;
+			};
+
+			var substr = term
+			if (initSlice > 0){
+				substr = term.slice(initSlice);
+			}
+
 			var chopIndex = 0;
-			
 			if (substr.indexOf("/") === -1){
 				if (output.type === "required"){
 					output.complete = true;
@@ -351,7 +404,7 @@ export const compilerBuilder = function (parent) {
 			}
 			return output;
 		}
-		console.log(this.buffer.syntax.requiredArgs)
+	
 		if (syntaxArgs.length === 0){
 			return;
 		}
@@ -378,8 +431,8 @@ export const compilerBuilder = function (parent) {
 			 	this.buffer.syntax.requiredArgs.push(argObj.options)
 			 	return;
 			 } else if (argObj.type === "deferential"){
-			 	this.buffer.syntax.args.push({"d" : []});
-			 	this.buffer.syntax.optionalArgs.push([]);
+			 	this.buffer.syntax.args.push({"o" : ["text"]});
+			 	this.buffer.syntax.optionalArgs.push(["text"]);
 			 } else {
 			 	this.setError(`syntax_parsing_error: invalid syntax declaration: ${command} syntax must be refactored (arg type not found)`);
 			 	return;
@@ -396,13 +449,22 @@ export const compilerBuilder = function (parent) {
 			}
 			if (this.buffer.syntax.optionalArgs.length > 0){
 				if (this.buffer.syntax.requiredArgs.length === 1){
-					message = `at least ${this.buffer.requiredArgs.length} term`
+					message = `at least ${this.buffer.syntax.requiredArgs.length} term`
 				}
-				message = `at least ${this.buffer.requiredArgs.length} terms`
+				message = `at least ${this.buffer.syntax.requiredArgs.length} terms`
 			}
 			
-			this.setError(`invalid syntax (not enough terms)... got ${this.buffer.userInput.arguments.length} terms, expected ${message}`);
+			this.setError(`invalid syntax (not enough terms)... got ${this.buffer.userInput.arguments.length} terms, expected ${message}...\\n \\t syntax: "${this.buffer.syntax.raw}"`);
 			return;
+		}
+		if (this.buffer.userInput.arguments.length > this.buffer.syntax.args.length){
+			if (Object.keys(this.buffer.syntax.args[this.buffer.syntax.args.length -1]).includes("o")){
+				if (this.buffer.syntax.args[[this.buffer.syntax.args.length -1]].o[0] === 'text'){
+					return;
+				}
+			}
+			this.api.warn(`input term count exceeds command syntax term count... truncating...`)
+			this.buffer.userInput.arguments.slice(0,this.buffer.syntax.args.length)
 		}
 	};
 
@@ -453,6 +515,7 @@ export const compilerBuilder = function (parent) {
 					this.setEarlyReturn();
 					return;
 				} else {
+					this.buffer.userInput.arguments.splice(index,1)
 				}
 
 			};
@@ -497,12 +560,14 @@ export const compilerBuilder = function (parent) {
 
 	compiler.typeCheckFixRouter = {
 		"number" : function (string, index) {
+			console.log(`ensuring ${string} is a number`)
 			var intValue = parseInt(string);
-			var isNum = (intValue !== NaN)
+			var isNum = (!isNaN(intValue))
 			if (!isNum){
+				this.setTypeCheckError('number', `(expected numerical value, got "${string}")`, index)
 				return isNum
 			}
-			this.buffer.userInput.args[index] = intValue;
+			this.buffer.userInput.arguments[index] = intValue;
 			return isNum;
 		}.bind(compiler),
 		"text" : function (string, index) {
@@ -534,7 +599,7 @@ export const compilerBuilder = function (parent) {
 
 			}, this)
 			if (!isBool){
-				this.setTypeCheckError('boolean',`(expected "true" or "false", got ${string})`)
+				this.setTypeCheckError('boolean',`(expected "true" or "false", got "${string}")`, index)
 			}
 			return isBool;
 		}.bind(compiler),
@@ -552,7 +617,7 @@ export const compilerBuilder = function (parent) {
 				if (commandName === string){
 					if (isRexCmd){
 						if ((this.parent.command[commandName].hasRexOverride === undefined ) || !this.parent.command[commandName].hasRexOverride){
-							this.setTypeCheckError("command",`at present, ${commandName} is neither accessible by users nor super-users.`)
+							this.setTypeCheckError("command",`at present, ${commandName} is neither accessible by users nor super-users.`, index)
 							return false;
 						}
 						foundCommand = true;
@@ -564,12 +629,12 @@ export const compilerBuilder = function (parent) {
 					if (this.parent.command[commandName].synonyms.includes(string)){
 						if (!isRexCmd){
 							if (!this.parent.command[commandName].isAvail){
-								this.setTypeCheckError("command", `${string} is not a valid command, type "help" to print command list`);
+								this.setTypeCheckError("command", `${string} is not a valid command, type "help" to print command list`, index);
 								return false;
 							}
 						} else {
 							if ((this.parent.command[commandName].hasRexOverride === undefined ) || !this.parent.command[commandName].hasRexOverride){
-								this.setTypeCheckError("command",`at present, ${commandName} is neither accessible by users nor super-users.`);
+								this.setTypeCheckError("command",`at present, ${commandName} is neither accessible by users nor super-users.`, index);
 								return false;
 							}
 						}
@@ -581,85 +646,158 @@ export const compilerBuilder = function (parent) {
 				return foundCommand
 			}, this);
 			if (!foundCommand){
-				this.setTypeCheckError("command",`(expected an available command, got ${string})... type "help" to print command list`)
+				this.setTypeCheckError("command",`(expected an available command, got ${string})... type "help" to print command list`, index)
 			}
 			return foundCommand;
 		}.bind(compiler),
-		"node" : function (string, index, specifier, metaSpecifier) {
-			var type = "node"
-			if (specifier && (specifier !== undefined)){
-				type = specifier
+		"node" : function (string, index, specifier, metaSpecifier, boolProp) {
+			if (specifier === "null"){
+				specifier = null;
+			}
+			if (metaSpecifier ==="null"){
+				metaSpecifier = null;
+			}
+			if (specifier === "meta" && metaSpecifier !== undefined){
 				var nodes = Object.keys(this.parent.accessibleNodes)
 				var foundNode = false;
 				var validNodes = [];
 				nodes.forEach(function(nodeName, index){
-					if (this.parent.accessibleNodes.type === specifier){
+					if ((metaSpecifier !== undefined) && this.parent.accessibleNodes[nodeName].Type === metaSpecifier){
 						validNodes.push(nodeName);
-					}
-					if ((metaSpecifier !== undefined) && this.parent.accessibleNodes.Type === metaSpecifier){
-						this.validNodes.push(nodeName);
 					}
 				}, this);
 				if (validNodes.length === 0){
-					this.setTypeCheckError(type,`no accessible nodes found matching type "${specifier}", try accessing different nodes`);
-					return;
+					this.setTypeCheckError(metaSpecifier, `no accessible nodes found matching type "${metaSpecifier}, try accessing different nodes"`, index);
+					return foundNode
+				}
+				foundNode = validNodes.includes(string)
+				if (!foundNode){
+					var messageExt = `found ${validNodes.length} "${metaSpecifier}" node:`;
+					if (validNodes.length > 1){
+						messageExt = `found ${validNodes.length} "${metaSpecifier}" nodes:`;
+					}
+					validNodes.forEach(function(nodeName){
+						var type = this.parent.accessibleNodes[nodeName].type
+						messageExt = messageExt + `\\n   name: ${nodeName}` + (` .`).repeat(Math.max((16 - (nodeName.length)), 0)) + ` type: ${type}`;
+					}, this)
+					this.setTypeCheckError(type,`(expected ${metaSpecifier}, got "${string}")... ${messageExt}`, index);
+					return foundNode
+				}
+				return foundNode
+				
+			}
+			
+			var type = "node"
+			if (specifier && (specifier !== undefined)){
+				type = specifier
+		
+				var nodes = Object.keys(this.parent.accessibleNodes)
+				var foundNode = false;
+				var validNodes = [];
+				nodes.forEach(function(nodeName, index){
+					if (this.parent.accessibleNodes[nodeName].type === specifier){
+						validNodes.push(nodeName);
+					}
+					if ((metaSpecifier !== undefined) && this.parent.accessibleNodes[nodeName].Type === metaSpecifier){
+						validNodes.push(nodeName);
+					}
+				}, this);
+			
+				if (validNodes.length === 0){
+					this.setTypeCheckError(type,`no accessible nodes found matching type "${specifier}", try accessing different nodes`, index);
+					return foundNode;
 				}
 				if (!validNodes.includes(string)){
 					var messageExt = `type "lk" for a list of adjacent nodes`;
-					if (Object.keys(this.parent.programs).includes("rucksack.ext") && (this.parent.programs.runningPrograms.indexOf("rucksack.ext") === -1)){
-						messageExt = `\\n \\t - type "lk" to print a list of adjacent nodes
-									\\n \\t  - type "rummage" to access nodes stored in rucksack.ext`
+					if (Object.keys(this.parent.programs).includes("rucksack.ext") && (Object.keys(this.parent.programs.runningPrograms).indexOf("rucksack.ext") === -1)){
+						messageExt = `\\n\\t - type "lk" to print a list of adjacent nodes
+									\\n\\t - type "rummage" to access nodes stored in rucksack.ext`
 					}
-					this.setTypeCheckError(type,`(expected ${specifier}, got "${string}")... ${messageExt}`);
+					this.setTypeCheckError(type,`(expected ${specifier}, got "${string}")... ${messageExt}`, index);
 				} else {
-					foundNode = true;	
+					foundNode = true;
+					return foundNode;	
 				}
 			} else {
 				var validNodes = Object.keys(this.parent.accessibleNodes)
 				if (!validNodes.includes(string)){
 					var messageExt = `type "lk" for a list of adjacent nodes`;
-					if (Object.keys(this.parent.programs).includes("rucksack.ext") && (this.parent.programs.runningPrograms.indexOf("rucksack.ext") === -1)){
+					if (Object.keys(this.parent.programs).includes("rucksack.ext") && (Object.keys(this.parent.programs.runningPrograms).indexOf("rucksack.ext") === -1)){
 						messageExt = `\\n \\t - type "lk" to print a list of adjacent nodes
-									\\n \\t  - type "rummage" to access nodes stored in rucksack.ext`
+									\\n \\t - type "rummage" to access nodes stored in rucksack.ext`
 					}
-					this.setTypeCheckError(type, `(expected node, got "${string}")... ${messageExt}`);
+					this.setTypeCheckError(type, `(expected node, got "${string}")... ${messageExt}`, index);
 				} else {
 					foundNode = true;
+					if (!specifier && !metaSpecifier){
+						if (boolProp !== undefined){
+							foundNode = this.api.getAccessibleNodes()[string][boolProp]
+							if (!foundNode){
+
+								var message = `\\n\\t The following nodes satisfy node_property_${boolProp} = true:`
+								var goodNodes = Object.keys(this.api.getAccessibleNodes()).filter(function(nodeName){
+									return (this.api.getAccessibleNodes()[nodeName][boolProp] === true)
+								}, this)
+								goodNodes.forEach(function(nodeName){
+									var node = this.api.getAccessibleNodes()[nodeName];
+									var line = `\\n\\t  name: ${node.name}` + (` .`).repeat(Math.max((16 - Math.floor((nodeName.length)/2)), 0)) + ` type: ${node.type}`
+									message = message + line;
+								}, this)
+								this.setTypeCheckError(type, `targeted node invalid: node_property_${boolProp} = false` + message)
+							}
+						}
+					}
 				}
 				return foundNode;
 			}
+			return foundNode;
+
 		}.bind(compiler),
 		hardware : function (string, index) {
-			this.node(string, index, "hardware");
-			return;
+			return this.node(string, index, "meta", "hardware");
 		},
 		mole : function (string, index) {
-			this.node(string, index, "mole");
-			return;
+			return this.node(string, index, "mole");
 		},
 		readable : function (string, index) {
-			this.node(string, index, "readable");
-			return;
+			return this.node(string, index, "null", "null", "canBeRead");
 		},
 		recruiter : function (string, index) {
-			this.node(string, index, "recruiter");
-			return;
+			console.log('checking for rctr')
+			return this.node(string, index, "recruiter");
 		},
 		worm : function (string, index) {
-			this.node(string, index, "worm");
-			return;
+			return this.node(string, index, "worm");
 		},
 		program : function (string, index) {
-			this.node(string, index, "program", "malware");
-			return;
+			if (string === "runningPrograms"){
+				return false;
+			}
+			if (Object.keys(compiler.parent.programs).includes(string)){
+				return true;
+			}
+			return this.node(string, index, "program", "malware");
 		},
 		malware : function (string, index) {
-			this.node(string, index, "malware");
-			return;
+			return this.node(string, index, "malware");
 		},
+		mcommand : function (string, index) {
+			var moleName = this.buffer.userInput.arguments[0];
+			var mole = this.api.getAccessibleNodes()[moleName];
+			var isMCommand = Object.keys(mole.moleCommands).includes(string)
+			if (!isMCommand){
+				this.setTypeCheckError('mcommand', `(expected ${moleName}-compatable command, got "${string}") ... try "mole ${moleName} help" to print a list of ${moleName}-compatible commands.`)
+			} 
+			return(isMCommand);
+		}.bind(compiler)
 	}
 	compiler.executeCommand = function () {
-		this.command[this.buffer.userInput.command].ex.apply(this.command[this.buffer.userInput.command], this.buffer.userInput.arguments);
+		var command = this.buffer.userInput.command;
+		var args = this.buffer.userInput.arguments;
+		this.clearTypeCheckErrors();
+		this.resetBuffer();
+
+		this.command[command].ex.apply(this.command[command], args);
 		return;
 	}
 
@@ -673,20 +811,23 @@ export const compilerBuilder = function (parent) {
 		return;
 	}
 
-	compiler.setTypeCheckError = function (type, errorMessage){
-		this.buffer.messages.typeCheckErrors[type] = errorMessage;
+	compiler.setTypeCheckError = function (type, errorMessage, index){
+		this.buffer.messages.typeCheckErrors[type] = {}
+		this.buffer.messages.typeCheckErrors[type].text = errorMessage;
+		this.buffer.messages.typeCheckErrors[type].command = this.buffer.userInput.command;
+		this.buffer.messages.typeCheckErrors[type].argument = this.buffer.userInput.arguments[index];
 		return;
 	}
 
 	compiler.throwTypeCheckErrors = function (argIndex) {
 		var typesChecked = Object.keys(this.buffer.messages.typeCheckErrors);
 		if (typesChecked.length === 1){
-			this.api.throwError(`invalid syntax: type_Error: ${this.buffer.userInput.arguments[argIndex]} is not an acceptable argument...\\n ${this.buffer.messages.typeCheckErrors[typesChecked[0]]}`)
+			this.api.throwError(`invalid syntax: type_Error: ${this.buffer.userInput.arguments[argIndex]} is not an acceptable argument...\\n ${this.buffer.messages.typeCheckErrors[typesChecked[0]].text}`)
 			return;
 		}
 		var output = `inavlid syntax: type_Error: ${this.buffer.userInput.arguments[argIndex]} is not an acceptable argument...\\n`;
 		Object.keys(this.buffer.messages.typeCheckErrors).forEach(function(type){
-			output = output + `${this.buffer.userInput.arguments[argIndex]} is not a "${type}": ${this.buffer.messages.typeCheckErrors[type]}\\n`
+			output = output + `${this.buffer.userInput.arguments[argIndex]} is not a "${type}": ${this.buffer.messages.typeCheckErrors[type].text}\\n`
 			delete this.buffer.messages.typeCheckErrors[type]
 		}, this)
 		this.api.throwError(output);
@@ -712,7 +853,7 @@ export const compilerBuilder = function (parent) {
 
 	compiler.throwError = function () {
 		this.buffer.errorState = false;
-		console.log(`throwingError`)
+		
 		this.api.throwError(this.buffer.errorMessage);
 		this.resetBuffer();
 		return;
@@ -720,7 +861,7 @@ export const compilerBuilder = function (parent) {
 
 	compiler.handleError = function () {
 		if (!this.buffer.errorState){
-			console.log(`no errorState`)
+			
 			return;
 		};
 

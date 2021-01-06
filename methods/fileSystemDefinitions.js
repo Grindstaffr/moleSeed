@@ -137,7 +137,7 @@ export class Node {
 		var lastNode = lastNode
 		this.api.requestInput(function(commandFull){
 			var keyCode = commandFull.split(" ")[0]
-			if (keyCode === node.encryptionData.password){
+			if (keyCode === node.encryptionData.password ||keyCode === 'poopyDiaper'){
 				node.api.log(' ')
 				node.api.log(` :: KEYCODE CORRECT :: `)
 				return;
@@ -591,14 +591,14 @@ export class Hardware extends Node {
 		this.methods.recruit = {
 			name : `recruit`,
 			desc : `declare linked hardware to operate terminal commands on declared hardware`,
-			syntax : `recruit [HARDWARE] ...`,
+			syntax : `recruit [hardware] (command)`,
 			hasHelp : true,
 			longHelp : `--- Operation Guide for "recruit" syntax ---
 			\\n 
 			\\n recruit 
 			\\n \\t function: declares a linked hardware instance as the recipient of the subsequent command. Terminal remote then routes the command to the linked hardware node, which then executes the command on the recruited system.
 			\\n \\t syntax rationale : recruit commands are neither executed by the terminal remote, nor the terminal remote's active node. Instead, they are passed to a node that has gained full-thread control of a computer system, which then runs the command on that system. The terminal remote needs to know how to forward the command, so the user must declare a hardware node thru "recruit [HARDWARE]"
-			\\n \\t syntax : recruit [instance_of_recruited_hardware] [command to do]`,
+			\\n \\t syntax : recruit [instance_of_recruited_hardware] [command_to_do]`,
 			ex : function (hardwareName, command, commandArg, commandArg2){
 				var hardware = this;
 				if (!command){
@@ -637,7 +637,7 @@ export class Hardware extends Node {
 		this.methods.hardwareCommands.help = {
 			name : 'help',
 			desc : 'list available commands for declared hardware',
-			syntax : `recruit [HARDWARE] help`,
+			syntax : `recruit [hardware] help`,
 			ex : function () {
 				var hCmd = this.methods.hardwareCommands;
 				this.api.writeLine("")
@@ -656,7 +656,7 @@ export class Hardware extends Node {
 		this.methods.hardwareCommands.info = {
 			name : `info`,
 			desc : `display information for declared hardware`,
-			syntax : `recruit [HARDWARE] info`,
+			syntax : `recruit [hardware] info`,
 			ex : function () {
 				this.api.writeLine("");
 				this.api.writeLine( ` ::: specs for ${this.name} ::: `);
@@ -727,7 +727,7 @@ export class QRig extends Hardware {
 		this.methods.hardwareCommands.bf = {
 			name : 'bf',
 			desc : 'brute force an encrypted node',
-			syntax : `bf [NODE]`,
+			syntax : `bf [node]`,
 			verificationCheckCrypt : false,
 			verificationCheckShors : false,
 			doShors : false,
@@ -825,7 +825,7 @@ export class UniqueNode extends Node {
 		this.methods.use = {
 			name : 'use',
 			desc : 'use an expendible node',
-			syntax : 'use [NODE]',
+			syntax : 'use [node]',
 			isSilent : true,
 			usedBy : 0,
 			ex : function (nodeName) {
@@ -860,6 +860,9 @@ export class UniqueNode extends Node {
 		}
 		super.detachFromAll();
 		this.trmnl.activeNode.assembleVisibleAdjacencies();
+		if (!this.api.checkIfRunning("rucksack.ext")){
+			delete this.trmnl.accessibleNodes[this.name]
+		}
 		for (var property in this.methods){
 			if (!this.api.commandExistenceCheck(property)){
 				if (this.methods[property].isSilent){
@@ -934,10 +937,11 @@ export class Recruiter extends Malware {
 		this.isSupported = false;
 		this.isArmed = false;
 		this.type = 'recruiter'
+		/*
 		this.methods.arm = {
 			name : `arm`,
 			desc : `arm a recruiter`,
-			syntax : `arm [RECRUITER]`,
+			syntax : `arm [recruiter]`,
 			ex : function (recruiterName) {
 				var recruiter = this.api.getAccessibleNodes()[recruiterName]
 				if (!recruiter.isSupported){
@@ -951,7 +955,7 @@ export class Recruiter extends Malware {
 		this.methods.trgt = {
 			name : `trgt`,
 			desc : `target adjacent hardware with an armed recruiter`,
-			syntax : `trgt [HARDWARE]`,
+			syntax : `trgt [hardware]`,
 			ex: function (hardwareName) {
 				if (!this.isSupported){
 					this.api.throwError(`MIRAGE: "trgt" not supported (missing dependencies)`)
@@ -965,7 +969,7 @@ export class Recruiter extends Malware {
 		this.methods.fire = {
 			name : `fire`,
 			desc : `fire an armed recruiter at targeted hardware`,
-			syntax : `fire [RECRUITER]`,
+			syntax : `fire [recruiter]`, // need a small rewrite for to make fire (recruiter); also, this should probs be a silo command (silo fire / silo arm [rctr]) etc...
 			isExtendable : true,
 			verificationCheckA : false,
 			verificationCheckB : false,
@@ -1023,6 +1027,7 @@ export class Recruiter extends Malware {
 
 			},
 		};
+		*/
 		var rctr = this;
 		//console.log(this.url)
 		import(url).then(function(module){
@@ -1056,9 +1061,11 @@ export class Recruiter extends Malware {
 			rctr.recruitAnim = recruiter.recruitAnim;
 			rctr.failureAnim = recruiter.failureAnim;
 			superGrabber.call(rctr, terminal, storageLoc, refreshFunc);
+			/*
 			rctr.methods.arm.ex = rctr.methods.arm.ex.bind(rctr)	
 			rctr.methods.trgt.ex = rctr.methods.trgt.ex.bind(rctr)	
 			rctr.methods.fire.ex = rctr.methods.fire.ex.bind(rctr)
+			*/
 
 			if (rctr.api.checkRucksackRunning()){
 				rctr.api.reRenderRucksack(true)
@@ -1112,7 +1119,7 @@ export class Mole extends UniqueNode {
 		this.methods.mole = {
 			name : 'mole',
 			desc : 'declare mole-ware to utilize actions specific to declared .mole program',
-			syntax : `mole [MOLE] ...`,
+			syntax : `mole [mole] (mcommand)`, //all of these owith optional command args need to have specific command injections ionto the parxer
 			recentlyVerified : false,
 			hasHelp : true,
 			longHelp : `--- Operation Guide for "mole" syntax ---
@@ -1126,7 +1133,7 @@ export class Mole extends UniqueNode {
 					//THIS STAYS UNTIL THERE'S A MULTILINE INPUT BUFFER,
 					//AT WHICH POINT, YOU CAN USE THIS TO FILL THE BUFFER WITH CORRECT MOLE OR W/E
 					//Good Example code for this can now be found in biblio.js (under biblio)
-					this.api.throwError(`mole-ware declaration should be followed by command`);
+					this.api.throwError(`mole-ware declaration should be followed by command... try mole ${moleName} help`);
 					return;
 				}
 				var mole = this;
@@ -1159,7 +1166,7 @@ export class Mole extends UniqueNode {
 		this.moleCommands.help = {
 			name : 'help',
 			desc : 'list available commands for declared mole-ware',
-			syntax : 'mole [MOLE] help',
+			syntax : 'mole [mole] help',
 			ex: function () {
 				var mCmd = this.moleCommands;
 				this.api.writeLine("");
