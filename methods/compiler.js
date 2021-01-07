@@ -18,6 +18,7 @@ export const compilerBuilder = function (parent) {
 				command : "",
 				arguments : [],
 				argTypes : [],
+				rexCommand : false,
 			},
 			earlyReturn : false,
 			errorMessage : "",
@@ -27,22 +28,413 @@ export const compilerBuilder = function (parent) {
 			},
 			repeatTermCount : false,
 		};
-		compiler.addOns = [
-			{
+		compiler.addOns = {
+			typeCheck : {
 				name : "input_type_checker",
 				memoryUsage : 1624,
 				func : function () {
 					
 				}.bind(compiler),
 			},
-			{
+			autoCorrectArgs : {
 				name : "input_auto_fill",
 				memoryUsage : 3096,
+				unCapsSymbolObject : {
+					"_" : "-",
+					"=" : "+",
+					"/" : "?",
+					"," : "<",
+					"." : ">",
+					";" : ":",
+					"'" : `"`,
+					"[" : "{",
+					"]" : "}",
+					"!" : "1",
+					"@" : "2",
+					"#" : "3",
+					"$" : "4",
+					"%" : "5",
+					"^" : "6",
+					"&" : "7",
+					"*" : "8",
+					"(" : "9",
+					")" : "0",
+				},
+				keyAdjacencyObject: {
+					a : ['s','z','q','w','x'],
+					b : ['v','n','g','h'],
+					c : ['x','v','f','g'],
+					d : ['s','f','x','c','e','r'],
+					e : ['w','r','d','s','3','4'],
+					f : ['d','g','r','v','c','t'],
+					g : ['f','h','t','v','b','y'],
+					h : ['g','j','y','b','n','u'],
+					i : ['u','o','k','8','9','j'],
+					j : ['h','k','u','n','m','i'],
+					k : ['j','l','m','i',',','o'],
+					l : ['k',';','o','p',',','.'],
+					m : ['n',',','j','k'],
+					n : ['b','m','h','j'],
+					o : ['i','p','k','l','9','0'],
+					p : ['o','0','-','l','[',';'],
+					q : ['w','1','a','2'],
+					r : ['e','t','f','4','5','d'],
+					s : ['a','d','w','z','x','e'],
+					t : ['r','y','g','5','6','f'],
+					u : ['y','i','j','7','8','h'],
+					v : ['c','b','f','g'],
+					w : ['q','e','s','2','3','a'],
+					x : ['z','c','s','d'],
+					y : ['t','u','h','6','7','g'],
+					z : ['x','a','s'],
+					"1" : ["q",'2'],
+					"2" : ["q",'w','1','3'],
+					"3" : ['w','e','2','4'],
+					"4" : ['e','r','3','5'],
+					"5" : ['r','t','4','6'],
+					"6" : ['t','y','5','7'],
+					"7" : ['y','u','6','8'],
+					"8" : ['u','i','7','9'],
+					"9" : ['i','o','8','0'],
+					"0" : ['o','p','9','-'],
+					"-" : ['p','['],
+					"+" : ['[',']'],
+					',' : ['.', 'm'],
+					"." : [',','/'],
+
+				},
+				acceptableTermListRouter : {
+					boolean : function () {
+						return ["true", "false", "t", "f", "+", "-", "1", "0"]
+					},
+					number : function () {},
+					command : function () {
+						return Object.keys(this.parent.command).filter(function(commandName){
+							return this.parent.command[commandName].isAvail
+						})
+					},
+					node : function (sieve, sieveType) {
+						var accessibleNodes = this.api.getAccessibleNodes();
+						var accessibleNodeNames = Object.keys(accessibleNodes);
+						const output = [];
+						if (sieve !== undefined){
+							if (sieveType !== undefined){
+								if (sieveType === "property"){
+									accessibleNodeNames.forEach(function(nodeName){
+										if (accessibleNodes[nodeName][sieve] === true){
+											output.push(nodeName);
+										} 
+										return;
+									},this)
+								}
+								if (sieveType === "meta"){
+									accessibleNodeNames.forEach(function(node){
+										if (accessibleNodes[nodeName].Type === sieve){
+											output.push(nodeName);
+										}
+										return;
+									},this)
+								}
+								if (sieveType === "type"){
+									accessibleNodeNames.forEach(function(node){
+										if (accessibleNodes[nodeName].type === sieve){
+											output.push(nodeName);
+										}
+										return;
+									},this)
+								}
+							}
+						} else {
+							accessibleNodeNames.forEach(function(nodeName){
+								output.push(nodeName)
+							})
+						}
+						return output
+					}.bind(compiler),
+					readable : function () {
+						return this.addOns.autoCorrectArgs.acceptableTermListRouter.node('canBeRead','property');
+					}.bind(compiler),
+					hardware : function () {
+						return this.addOns.autoCorrectArgs.acceptableTermListRouter.node('hardware', 'meta');
+					}.bind(compiler),
+					program : function () {
+						var progams = this.addOns.autoCorrectArgs.acceptableTermListRouter.node('program', 'type');
+						var malware = this.addOns.autoCorrectArgs.acceptableTermListRouter.node('malware', 'meta');
+						return programs.concat(malware);
+					}.bind(compiler),
+					mole : function () {
+						return this.addOns.autoCorrectArgs.acceptableTermListRouter.node('mole', 'type')
+					}.bind(compiler),
+					mcommand : function () {
+						var mole= this.api.getAccessibleNodes()[this.buffer.userInput.arguments[0]];
+						if (mole === undefined){
+							return [];
+						}
+						return Object.keys(mole.moleCommands)
+					}.bind(compiler),
+
+
+				},
+
 				func : function () {
-					
+					this.buffer.userInput.arguments.forEach(function(userTerm, index){
+						var syntaxOptions = Object.values(this.buffer.syntax.args[index])[0]
+						var acceptableTerms = []
+						var autoCorrect = this.addOns.autoCorrectArgs;
+						syntaxOptions.forEach(function(type){
+							acceptableTerms = acceptableTerms.concat(autoCorrect.acceptableTermListRouter[type]())
+						}, this)
+						var newTerm = ""
+						newTerm = acceptableTerms.find(function(goodTerm){
+							if (newTerm !== ""){
+								return;
+							}
+							if (userTerm === goodTerm){
+								return true;
+							};
+							if (goodTerm.split(".")[0] === userTerm){
+								return true;
+							};
+							
+							if (!autoCorrect.skepticalDumbCompare(goodTerm, userTerm)){
+								console.log
+								return false;
+							};
+							
+							if (autoCorrect.hopefulCompare(goodTerm, userTerm)){
+								return true;
+							}
+							return false;
+
+						})
+						if (newTerm !== undefined){
+							this.buffer.userInput.arguments[index] = newTerm;
+						} else {
+							return;
+						}
+					}, this)
 				}.bind(compiler),
+				skepticalDumbCompare : function (targetTerm, inputTerm){
+					if (targetTerm[0] !== inputTerm[0]){
+						if (targetTerm[1] !== inputTerm[1]){
+							if (targetTerm[1] !== inputTerm[0] || targetTerm[0] !== inputTerm[1]){
+								return false;
+							}
+						}
+					}
+					var errors = 0;
+					for (var i = 0; i < targetTerm.length; i++){
+						if (targetTerm[i] === "."){
+							break;
+						}
+						if (targetTerm[i] !== inputTerm[i]){
+							errors = errors + 1;
+						}
+						if (errors > 10){
+							return false;
+						}
+					}
+					return true;
+				},
+				hopefulCompare : function (targetedTerm, inputTerm) {
+					
+					var adjObject = this.addOns.autoCorrectArgs.keyAdjacencyObject
+					var capsChart = this.addOns.autoCorrectArgs.unCapsSymbolObject
+						
+					var longerLengthStringCorrector = function (targetTerm, longerInputTerm, passCount){
+						if (!passCount || passCount === undefined){
+							passCount = 1;
+						} else {
+							passCount = passCount + 1;
+						};
+						if (passCount > 4){
+							return false;
+						};
+						if (longerInputTerm.length - targetTerm.length === 1){
+							for (var i = 0; i < longerInputTerm.length - 1 ; i ++){
+								var testString = longerInputTerm.substring(0,i) + longerInputTerm.substring(i+1)
+								if (testString === targetTerm){
+									return true;
+								}
+							}
+						}
+						for (var i = (targetTerm.length - 1); i >= 0; i--){
+							if (targetTerm[i] !== longerInputTerm[i]){
+								if (!targetTerm.includes(longerInputTerm[i]) ){
+									var possibleTypos = adjObject[autoCorrectLowerCaser(targetTerm[i])]
+									if (possibleTypos.includes(autoCorrectLowerCaser(longerInputTerm[i]))){
+										longerInputTerm = longerInputTerm.substring(0,i) + targetTerm[i] + longerInputTerm.substring(i + 1);
+										return longerLengthStringCorrector(targetTerm, longerInputTerm, passCount);
+									} else {
+										longerInputTerm = longerInputTerm.substring(0,i) + longerInputTerm.substring(i+1);
+										if (longerInputTerm.length === targetTerm.length){
+											return equalLengthStringCorrector(targetTerm, longerInputTerm)
+										} else {
+											return longerLengthStringCorrector(targetTerm, longerInputTerm, passCount);
+										}
+									}
+								}
+								var indexOfChar = targetTerm.slice(0,i+1).lastIndexOf(longerInputTerm[i])
+								if (Math.abs(i - indexOfChar) <= 2){
+									if (longerInputTerm[indexOfChar] === longerInputTerm[i]){
+										longerInputTerm = longerInputTerm.substring(0,i) + longerInputTerm.substring(i+1);
+										if (longerInputTerm.length === targetTerm.length){
+											return equalLengthStringCorrector(targetTerm, longerInputTerm)
+										} else {
+											return longerLengthStringCorrector(targetTerm, longerInputTerm, passCount);
+										} 
+									} else {
+										continue;
+									}
+								} else {
+									longerInputTerm = longerInputTerm.substring(0,i) + longerInputTerm.substring(i+1);
+									if (longerInputTerm.length === targetTerm.length){
+										return equalLengthStringCorrector(targetTerm, longerInputTerm)
+									} else {
+										return longerLengthStringCorrector(targetTerm, longerInputTerm, passCount);
+									} 
+								}
+							} else {
+								if ( i === 0){
+									return true;
+								}
+							}
+						}
+
+					}
+					var shorterLengthStringCorrector = function (targetTerm, shorterInputTerm, passCount){
+						var missingLetters = targetTerm.length - shorterInputTerm.length;
+						if (targetTerm.includes(".") && !shorterInputTerm.includes(".")){
+							if (missingLetters === 1){
+								var dotIndex = targetTerm.indexOf(".")
+								var inputTerm = shorterInputTerm.substring(0,dotIndex) + "." + shorterInputTerm.substring(dotIndex);
+								return equalLengthStringCorrector(targetTerm, inputTerm);
+							} else if (missingLetters - 1 === targetTerm.split(".")[1].length){
+								var inputTerm = shorterInputTerm + "." + targetTerm.split(".")[1];
+								return equalLengthStringCorrector(targetTerm, inputTerm);
+							} else if ((missingLetters - 1)  > targetTerm.split(".")[1].length){
+								var inputTerm = shorterInputTerm + "." + targetTerm.split(".")[1];
+								return shorterLengthStringCorrector(targetTerm, inputTerm);
+							} else if ((missingLetters - 1) < targetTerm.split(".")[1].length) {
+								var inputTerm = shorterInputTerm + "." + targetTerm.split(".")[1];
+								return longerLengthStringCorrector(targetTerm, inputTerm);
+							} else {
+								shorterInputTerm = shorterInputTerm + ".";
+							}
+						}
+						if (missingLetters === 0){
+							return equalLengthStringCorrector(targetTerm, shorterInputTerm);
+						}
+						if (!passCount || passCount === undefined){
+							passCount = 1;
+						} else {
+							passCount = passCount + 1;
+						};
+						if (passCount > 4){
+							return false;
+						};
+						var userFinalIndex = shorterInputTerm.length - 1;
+						var lastLetter = shorterInputTerm[userFinalIndex];
+						var startAppending = targetTerm.substring(0,userFinalIndex + 1).lastIndexOf(lastLetter);
+					
+						console.log(`targetTerm : ${targetTerm}... userTerm ${shorterInputTerm}...lastLetter: ${lastLetter}... startAppending: ${startAppending}`)
+						if (startAppending !== -1){
+							if (startAppending === userFinalIndex){
+								for (var i = startAppending + 1; i < targetTerm.length; i ++){
+									shorterInputTerm = shorterInputTerm + targetTerm[i]
+								}
+								console.log(`${targetTerm} =? ${shorterInputTerm}`)
+								if (shorterInputTerm === targetTerm){
+									console.log('yee')
+									return true;
+								} else {
+									console.log(shorterInputTerm == targetTerm)
+								}
+							}
+						}
+						for (var i = 0; i <shorterInputTerm.length; i ++){
+							if (targetTerm[i] !== shorterInputTerm[i]){
+								if (targetTerm[i+1] === shorterInputTerm[i]){
+									if (targetTerm[i] === shorterInputTerm[i + 1]){
+										shorterInputTerm = shorterInputTerm.substring(0,i) + targetTerm.substring(i,i+2) + shorterInputTerm.substring(i+2);
+										return shorterLengthStringCorrector(targetTerm, shorterInputTerm, passCount);
+									}
+									shorterInputTerm = shorterInputTerm.substring(0,i) + targetTerm[i] + shorterInputTerm.substring(i)
+									return shorterLengthStringCorrector(targetTerm, shorterInputTerm, passCount);
+								} else if (!targetTerm.includes(shorterInputTerm[i])){
+									var possibleTypos = adjObject[autoCorrectLowerCaser(targetTerm[i])]
+									if (possibleTypos.includes(autoCorrectLowerCaser(shorterInputTerm[i]))){
+										shorterInputTerm = shorterInputTerm.substring(0,i) + targetTerm[i] + shorterInputTerm.substring(i+1);
+										return shorterLengthStringCorrector(targetTerm, shorterInputTerm, passCount);
+									} else {
+										shorterInputTerm = shorterInputTerm.substring(0,i) + shorterInputTerm.substring(i+1);
+										return shorterLengthStringCorrector(targetTerm, shorterInputTerm, passCount);	
+									}
+								}
+								return shorterLengthStringCorrector(targetTerm, shorterInputTerm, passCount);
+							} else {
+								if (i === targetTerm.length - 1){
+									return true;
+								}
+							}
+						}
+
+					}
+					var equalLengthStringCorrector = function (targetTerm, inputTerm, passCount) {
+						if (!passCount || passCount === undefined){
+							passCount = 1;
+						} else {
+							passCount = passCount + 1;
+						}
+						if (passCount > 3){
+							return false;
+						}
+						for (var i = 0; i < targetTerm.length; i++){
+							if (targetTerm[i] !== inputTerm[i]){
+								if (targetTerm[i] === inputTerm[i + 1] && targetTerm[i + 1] === inputTerm[i]){
+									inputTerm = inputTerm.substring(0,i) + targetTerm.substring(i, i+2) + inputTerm.substring(i+2);
+									break;
+								}
+								var possibleTypos = adjObject[autoCorrectLowerCaser(targetTerm[i])]
+								if (possibleTypos.includes(autoCorrectLowerCaser(inputTerm[i]))){
+									inputTerm = inputTerm.substring(0,i) + targetTerm[i] + inputTerm.substring(i+1);
+									break;
+								} else {
+									return false;
+								}
+							}
+							if (i = targetTerm.length){
+								return true;
+							}
+						}
+						return equalLengthStringCorrector(targetTerm, inputTerm, passCount);
+					}
+
+					var autoCorrectLowerCaser = function (letter){
+						if (adjObject[letter.toLowerCase()] !== undefined){
+							return letter.toLowerCase();
+						} else if (Object.keys(capsChart).includes(letter)) {
+							return capsChart[letter]
+						} else {
+							adjObj[letter] = [];
+							return letter;
+						}
+					}
+
+					var missingLetters = targetedTerm.length - inputTerm.length
+					if (missingLetters > 0){
+						return shorterLengthStringCorrector(targetedTerm, inputTerm);
+					} else if (missingLetters === 0){
+						return equalLengthStringCorrector(targetedTerm, inputTerm);
+					} else if (missingLetters < 0){
+						return longerLengthStringCorrector(targetedTerm, inputTerm);
+					}
+
+					
+					
+				}.bind(compiler)
 			}
-		];
+		};
 
 		compiler.functionQueue = [
 		];
@@ -180,8 +572,8 @@ export const compilerBuilder = function (parent) {
 			return this.returnEarly();
 		};
 
-		compiler.addOns.forEach(function(addOn){
-			addOn.func();
+		Object.keys(compiler.addOns).forEach(function(addOn){
+			compiler.addOns[addOn].func();
 			if (this.buffer.earlyReturn){
 				if (this.buffer.errorState){
 					this.returnEarly();
@@ -234,6 +626,7 @@ export const compilerBuilder = function (parent) {
 				command : "",
 				arguments : [],
 				argTypes : [],
+				rexCommand : false,
 			},
 			earlyReturn : false,
 			errorMessage : "",
@@ -470,7 +863,7 @@ export const compilerBuilder = function (parent) {
 
 	compiler.deepSyntaxCompare = function () {
 		if (this.buffer.userInput.command === "rex"){
-			//pass the command to the router with isRexCmd as True
+			this.buffer.userInput.rexCommand = true;
 		}
 		this.buffer.userInput.arguments.forEach(function(argStr, index){
 			if (this.buffer.errorState || this.buffer.earlyReturn){
