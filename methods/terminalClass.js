@@ -1630,6 +1630,30 @@ export class Terminal {
 				return;
 			}
 		};
+		command.dfgrf = {
+			name : 'dfgrf',
+			rex : true,
+			isAVail : false,
+			isHidden : true,
+			syntax : "dfgrf",
+			ex : function () {
+				var cmd = this.parent;
+				var trmnl = cmd.parent;
+				let defaultGraphRequest = new Request('/defaultGraph');
+				console.log(defaultGraphRequest)
+				fetch(defaultGraphRequest).then(function(response) {
+				  if (!response.ok) {
+				    throw new Error(`HTTP error! status: ${response.status}`);
+				  }
+				  return response.json();
+				})
+				.then(function(response) {
+				  console.log(response)
+				}).catch(function(err){
+					console.log(err);
+				});
+			}
+		}
 		command.sysmem = {
 			name : 'sysmem',
 			rex : true,

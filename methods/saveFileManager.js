@@ -1,4 +1,4 @@
-export const saveFileManagerConstructor = function () {
+export const saveFileManagerConstructor = function (parent) {
 	const saveFileManager = {};
 	const init = function (parent) {
 		saveFileManager.parent = parent;
@@ -29,13 +29,20 @@ export const saveFileManagerConstructor = function () {
 			return;
 		};
 
+		matchingNodesA.forEach(function(trueAddress){
 
+		})
+		matchingNodesB.forEach(function(trueAddress){
+
+		})
 	};
 	saveFileManager.appendEdge = function (truAddressA, truAddressB) {
 		
-		var truAddressA = 
-		if (this.data.graph)
-		this.data.graphDiffString
+		var truAddressA = 'fart'
+		if (this.data.graph) {
+
+		}
+		var x = this.data.graphDiffString
 	};
 	saveFileManager.deleteEdge = function () {
 
@@ -59,7 +66,7 @@ export const saveFileManagerConstructor = function () {
 		Object.keys() 
 	};
 
-	init();
+	init(parent);
 
 
 	return saveFileManager;

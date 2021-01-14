@@ -1,10 +1,6 @@
-const addressGenerator = require('./addressGenerator.js');
-console.log(addressGenerator)
-
-/*
 import { addressGenerator } from './addressGenerator.js';
 import { base49Map, reverseBase49Map } from './addressGenerator.js';
-*/
+
 
 export class Node {
 	constructor (container, name, address){
@@ -254,6 +250,9 @@ export class Node {
 	}
 
 	detach(name){
+		if (!this.adjacencies[name]){
+			return;
+		}
 		delete this.adjacencies[name];
 	}
 
@@ -1612,12 +1611,23 @@ export const initializerAlpha = function () {
 }
 
 export class Databank {
-	constructor(name, protocol, address){
+	constructor(container, name, protocol, address){
 		this.name = name;
 		this.structure = 'DataBank'
 		this.protocol = protocol;
 		this.nodeNets = {};
 		this.address = address;
+		this.trueAddress = Databank.makeTrueAddress();
+		container[this.trueAddress] = this;
+	}
+	static lastAddress = -1
+	static makeTrueAddress = function () {
+		this.lastAddress = this.lastAddress + 1;
+		return this.lastAddress;
+	}
+
+	getTrueAddress () {
+		return this.trueAddress
 	}
 
 	addNodeNet(nodeNet){
@@ -1636,12 +1646,23 @@ export class Databank {
 }
 
 export class NodeNet {
-	constructor(name, address){
+	constructor(container, name, address){
 		this.name = name;
 		this.structure = 'nodeNet'
 		this.address = address;
 		this.accessPoints = [];
 		this.getAccessPoints = this.getAccessPoints.bind(this);
+		this.trueAddress = NodeNet.makeTrueAddress();
+		container[this.trueAddress] = this;
+	}
+	static lastAddress = -1
+	static makeTrueAddress = function () {
+		this.lastAddress = this.lastAddress + 1;
+		return this.lastAddress;
+	}
+
+	getTrueAddress () {
+		return this.trueAddress
 	}
 
 	getAccessPoints () {
@@ -1660,7 +1681,7 @@ export class NodeNet {
 		//node._meta = this;
 		this[node.name] = node
 		this._meta._meta.router[this._meta.address][this.address][node.address] = node;
-		this._meta._meta.trueRouter[trueAddress] = node;
+		//this._meta._meta.trueRouter[trueAddress] = node;
 	}
 
 	addAccessNode(){
@@ -1673,7 +1694,7 @@ export class NodeNet {
 		})
 		this._meta._meta.router[this._meta.address][this.address][node.address] = node;
 
-		thia.accessPoints.push(node);
+		this.accessPoints.push(node);
 		
 		
 	}

@@ -1,8 +1,21 @@
+/*
+import { createRequire } from 'module'
+import path  from 'path'
+const require = createRequire(import.meta.url)
+
+const moduleURL = new URL(import.meta.url);
+
+console.log(`pathname ${moduleURL.pathname}`);
+console.log(`dirname ${path.dirname(moduleURL.pathname)}`);
+const __dirname = path.dirname(moduleURL.pathname);
+*/
+const defaultGraphModule = require('./methods/defaultGraph.js');
+const defaultGraph = defaultGraphModule.defaultGraph
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const graphBuilder = require ('./methods/graphBuilder.js');
-const allNodesConstructor = require ('./methods/nodeConstructor.js');
+//const graphBuilder = require ('./methods/graphBuilder.js');
+//const allNodesConstructor = require ('./methods/nodeConstructor.js');
 
 const fs = require('fs');
 const server = express();
@@ -11,20 +24,28 @@ server.use(bodyParser.json());
 server.use(cors());
 const port = process.env.PORT || 1337
 
-server.use(express.static(__dirname + '/../client'))
+console.log(__dirname + '/../client')
+
+
 server.use(express.static(__dirname + '/../'))
+server.use(express.static(__dirname + '/../client'))
 server.use(express.static(__dirname + '/../methods'))
 server.use(express.static(__dirname + '/../node_modules'))
 server.use(express.static(__dirname + '/../assets'))
 
-var allNodes = allNodesConstructor();
-
+//var allNodes = allNodesConstructor.constructAllNodes();
 
 
 server.get('/', (req,res) => {
-	res.send('Fart Pancake') 
+	res.send('fart pancake') 
 
-	})
+})
+
+server.get('/defaultGraph', (req,res) => {
+	console.log(defaultGraph)
+	var defaultGraphtoRet = defaultGraph.getDefaultGraph()
+	res.send({ text: defaultGraphtoRet })
+})
 
 server.get(`/libraryContents`, (req, res) => {
 	fs.readdir( __dirname + `/../assets/libraries/${req.headers[`library-name`]}`, function(err,files){
@@ -32,7 +53,7 @@ server.get(`/libraryContents`, (req, res) => {
 })
 
 server.post(`/rex`, (req,res) => {
-	graphBuilder.sayHello();
+	//graphBuilder.sayHello();
 	res.send({node : 'donkey'})
 })
 

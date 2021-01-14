@@ -1,12 +1,68 @@
 import { Directory, Library, Hardware, QRig, Malware, Recruiter, Worm, initializerAlpha, Node, Pdf, Asset, Readable, TerminalStoryPiece, TextDoc, Mole, Program, UniqueNode, Databank, NodeNet } from './fileSystemDefinitions.js'
+import { constructGraphStringParser } from './stringToGraphConverter.js'
 
 export const bigBang = function () {
 	const nodeVerse = {};
 	nodeVerse.databanks = {};
+
+	nodeVerse.allDataBanks = {};
+	nodeVerse.allNodeNets = {};
+	nodeVerse.allNodes = {};
+
+	nodeVerse.graphCompiler = constructGraphStringParser(nodeVerse);
+
 	nodeVerse.router = {};
-	nodeVerse.trueRouter = {};
+
+	nodeVerse.testGraphStringParser = function () {
+		var testString = `$0#0[(a20)(a0=20)]%`
+		this.graphCompiler.convertToGraph(testString);
+	}
+
+	nodeVerse.getDatabank = function (trueAddress){
+		if (this.allDataBanks[trueAddress]){
+			return this.allDataBanks[trueAddress];
+		} else {
+			console.log(`No databank found with trueAddress = ${trueAddress}`);
+			return undefined;
+		}
+	}
+
+	nodeVerse.getNodeNet = function (trueAddress){
+		if (this.allNodeNets[trueAddress]){
+			return this.allNodeNets[trueAddress];
+		} else {
+			console.log(`No nodeNet found with trueAddress = ${trueAddress}`);
+			return undefined;
+		}
+	}
+
+	nodeVerse.getNode = function (trueAddress){
+		if (this.allNodes[trueAddress]){
+			return this.allNodes[trueAddress];
+		} else {
+			console.log(`No node found with trueAddress = ${trueAddress}`);
+			return undefined;
+		}
+	}
+
+	nodeVerse.retrieveServerSideDiff = function () {
+		let defaultGraphRequest = new Request('/defaultGraph');
+		fetch(defaultGraphRequest).then(function(response) {
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			return response.json();
+		})
+		.then(function(response) {
+			console.log(response)
+		}).catch(function(err){
+			console.log(err);
+		});
+	}
 
 	nodeVerse.findNodesByName = function (nodeName, exactBool) {
+		console.warn('findNodesByName func now deprecated')
+		//NOW DEPRECATED I'D BET
 		//DepthFirst Traverse, collecting all nodes where name = nodeName, and returning their TRUEADDRESSES in an array;
 		var returnArray = [];
 		Object.keys(this.router).forEach(function(databankAddress){
@@ -42,7 +98,7 @@ export const bigBang = function () {
 	}
 
 
-	const _PioneerDataServices = new Databank(`_PioneerDataServices`,`PDS_p9.34.00`, `dz019q$$tajz>`)
+	const _PioneerDataServices = new Databank(nodeVerse.allDataBanks,`_PioneerDataServices`,`PDS_p9.34.00`, `dz019q$$tajz>`)
 	nodeVerse.appendDataBank(_PioneerDataServices);
 	/*
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -50,114 +106,114 @@ export const bigBang = function () {
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 	*/
-	const __toaster = new NodeNet(`__toaster`,`%81jan222jn*=`);
+	const __toaster = new NodeNet(nodeVerse.allNodeNets, `__toaster`,`%81jan222jn*=`);
 	nodeVerse.databanks._PioneerDataServices.addNodeNet(__toaster)
 	nodeVerse.databanks._PioneerDataServices.nodeNets.__toaster.init = function () {
-		const seed = new Node('seed', `8i7e36p!y9jig21mw`);
+		const seed = new Node(nodeVerse.allNodes,'seed', `8i7e36p!y9jig21mw`);
 		this.addNode(seed);
 
-		const biblio = new Program(`biblio.ext`, `usi8p6diw<82ihv37`, `./biblio.js`);
+		const biblio = new Program(nodeVerse.allNodes,`biblio.ext`, `usi8p6diw<82ihv37`, `./biblio.js`);
 		this.addNode(biblio);
 
-		const caravanLibrary = new Library(`moleSeed_docs`, `d%*a%611!c&tr\"inj`, `../assets/libraries/moleSeed_docs`)
+		const caravanLibrary = new Library(nodeVerse.allNodes,`moleSeed_docs`, `d%*a%611!c&tr\"inj`, `../assets/libraries/moleSeed_docs`)
 		this.addNode(caravanLibrary);
 
-		const reader_ext = new Program('reader.ext', `a+zya0wtbd&e2fs%o`, './reader.js')
+		const reader_ext = new Program(nodeVerse.allNodes,'reader.ext', `a+zya0wtbd&e2fs%o`, './reader.js')
 		this.addNode(reader_ext);
 
-		const welcome = new TextDoc('welcome', `=%zp5pszgciq<6sce`,'../assets/txtFiles/intro.js',);		
+		const welcome = new TextDoc(nodeVerse.allNodes,'welcome', `=%zp5pszgciq<6sce`,'../assets/txtFiles/intro.js',);		
 		this.addNode(welcome);
 
-		const sample = new TextDoc('sample',`0&tbiiz4pu1>t657v`, '../assets/txtFiles/sampleTxt.js')
+		const sample = new TextDoc(nodeVerse.allNodes,'sample',`0&tbiiz4pu1>t657v`, '../assets/txtFiles/sampleTxt.js')
 		this.addNode(sample);
 
-		const main_dir = new Directory('main',`muflds0?&n*$r5?3e`, '../assets/txtFiles/toasterDirectory.js');
+		const main_dir = new Directory(nodeVerse.allNodes,'main',`muflds0?&n*$r5?3e`, '../assets/txtFiles/toasterDirectory.js');
 		this.addNode(main_dir);
 
-		const admin_dir = new Directory('00CE6._x172', false);
+		const admin_dir = new Directory(nodeVerse.allNodes,'00CE6._x172', false);
 		this.addNode(admin_dir);
 
-		const rucksack_dir = new Directory('rucksack',`7k>g+wo\"?jz$e7p&<`);
+		const rucksack_dir = new Directory(nodeVerse.allNodes,'rucksack',`7k>g+wo\"?jz$e7p&<`);
 		this.addNode(rucksack_dir);
 
-		const rucksack_ext = new Program('rucksack.ext',`hqch4+?u\"auwujxra`, './rucksack.js');
+		const rucksack_ext = new Program(nodeVerse.allNodes,'rucksack.ext',`hqch4+?u\"auwujxra`, './rucksack.js');
 		this.addNode(rucksack_ext);
 
-		const rucksack_rdbl = new TextDoc('rucksack.rdbl', `3\"nbb$j\"jwkx!*4<&`, '../assets/txtFiles/rucksack.js');
+		const rucksack_rdbl = new TextDoc(nodeVerse.allNodes,'rucksack.rdbl', `3\"nbb$j\"jwkx!*4<&`, '../assets/txtFiles/rucksack.js');
 		this.addNode(rucksack_rdbl);
 
-		const crawler_dir = new Node('crawler', `$ufcw&$miw2aui8=>`);
+		const crawler_dir = new Node(nodeVerse.allNodes,'crawler', `$ufcw&$miw2aui8=>`);
 		this.addNode(crawler_dir);
 
-		const crawler_ext = new Program('crawler.mse', `bl&<d0vqfkq42jn<3`, `./crawler.js`);
+		const crawler_ext = new Program(nodeVerse.allNodes,'crawler.mse', `bl&<d0vqfkq42jn<3`, `./crawler.js`);
 		this.addNode(crawler_ext);
 
-		const crawler_rdbl = new TextDoc('crawler.rdbl', `=ye42z=ww39kikqat`, '../assets/txtFiles/crawler.js');
+		const crawler_rdbl = new TextDoc(nodeVerse.allNodes,'crawler.rdbl', `=ye42z=ww39kikqat`, '../assets/txtFiles/crawler.js');
 		this.addNode(crawler_rdbl);
 
-		const moveHere = new Node('move_here', `*r#!jo>nbhk?>!mgw`);
+		const moveHere = new Node(nodeVerse.allNodes,'move_here', `*r#!jo>nbhk?>!mgw`);
 		this.addNode(moveHere);
 
-		const moveHereNext = new Node('move_here_next', `0hjn?&w?n#onkbk$j`);
+		const moveHereNext = new Node(nodeVerse.allNodes,'move_here_next', `0hjn?&w?n#onkbk$j`);
 		this.addNode(moveHereNext);
 
-		const nomad_dir = new Directory('mole', `4qb1927k+4c*?zwz3`)
+		const nomad_dir = new Directory(nodeVerse.allNodes,'mole', `4qb1927k+4c*?zwz3`)
 		this.addNode(nomad_dir);
 
-		const nomad_rdbl = new TextDoc('nomad.rdbl', `*ga#hxf$+9nf$qa?$`, '../assets/txtFiles/nomad.js');
+		const nomad_rdbl = new TextDoc(nodeVerse.allNodes,'nomad.rdbl', `*ga#hxf$+9nf$qa?$`, '../assets/txtFiles/nomad.js');
 		this.addNode(nomad_rdbl);
 
-		const nomad_mole = new Mole('nomad.mole', `n<*c0!pxvhp%0d\"rs`, './nomad.js')
+		const nomad_mole = new Mole(nodeVerse.allNodes,'nomad.mole', `n<*c0!pxvhp%0d\"rs`, './nomad.js')
 		this.addNode(nomad_mole);
 
-		const welcomeV2 = new TextDoc('welcome_update', `8=4f#9>3n\"y!=3$i2`,'../assets/txtFiles/MXthumbIntro.js')
+		const welcomeV2 = new TextDoc(nodeVerse.allNodes,'welcome_update', `8=4f#9>3n\"y!=3$i2`,'../assets/txtFiles/MXthumbIntro.js')
 		this.addNode(welcomeV2);
 
-		const read_this = new TextDoc('read_this', false, '../assets/txtFiles/firstRead.js');
+		const read_this = new TextDoc(nodeVerse.allNodes,'read_this', false, '../assets/txtFiles/firstRead.js');
 		this.addNode(read_this);
 
-		const now_read_this = new TextDoc('now_read_this', false, '../assets/txtFiles/secondRead.js')
+		const now_read_this = new TextDoc(nodeVerse.allNodes,'now_read_this', false, '../assets/txtFiles/secondRead.js')
 		this.addNode(now_read_this);
 
-		const that = new TextDoc('that', false, '../assets/txtFiles/thirdRead.js')
+		const that = new TextDoc(nodeVerse.allNodes,'that', false, '../assets/txtFiles/thirdRead.js')
 		this.addNode(that);
 
-		const uniquekey = new TextDoc('unique_key', false, `../assets/txtFiles/uniquekey.js`);
+		const uniquekey = new TextDoc(nodeVerse.allNodes,'unique_key', false, `../assets/txtFiles/uniquekey.js`);
 		this.addNode(uniquekey);
 
-		const cordyceps = new Recruiter('cordyceps.msh', './cordyceps.js');
+		const cordyceps = new Recruiter(nodeVerse.allNodes,'cordyceps.msh', './cordyceps.js');
 		this.addNode(cordyceps);
 
-		const pegleg = new Recruiter('pegleg.yaar', './pegleg.js');
+		const pegleg = new Recruiter(nodeVerse.allNodes,'pegleg.yaar', './pegleg.js');
 		this.addNode(pegleg);
 
-		const silo_ext = new Program('silo.ext','bxbljs00\"3p&*z\"yi' ,'./silo.js')
+		const silo_ext = new Program(nodeVerse.allNodes,'silo.ext','bxbljs00\"3p&*z\"yi' ,'./silo.js')
 		this.addNode(silo_ext);
 
-		const there = new Node('there', false);
+		const there = new Node(nodeVerse.allNodes,'there', false);
 		this.addNode(there);
 
-		const tonysIbsQ19 = new QRig(`tonys_IBS_Q19`, 'c6#!k%uvo3yg$<lcx','./wallysIbsQ19.js');
+		const tonysIbsQ19 = new QRig(nodeVerse.allNodes,`tonys_IBS_Q19`, 'c6#!k%uvo3yg$<lcx','./wallysIbsQ19.js');
 		this.addNode(tonysIbsQ19);
 
 		
-		const help = new Node('help')
+		const help = new Node(nodeVerse.allNodes,'help')
 		this.addNode(help)
-		const oops = new Node('I_made_a_mistake');
+		const oops = new Node(nodeVerse.allNodes,'I_made_a_mistake');
 		this.addNode(oops)
-		const oops2 = new Node('I_overwrote_my_only_moleware');
+		const oops2 = new Node(nodeVerse.allNodes,'I_overwrote_my_only_moleware');
 		this.addNode(oops2)
-		const oops3 = new Node('CaN_I_hAve_a_nEw_1?');
+		const oops3 = new Node(nodeVerse.allNodes,'CaN_I_hAve_a_nEw_1?');
 		this.addNode(oops3)
 
-		const nomad_mole_2 = new Mole('nomad.mole', `n<*c0!pxvhp%0d\"rs`, './nomad.js')
+		const nomad_mole_2 = new Mole(nodeVerse.allNodes,'nomad.mole', `n<*c0!pxvhp%0d\"rs`, './nomad.js')
 		this.addNode(nomad_mole);
 
 
 
 		this.seed.attach(admin_dir);
 		this.seed.attach(rucksack_ext);
-		admin_dir.attach(rucksack_ext);
+		admin_dir.attach(rucksack_ext);nodeVerse,
 		admin_dir.attach(reader_ext);
 		admin_dir.attach(nomad_mole);
 		admin_dir.attach(silo_ext);
@@ -225,56 +281,58 @@ export const bigBang = function () {
 	nodeVerse.databanks._PioneerDataServices.nodeNets.__toaster.init();
 
 
-	const __caravan = new NodeNet(`__caravan`);
+	const __caravan = new NodeNet(nodeVerse.allNodeNets, `__caravan`);
 	nodeVerse.databanks._PioneerDataServices.addNodeNet(__caravan);
 	nodeVerse.databanks._PioneerDataServices.nodeNets.__caravan.init = function (){
 
-		const portOfArrival = new Node('caravan_entrance');
+		const portOfArrival = new Node(nodeVerse.allNodes,'caravan_entrance');
 		this.addNode(portOfArrival);
 
-		const seed = new Node('seed')
+		const seed = new Node(nodeVerse.allNodes,'seed')
 		this.addNode(seed);
 
-		const welcome = new TextDoc('welcome', `*431hsa&cgciq>5tdi`,'../assets/txtFiles/intro.js');
+		const welcome = new TextDoc(nodeVerse.allNodes,'welcome', `*431hsa&cgciq>5tdi`,'../assets/txtFiles/intro.js');
 		this.addNode(welcome);
 
-		const dir = new Directory('dir', false);
+		const dir = new Directory(nodeVerse.allNodes,'dir', false);
 		this.addNode(dir);
 
-		const biblio = new Program(`biblio.ext`, `usi8p6diw<82ihv37`, `./biblio.js`);
+		const biblio = new Program(nodeVerse.allNodes,`biblio.ext`, `usi8p6diw<82ihv37`, `./biblio.js`);
 		this.addNode(biblio);
 
-		const caravanLibrary = new Library(`moleSeed_docs`, false, `../assets/libraries/moleSeed_docs`)
+		const caravanLibrary = new Library(nodeVerse.allNodes,`moleSeed_docs`, false, `../assets/libraries/moleSeed_docs`)
 		this.addNode(caravanLibrary);
 
-		const newUserRepo_dir = new Directory('new_user_repo', false);
+		const newUserRepo_dir = new Directory(nodeVerse.allNodes,'new_user_repo', false);
 		newUserRepo_dir.encrypt(7,`v9d%00&5k24`)
 		this.addNode(newUserRepo_dir);
 
-		const tonysIbsQ19 = new QRig(`tonys_IBS_Q19`, 'c6#!k%uvo3yg$<lcx','./wallysIbsQ19.js');
+		const tonysIbsQ19 = new QRig(nodeVerse.allNodes,`tonys_IBS_Q19`, 'c6#!k%uvo3yg$<lcx','./wallysIbsQ19.js');
 		this.addNode(tonysIbsQ19);
 
-		const cordyceps = new Recruiter('cordyceps.msh', './cordyceps.js');
+		const cordyceps = new Recruiter(nodeVerse.allNodes,'cordyceps.msh', './cordyceps.js');
 		this.addNode(cordyceps);
 
-		const pegleg = new Recruiter('pegleg.yaar', './pegleg.js');
+		const pegleg = new Recruiter(nodeVerse.allNodes,'pegleg.yaar', './pegleg.js');
 		this.addNode(pegleg)
 
-		const silo_ext = new Program('silo.ext','bxbljs00\"3p&*z\"yi' ,'./silo.js')
+		const silo_ext = new Program(nodeVerse.allNodes,'silo.ext','bxbljs00\"3p&*z\"yi' ,'./silo.js')
 		this.addNode(silo_ext)
 
-		const demoMessage = new TextDoc('please_read_this', false, '../assets/txtFiles/demoCompleted.js')
+		const demoMessage = new TextDoc(nodeVerse.allNodes,'please_read_this', false, '../assets/txtFiles/demoCompleted.js')
 		this.addNode(demoMessage);
 
-		const nurSilo_doc = new TextDoc('silo.rdbl', false, '../assets/txtFiles/silo.js')
+		const nurSilo_doc = new TextDoc(nodeVerse.allNodes,'silo.rdbl', false, '../assets/txtFiles/silo.js')
 		this.addNode(nurSilo_doc);
 
-		const nurBiblio_doc = new TextDoc('biblio.rdbl', false, '../assets/txtFiles/biblio.js')
+		const nurBiblio_doc = new TextDoc(nodeVerse.allNodes,'biblio.rdbl', false, '../assets/txtFiles/biblio.js')
 		this.addNode(nurBiblio_doc);
 
-		const gate = new Node('portcullis', false)
+		const gate = new Node(nodeVerse.allNodes,'portcullis', false)
 		gate.encrypt(7, 'password=password')
 		this.addNode(gate);
+
+		const testNode = new Node(nodeVerse.allNodes, 'testNode', false)
 
 		portOfArrival.attach(dir);
 
@@ -302,7 +360,7 @@ export const bigBang = function () {
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 	*/
-	nodeVerse.databanks._caravan = new Databank(`_caravan`);
+	nodeVerse.databanks._caravan = new Databank(nodeVerse.allDataBanks,`_caravan`);
 	nodeVerse.databanks._caravan.init = function () {
 
 	};
@@ -314,7 +372,7 @@ export const bigBang = function () {
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 	*/
-	nodeVerse.databanks._cyber_kinetics = new Databank(`_cyber_kinetics`);
+	nodeVerse.databanks._cyber_kinetics = new Databank(nodeVerse.allDataBanks,`_cyber_kinetics`);
 	nodeVerse.databanks._cyber_kinetics.init = function () {
 
 	};
@@ -326,7 +384,7 @@ export const bigBang = function () {
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 	*/
-	nodeVerse.databanks._ASTRL = new Databank(`_ASTRL`);
+	nodeVerse.databanks._ASTRL = new Databank(nodeVerse.allDataBanks,`_ASTRL`);
 	nodeVerse.databanks._ASTRL.init = function () {
 
 	};
@@ -338,7 +396,7 @@ export const bigBang = function () {
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 	*/
-	nodeVerse.databanks._CleanSpace = new Databank(`_CleanSpace`);
+	nodeVerse.databanks._CleanSpace = new Databank(nodeVerse.allDataBanks,`_CleanSpace`);
 	nodeVerse.databanks._CleanSpace.init = function () {
 
 	};
@@ -350,17 +408,18 @@ export const bigBang = function () {
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 	*/
-	nodeVerse.databanks._4M = new Databank(`_4M`);
+	nodeVerse.databanks._4M = new Databank(nodeVerse.allDataBanks,`_4M`);
 	nodeVerse.databanks._4M.init = function () {
 
 	};
 	nodeVerse.databanks._4M.init();
 
 
-	nodeVerse.databanks._NationalPatriotServerSolutions = new Databank(`_NationalPatriotServerSolutions`)
+	nodeVerse.databanks._NationalPatriotServerSolutions = new Databank(nodeVerse.allDataBanks,`_NationalPatriotServerSolutions`)
 
 
 	//init();
+	nodeVerse.testGraphStringParser();
 	return nodeVerse
 
 }
