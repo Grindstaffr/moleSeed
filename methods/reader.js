@@ -2,6 +2,8 @@ export const program = {
 	name : 'reader.ext',
 	isInstalled : true,
 	runsInBackground : false,
+	size : 15,
+	memory : 312,
 	data : {
 		textName : "",
 		text : "",

@@ -4,6 +4,29 @@ export const bigBang = function () {
 	const nodeVerse = {};
 	nodeVerse.databanks = {};
 	nodeVerse.router = {};
+	nodeVerse.trueRouter = {};
+
+	nodeVerse.findNodesByName = function (nodeName, exactBool) {
+		//DepthFirst Traverse, collecting all nodes where name = nodeName, and returning their TRUEADDRESSES in an array;
+		var returnArray = [];
+		Object.keys(this.router).forEach(function(databankAddress){
+			Object.keys(this.router[databankAddress]).forEach(function(nodeNetAddress){
+				Object.keys(this.router[databankAddress][nodeNetAddress]).forEach(function(nodeAddress){
+					var node = this.router[databankAddress][nodeNetAddress][nodeAddress];
+					if (node.name === nodeName && exactBool){
+						var truAddress = node.getTrueAddress();
+						returnArray.push(truAddress);
+						return;
+					} else if (!exactBool && (node.name.includes(nodeName) || nodeName.includes(node.name))){
+						var truAddress = node.getTrueAddress();
+						returnArray.push(truAddress);
+						return;
+					}
+				},this)
+			},this)
+		},this)
+		return returnArray;
+	};
 
 	nodeVerse.appendDataBank = function (databank) {
 		nodeVerse.databanks[databank.name] = databank;

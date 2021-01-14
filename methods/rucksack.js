@@ -2,6 +2,8 @@ export const program = {
 	name : 'rucksack.ext',
 	isInstalled: false,
 	runsInBackground : false,
+	size : 10,
+	memory: 148,
 	data : {
 		storedNodes : [],
 		readMe : `\\n rucksack.ext v.0.6.14 \\n \\n  \\t rucksack.ext is an extension for the moleSeed Terminal that allows for the storage of up to 8 nodes. \\n \\t NOTE: rucksack.ext does not store node adjacencies.`,	
@@ -11,6 +13,31 @@ export const program = {
 		isRunning : false,
 	},
 	methods : {
+		getMemoryUsage : function () {
+			var returnObj = {}
+			var runningTotal = this.size + this.memory;
+			var bareBones = runningTotal;
+			returnObj["rucksack.ext"] = bareBones;
+
+			var hasStoredNodes = false;
+			console.log(this);
+			this.data.storedNodes.forEach(function(node){
+				if (node.name === '[EMPTY SLOT]'){
+					runningTotal += (13 * 16)/1000;
+				} else {
+					if (!hasStoredNodes){
+						hasStoredNodes = true;
+						returnObj.data = {};
+					}
+					runningTotal += node.getMemoryUsage();
+					returnObj.data[node.name] = node.getMemoryUsage();
+				}
+			}, this)
+
+			returnObj.total = Math.ceil(runningTotal);
+
+			return returnObj;
+		},
 		showContents : function () {
 			this.data.storedNodes.forEach(function(node, index){
 				if (node.name === `[EMPTY SLOT]`){
@@ -82,7 +109,8 @@ export const program = {
 					this.methods.showContents();
 				}
 				this.api.writeLine(`ditched ${nodeName} from slot ${trueVal}`)
-				this.api.writeLine('')
+				this.api.writeLine('');
+				this.api.reallocateMemoryOnActiveNode();
 				return;
 			}, 
 
@@ -154,6 +182,8 @@ export const program = {
 				this.api.appendAccessibleNodes(node);
 				this.api.writeLine(`grabbed ${nodeName} into slot ${trueVal}`)
 				this.api.writeLine('')
+				this.api.reallocateMemoryOnActiveNode();
+				return;
 			},
 		},
 		rummage : {
@@ -181,6 +211,7 @@ export const program = {
 		this.trmnl = terminal;
 		terminal.programs[this.name] = this;
 		this.api = terminal.api;
+		this.methods.getMemoryUsage = this.methods.getMemoryUsage.bind(this);
 		if (callback){
 			callback(this.installData);
 		}
@@ -188,7 +219,7 @@ export const program = {
 		this.data.settings = this.settings
 		this.methods.data = this.data;
 		this.methods.api = this.api;
-		this.methods.showContents= this.methods.showContents.bind(this)
+		this.methods.showContents= this.methods.showContents.bind(this);
 		this.data.storedNodes = new Array(8).fill({name : `[EMPTY SLOT]`})
 		this.installData.grab.ex = this.installData.grab.ex.bind(this);
 		this.installData.rummage.ex = this.installData.rummage.ex.bind(this);
@@ -202,8 +233,38 @@ export const program = {
 		this.api.addInterfaceFunction(this.installData.api_triggerReDraw,`reRenderRucksack`);
 		this.api.addInterfaceFunction(this.installData.api_checkRucksackRunning, `checkRucksackRunning`)
 		this.api.addInterfaceFunction(this.installData.api_getStoredNodes, `getRucksackContents`)
-		this.api.addInterfaceFunction(this.installData.api_getEmptyRucksackSlot, `getFirstOpenRucksackSlot`)
+		this.api.addInterfaceFunction(this.installData.api_getEmptyRucksackSlot, `getFirstOpenRucksackSlot`);
+		this.uninstall = this.uninstall.bind(this);
+	},
+	uninstall : function () {
+		if (Object.keys(this.api.getPrograms()).includes('silo.ext')){
+			this.api.runCommand(`uninstall silo.ext`);
+		}
+		if (this.isRunning){
+			this.stop();
+		}
+		this.api.deleteInterfaceFunction(`reRenderRucksack`, 'rucksack.ext');
+		this.api.deleteInterfaceFunction(`checkRucksackRunning`,'rucksack.ext');
+		this.api.deleteInterfaceFunction(`getRucksackContents`,'rucksack.ext');
+		this.api.deleteInterfaceFunction(`getFirstOpenRucksackSlot`,'rucksack.ext');
+		this.api.deleteCommand('grab');
+		this.api.deleteCommand('rummage');
 
+		delete this.methods.api;
+		delete this.methods.data;
+		delete this.data.settings;
+
+		this.api = {};
+		this.trmnl = {};
+		/*
+		Object.keys(this).forEach(function(key){
+			if (key !== 'uninstall'){
+				delete this[key];
+			}
+		},this)
+		*/
+		this.isInstalled = false;
+		return;
 	},
 	
 	stop : function () {

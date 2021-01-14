@@ -2,6 +2,8 @@ export const program = {
 	name : `silo.ext`,
 	isInstalled : false,
 	runsInBackground : true,
+	size: 19,
+	memory: 2412,
 	data: {
 		armedRecruiter : {isDummy : true},
 		targetedHardware : {isDummy : true},
@@ -15,8 +17,11 @@ export const program = {
 			linked : false,
 			targeted : false,
 		},
-
+		
 	},
+	deprecatedFunctions : {
+
+		},
 	settings : {},
 	methods : {
 		commands : {
@@ -128,7 +133,7 @@ export const program = {
 				argType : "o",
 				acceptedTypes : ['scommand'],
 				ex : function (commandName) {
-
+					this.api.log('SILO HELP SYNTAX NEEDS TO BE IMPLEMENTED')
 
 				},
 			},
@@ -449,6 +454,11 @@ export const program = {
 		this.methods.monitor = this.methods.monitor.bind(this);
 		this.rucksack.methods.drawSilo = this.methods.drawSilo.bind(this);
 
+		this.deprecatedFunctions.stop = this.rucksack.stop
+		this.deprecatedFunctions.ex = this.rucksack.ex
+		this.deprecatedFunctions.showContents = this.rucksack.methods.showContents
+		this.deprecatedFunctions.drawWindow = this.rucksack.methods.drawWindow
+
 		this.rucksack.stop = this.installData.patch_rucksack_stop;
 		this.rucksack.ex = this.installData.patch_rucksack_ex;
 		this.rucksack.methods.showContents = this.installData.patch_showContents;
@@ -461,13 +471,6 @@ export const program = {
 			this.methods.commands[key].ex = this.methods.commands[key].ex.bind(this)
 		}, this)
 
-		/*
-		this.methods.siloAPI.armRecruiter = this.methods.siloAPI.armRecruiter.bind(this);
-		this.methods.siloAPI.targetHardware = this.methods.siloAPI.targetHardware.bind(this);
-		this.methods.siloAPI.launchRecruiter = this.methods.siloAPI.launchRecruiter.bind(this);
-		*/
-
-		//this.api.patchInterfaceFunction(this.installData.patch_rucksack_ex.bind(this.rucksack), 'reRenderRucksack')
 		this.installData.silo.ex = this.installData.silo.ex.bind(this);
 		this.api.addCommand(this.installData.silo)
 		var siloCommands = this.methods.commands
@@ -501,6 +504,37 @@ export const program = {
 		if (this.rucksack.settings.isRunning){
 			this.api.reRenderRucksack(true);
 		}
+	},
+	uninstall : function () {
+		if (Object.keys(this.api.getRunningPrograms()).includes('rucksack.ext')){
+			this.api.runCommand('stop');
+		}
+		this.rucksack.methods.drawSilo = function () {};
+
+		this.rucksack.stop = this.deprecatedFunctions.stop 
+		this.rucksack.ex = this.deprecatedFunctions.ex
+		this.rucksack.methods.showContents = this.deprecatedFunctions.showContents
+		this.rucksack.methods.drawWindow = this.deprecatedFunctions.drawWindow
+
+		this.methods.siloApi.resetAllData();
+		
+		delete this.data.storedNodes;
+		delete this.rucksack.silo;
+
+		delete this.rucksack;
+
+		this.api.deleteCommand('silo');
+
+		delete this.methods.api;
+		delete this.methods.settings;
+		delete this.data.settings;
+
+		this.api = {};
+		this.trmnl = {};
+
+		
+		this.isInstalled = false;
+		return;
 	},
 	stop : function () {
 		this.settings.isRunning = false;

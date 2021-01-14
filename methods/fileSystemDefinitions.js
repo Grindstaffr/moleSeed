@@ -1,9 +1,13 @@
+const addressGenerator = require('./addressGenerator.js');
+console.log(addressGenerator)
+
+/*
 import { addressGenerator } from './addressGenerator.js';
 import { base49Map, reverseBase49Map } from './addressGenerator.js';
-
+*/
 
 export class Node {
-	constructor(name, address){
+	constructor (container, name, address){
 		this.Type = 'node';
 		this.type = 'node';
 		this.name = name;
@@ -11,7 +15,6 @@ export class Node {
 			address = addressGenerator(17)
 		}
 		this.address = Node.setAddress(address);
-		console.log
 		this.synonyms = Node.generateSynonyms(name);
 		this.adjacencies = {};
 		this.visibleAdjacencies = {};
@@ -24,6 +27,13 @@ export class Node {
 		this.grabbable = true;
 		this.recruitable = false;
 		this.moveTriggeredFunctions = [];
+
+		this.trueAddress = this.getTrueAddress();
+		container[this.trueAddress] = this;
+
+		this.defaultMemory = 512;
+		this.defaultMemoryDepth = 8028;
+		this.terminals = new Array(4).fill(0);
 	};
 
 	static defaultFileExtension = "";
@@ -113,6 +123,48 @@ export class Node {
 			}
 			func(context, lastNode);
 		}, this)
+	}
+
+	allocateMemory(terminalIndex, terminalSize){
+		this.terminals[terminalIndex] = terminalSize;
+	}
+
+	deallocateMemory(terminalIndex) {
+		this.terminals[terminalIndex] = 0;
+	}
+
+	getMemoryUsage(){
+		var base = this.defaultMemory;
+		if (this.memory && this.memory !== this.defaultMemory){
+			base = this.memory
+		}
+		var fullUsage = base;
+		this.terminals.forEach(function(terminalSize){
+			fullUsage += terminalSize;
+		})
+		return fullUsage; 
+	}
+
+	setNodeDepth(num){
+		if (typeof num !== 'number' || Number.isNaN(num)){
+			return false;;
+		} else if (!Number.isNan(num)){
+			this.nodeDepth = num
+			return true;;	
+		} else {
+			return false;
+		}
+	}
+
+	getNodeDepth(){
+		if (this.memoryDepth && this.memoryDepth !== this.defaultMemoryDepth){
+			return this.memoryDepth;
+		}
+		return this.defaultMemoryDepth;
+	}
+
+	getFreeMemory(){
+		return this.getNodeDepth() - this.getMemoryUsage();
 	}
 
 	setURL (url) {
@@ -234,9 +286,9 @@ export class Node {
 };
 
 export class Library extends Node {
-	constructor (name, address, directoryUrl){
+	constructor (container, name, address, directoryUrl){
 
-		super(name, address);
+		super(container, name, address);
 		this.directoryUrl = directoryUrl;
 		this.assembleRepository = this.assembleRepository.bind(this)
 		this.isLoaded = false;
@@ -543,10 +595,11 @@ export class Library extends Node {
 }
 
 export class Program extends Node {
-	constructor (name, address, url) {
-		super(name, address);
+	constructor (container, name, address, url) {
+		super(container, name, address);
 		this.type = 'program';
 		this.url = url;
+		this.memory = 1024;
 		this.hasBeenInstalled = false;
 		this.isNodelet = true;
 		this.commands.push('install')
@@ -557,23 +610,36 @@ export class Program extends Node {
 			callback(program.program);
 		} else {
 			import(this.url).then(function(module){
+				if (!module.program.methods || module.program.methods === undefined){
+					module.program.methods = {};
+				}
+				if (module.program.methods.getMemoryUsage === undefined || !module.program.methods.getMemoryUsage){
+					module.program.methods.getMemoryUsage = function () {
+						return this.size + this.memory
+					}.bind(module.program)
+				}
 				callback(module.program)
 				program.program = module.program;
 				program.hasBeenInstalled = true;
 				program.commands[program.commands.indexOf('install')] = 'ex';
+			}).catch(function(err){
+				console.log(err)
+				callback(false)
 			})
 		}
 	}
 	ex(){
+		console.log('routing through node?')
 		this.program.ex();
 	}
 	stop(){
+		console.log('routing through node?')
 		this.program.stop();
 	}
 }
 export class Hardware extends Node {
-	constructor (name, address, url){
-		super(name, address);
+	constructor (container, name, address, url){
+		super(container, name, address);
 		this.grabbable = false;
 		this.recruitable = true;
 		this.type = 'hardware'
@@ -682,7 +748,9 @@ export class Hardware extends Node {
 			if (callback){
 				callback(hardwareDataMod);
 			}
-		});
+		}).catch(function(err){
+				console.log(err)
+			});
 	}
 
 	bindAll (context) {
@@ -721,8 +789,8 @@ export class ProcessorMatrix extends Hardware {
 }
 
 export class QRig extends Hardware {
-	constructor (name, address, url){
-		super(name, address, url)
+	constructor (container, name, address, url){
+		super(container, name, address, url)
 		this.type = `Q-Rig`
 		this.methods.hardwareCommands.bf = {
 			name : 'bf',
@@ -876,8 +944,8 @@ export class UniqueNode extends Node {
 	}
 };
 export class Malware extends UniqueNode {
-	constructor (name, address, url){
-		super(name);
+	constructor (container, name, address, url){
+		super(container, name);
 		this.url = url;
 		this.name = name;
 		this.address = `FUCK YOURSELF`
@@ -904,8 +972,8 @@ export class Malware extends UniqueNode {
 }
 
 export class Worm extends Malware {
-	constructor (name, url) {
-		super(name);
+	constructor (container, name, url) {
+		super(container, name);
 		this.url = url;
 		this.type = 'worm'
 	};
@@ -931,8 +999,8 @@ export class Worm extends Malware {
 
 
 export class Recruiter extends Malware {
-	constructor (name, url){
-		super(name, 'FUCKYOU',url);
+	constructor (container, name, url){
+		super(container, name, 'FUCKYOU',url);
 		this.siloApi = {};
 		this.isSupported = false;
 		this.isArmed = false;
@@ -1094,8 +1162,8 @@ export class Recruiter extends Malware {
 };
 
 export class Seed extends UniqueNode {
-	constructor (name) {
-		super(name);
+	constructor (container, name) {
+		super(container, name);
 		this.methods.plant = {
 			name : 'plant',
 			desc : 'plant a seed to recursively construct a node network',
@@ -1110,8 +1178,8 @@ export class Seed extends UniqueNode {
 };
 
 export class Mole extends UniqueNode {
-	constructor (name, address, url){
-		super(name, address);
+	constructor (container, name, address, url){
+		super(container, name, address);
 		this.url = url;
 		this.type = 'mole';
 		this.canBeRead = true;
@@ -1246,8 +1314,8 @@ export class Mole extends UniqueNode {
 }
 
 export class Readable extends Node {
-	constructor (name, address) {
-		super(name, address);
+	constructor (container, name, address) {
+		super(container, name, address);
 		this.type = 'readable';
 		this.commands.push('read')
 		this.canBeRead = true;
@@ -1255,8 +1323,8 @@ export class Readable extends Node {
 }
 
 export class Directory extends Readable {
-	constructor (name, address) {
-		super(name, address);
+	constructor (container, name, address) {
+		super(container, name, address);
 		this.type = 'directory';
 	}
 
@@ -1278,8 +1346,8 @@ export class Directory extends Readable {
 }
 
 export class TextDoc extends Readable {
-	constructor (name, address, url) {
-		super(name, address);
+	constructor (container, name, address, url) {
+		super(container, name, address);
 		this.location = url;
 		this.hasBeenImported = false
 		this.pages = [];
@@ -1307,8 +1375,8 @@ export class TextDoc extends Readable {
 }
 
 export class LibraryFile extends TextDoc {
-	constructor (name, address, url) {
-		super(name, address, url);
+	constructor (container, name, address, url) {
+		super(container, name, address, url);
 		this.address = 'Non_Addressable_Nodelet';
 		this.type = `library_file`;
 		this.isNodelet = true;
@@ -1316,8 +1384,8 @@ export class LibraryFile extends TextDoc {
 }
 
 export class InvisibleNode extends Node {
-	constructor (name, address, url) {
-		super(name);
+	constructor (container, name, address, url) {
+		super(container, name);
 		this.isInvisible = true;
 		this.url = url
 	}
@@ -1337,8 +1405,8 @@ export class TerminalStoryPiece extends Node {
 	// NODEA ------- NODEB
 	//then, when moving from A to B, you must pass through this
 
-	constructor (name, obj) {
-		super(name);
+	constructor (container, name, obj) {
+		super(container, name);
 		this.isInvisible = true;
 		this.isBlocking = true;
 		this.frames = obj;
@@ -1350,15 +1418,15 @@ export class TerminalStoryPiece extends Node {
 }
 
 export class Asset extends Node {
-	constructor (name, address, url) {
-		super(name, address);
+	constructor (container, name, address, url) {
+		super(container, name, address);
 		this.url = url;
 	}
 }
 
 export class Pdf extends Asset {
-	constructor (name, address, url, title){
-		super(name, address, url);
+	constructor (container, name, address, url, title){
+		super(container, name, address, url);
 		this.title = title;
 		this.type = 'pdf';
 		this.scale = 1;
@@ -1584,6 +1652,7 @@ export class NodeNet {
 		if (node.Type === `malware`){
 			return;
 		}
+		var trueAddress = node.getTrueAddress();
 		Object.defineProperty(node, '_meta', {
 			value : this,
 			writable : false,
@@ -1591,6 +1660,7 @@ export class NodeNet {
 		//node._meta = this;
 		this[node.name] = node
 		this._meta._meta.router[this._meta.address][this.address][node.address] = node;
+		this._meta._meta.trueRouter[trueAddress] = node;
 	}
 
 	addAccessNode(){

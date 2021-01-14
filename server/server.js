@@ -1,7 +1,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const graphBuilder = require ('./methods/graphBuilder.js')
+const graphBuilder = require ('./methods/graphBuilder.js');
+const allNodesConstructor = require ('./methods/nodeConstructor.js');
 
 const fs = require('fs');
 const server = express();
@@ -15,6 +16,8 @@ server.use(express.static(__dirname + '/../'))
 server.use(express.static(__dirname + '/../methods'))
 server.use(express.static(__dirname + '/../node_modules'))
 server.use(express.static(__dirname + '/../assets'))
+
+var allNodes = allNodesConstructor();
 
 
 

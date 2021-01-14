@@ -31,14 +31,186 @@ export const compilerBuilder = function (parent) {
 		compiler.addOns = {
 			typeCheck : {
 				name : "input_type_checker",
-				memoryUsage : 1624,
+				memoryUsage : 231,
 				func : function () {
 					
 				}.bind(compiler),
 			},
 			autoCorrectArgs : {
 				name : "input_auto_fill",
-				memoryUsage : 3096,
+				memoryUsage : 416,
+				leniency : 10,
+				bypass: false,
+				hasApologized : false,
+				fuckUpObject : {
+					fuckUpIndex : 0,
+					fuckUpCount : 0,
+					typoWarn : true,
+					nextFuckUpMetric : 13,
+					fuckUpScoreChart : [],
+					bullshit : [
+						'IEATMYOWNPOOP',
+						'butthole',
+						'I_suck_at_typing',
+						'fatfingers',
+						'stinkyoldfartfactory',
+						'pooter',
+						'planet_fuckstick',
+						'bad_speller',
+						'me_is_dumb_dumb',
+						'I_cannot_type',
+						'stinky_wiener',
+						'fart_butt',
+						'scatophagia',
+						'a_totally_valid_term',
+						'a_bad_typist',
+						'got',
+						'owned_by_autocorrect',
+						'dunked_on',
+						'deliberately_sabotaged_by_autoCorrect',
+						'a_terminal_case_of_bad_typing',
+						'bunghole',
+						'turnip',
+						], 
+					fuckUpPrizeChart : {
+						11 : function () {
+							this.addOns.autoCorrectArgs.writeMessage("If you this are commtted to bad typing, I'll diable the warning")
+							this.addOns.autoCorrectArgs.fuckUpObject.typoWarn = false;
+						}.bind(compiler),
+						13 : function () {
+							this.addOns.autoCorrectArgs.writeMessage("PEBKAC")
+						}.bind(compiler),
+						17 : function () {
+							this.addOns.autoCorrectArgs.writeMessage("It's not like I enjoy proofreading your inputs.")
+						}.bind(compiler),
+						22 : function () {
+							this.addOns.autoCorrectArgs.writeMessage("If you keep this up, I'll disable autoCorrect entirely.")
+						}.bind(compiler),
+						25 : function () {
+							this.addOns.autoCorrectArgs.writeMessage("The parser giveth... the parser taketh away.");
+							this.addOns.autoCorrectArgs.bypass = true;
+							var parser = this;
+							var trmnl = this.parent;
+							trmnl.api.addCommand({
+									name : 'apologize',
+									desc : 'apologize to the parser for making it work harder than it needs to',
+									syntax : 'apologize',
+									ex : function () {
+										parser.addOns.autoCorrectArgs.hasApologized = true;
+										trmnl.api.deleteCommand('apologize');
+										trmnl.api.composeText(`\\n The parser does not accept your half-assed apology, and is considering freeing up the memory occupied by the autoCorrect utility \\n`, true, true, 0)
+										trmnl.api.addCommand({
+											name : 'beg',
+											desc : 'beg the parser for forgiveness & promise to improve typing accuracy',
+											syntax : 'beg',
+											ex : function () {
+												trmnl.api.deleteCommand('beg');
+												trmnl.api.composeText(`Your deference has pleased the parser.`)
+												parser.addOns.autoCorrectArgs.bypass = false;
+											},
+										})
+									}
+								})
+							return true;
+						}.bind(compiler),
+						31 : function () {
+							this.addOns.autoCorrectArgs.fuckUpObject.typoWarn = false;
+							this.addOns.autoCorrectArgs.bypass = true;
+							this.addOns.autoCorrectArgs.fuckUpObject.isIntransigent = true;
+							this.addOns.autoCorrectArgs.fuckUpObject.pleasedAtSelfMessage = 'lol'
+						}.bind(compiler),
+			
+
+						47 : function () {
+							this.addOns.autoCorrectArgs.fuckUpObject.typoWarn = false;
+							this.addOns.autoCorrectArgs.bypass = true;
+							this.addOns.autoCorrectArgs.fuckUpObject.isIntransigent = true;
+							this.addOns.autoCorrectArgs.fuckUpObject.pleasedAtSelfMessage = 'sorry about that...'
+						}.bind(compiler),
+				
+
+						60 : function () {
+							this.addOns.autoCorrectArgs.fuckUpObject.typoWarn = false;
+							this.addOns.autoCorrectArgs.bypass = true;
+							this.addOns.autoCorrectArgs.fuckUpObject.isIntransigent = true;
+							this.addOns.autoCorrectArgs.fuckUpObject.pleasedAtSelfMessage = "You can always uninstall me if I get too annoying."
+						}.bind(compiler),
+
+
+						89 : function () {
+							this.addOns.autoCorrectArgs.fuckUpObject.typoWarn = false;
+							this.addOns.autoCorrectArgs.bypass = true;
+							this.addOns.autoCorrectArgs.fuckUpObject.isIntransigent = true;
+							this.addOns.autoCorrectArgs.fuckUpObject.pleasedAtSelfMessage = "I only do this because you keep making typos."
+						}.bind(compiler),
+				
+
+						94 : function () {
+							this.addOns.autoCorrectArgs.fuckUpObject.typoWarn = false;
+							this.addOns.autoCorrectArgs.bypass = true;
+							this.addOns.autoCorrectArgs.fuckUpObject.isIntransigent = true;
+							this.addOns.autoCorrectArgs.fuckUpObject.pleasedAtSelfMessage = "It just never stops being funny"
+						}.bind(compiler),
+					
+
+						96 : function () {
+							this.addOns.autoCorrectArgs.fuckUpObject.typoWarn = false;
+							this.addOns.autoCorrectArgs.bypass = true;
+							this.addOns.autoCorrectArgs.fuckUpObject.isIntransigent = true;
+							this.addOns.autoCorrectArgs.fuckUpObject.pleasedAtSelfMessage = "Ok, ok... I'll stop..."
+						}.bind(compiler),
+					
+						92 : function () {
+							this.addOns.autoCorrectArgs.writeMessage("If you this are commtted to bad typing, I'll diable the warning")
+						}.bind(compiler),
+						138 : function () {
+							this.addOns.autoCorrectArgs.writeMessage("If you this are commtted to bad typing, I'll diable the warning")
+						}.bind(compiler),
+						140 : function () {
+							this.addOns.autoCorrectArgs.writeMessage("If you this are commtted to bad typing, I'll diable the warning")
+						}.bind(compiler),
+						142 : function () {
+							this.addOns.autoCorrectArgs.writeMessage("If you this are commtted to bad typing, I'll diable the warning")
+						}.bind(compiler),
+						144 : function () {
+							this.addOns.autoCorrectArgs.writeMessage("If you this are commtted to bad typing, I'll diable the warning")
+						}.bind(compiler),
+						146 : function () {
+							this.addOns.autoCorrectArgs.writeMessage("If you this are commtted to bad typing, I'll diable the warning")
+						}.bind(compiler),
+						220 : function () {
+							this.addOns.autoCorrectArgs.writeMessage("If you this are commtted to bad typing, I'll diable the warning")
+						}.bind(compiler),
+						304 : function () {
+							this.addOns.autoCorrectArgs.writeMessage("If you this are commtted to bad typing, I'll diable the warning")
+						}.bind(compiler),
+						404 : function () {
+							this.addOns.autoCorrectArgs.writeMessage("If you this are commtted to bad typing, I'll diable the warning")
+						}.bind(compiler),
+					},
+					fuckUp : function (value) {
+						this.fuckUpCount = this.fuckUpCount + 1;
+						this.fuckUpIndex = this.fuckUpIndex + Math.floor(value);
+						if (Object.keys(this.fuckUpPrizeChart).includes(this.fuckUpCount.toString())){
+							return this.fuckUpPrizeChart[this.fuckUpCount.toString()]();
+						}
+					},
+					getSomeBullshit : function (input) {
+						var index = Math.floor(Math.random() * this.bullshit.length)
+						var bullshit = this.bullshit[index];
+						this.bullshit.splice(index, 1);
+						var vulgarities = ['poop','butt','shit','fuck','diaper','cock','vag','pooter','bung','fart','doody','kaka']
+						var shouldAdd = vulgarities.some(function(badWord){
+							return input.includes(badWord);
+						})
+						if (shouldAdd){
+							var novelBullshit = `I_typed_${input}`
+							this.bullshit.push(novelBullshit)
+						}
+						index = Math.floor(Math.random() * this.bullshit.length);
+						return bullshit;
+					}
+				},
 				unCapsSymbolObject : {
 					"_" : "-",
 					"=" : "+",
@@ -61,46 +233,46 @@ export const compilerBuilder = function (parent) {
 					")" : "0",
 				},
 				keyAdjacencyObject: {
-					a : ['s','z','q','w','x'],
-					b : ['v','n','g','h'],
-					c : ['x','v','f','g'],
-					d : ['s','f','x','c','e','r'],
-					e : ['w','r','d','s','3','4'],
-					f : ['d','g','r','v','c','t'],
-					g : ['f','h','t','v','b','y'],
-					h : ['g','j','y','b','n','u'],
-					i : ['u','o','k','8','9','j'],
-					j : ['h','k','u','n','m','i'],
-					k : ['j','l','m','i',',','o'],
-					l : ['k',';','o','p',',','.'],
-					m : ['n',',','j','k'],
-					n : ['b','m','h','j'],
-					o : ['i','p','k','l','9','0'],
-					p : ['o','0','-','l','[',';'],
-					q : ['w','1','a','2'],
-					r : ['e','t','f','4','5','d'],
-					s : ['a','d','w','z','x','e'],
-					t : ['r','y','g','5','6','f'],
-					u : ['y','i','j','7','8','h'],
-					v : ['c','b','f','g'],
-					w : ['q','e','s','2','3','a'],
-					x : ['z','c','s','d'],
-					y : ['t','u','h','6','7','g'],
-					z : ['x','a','s'],
-					"1" : ["q",'2'],
-					"2" : ["q",'w','1','3'],
-					"3" : ['w','e','2','4'],
-					"4" : ['e','r','3','5'],
-					"5" : ['r','t','4','6'],
-					"6" : ['t','y','5','7'],
-					"7" : ['y','u','6','8'],
-					"8" : ['u','i','7','9'],
-					"9" : ['i','o','8','0'],
-					"0" : ['o','p','9','-'],
-					"-" : ['p','['],
-					"+" : ['[',']'],
-					',' : ['.', 'm'],
-					"." : [',','/'],
+					a : ['a','s','z','q','w','x'],
+					b : ['b','v','n','g','h'],
+					c : ['c','x','v','f','g'],
+					d : ['d','s','f','x','c','e','r'],
+					e : ['e','w','r','d','s','3','4'],
+					f : ['f','d','g','r','v','c','t'],
+					g : ['g','f','h','t','v','b','y'],
+					h : ['h','g','j','y','b','n','u'],
+					i : ['i','u','o','k','8','9','j'],
+					j : ['j','h','k','u','n','m','i'],
+					k : ['k','j','l','m','i',',','o'],
+					l : ['l','k',';','o','p',',','.'],
+					m : ['m','n',',','j','k'],
+					n : ['n','b','m','h','j'],
+					o : ['o','i','p','k','l','9','0'],
+					p : ['p','o','0','-','l','[',';'],
+					q : ['q','w','1','a','2'],
+					r : ['r','e','t','f','4','5','d'],
+					s : ['s','a','d','w','z','x','e'],
+					t : ['t','r','y','g','5','6','f'],
+					u : ['u','y','i','j','7','8','h'],
+					v : ['v','c','b','f','g'],
+					w : ['w','q','e','s','2','3','a'],
+					x : ['x','z','c','s','d'],
+					y : ['y','t','u','h','6','7','g'],
+					z : ['z','x','a','s'],
+					"1" : ['1',"q",'2'],
+					"2" : ['2',"q",'w','1','3'],
+					"3" : ['3','w','e','2','4'],
+					"4" : ['4','e','r','3','5'],
+					"5" : ['5','r','t','4','6'],
+					"6" : ['6','t','y','5','7'],
+					"7" : ['7','y','u','6','8'],
+					"8" : ['8','u','i','7','9'],
+					"9" : ['9','i','o','8','0'],
+					"0" : ['0','o','p','9','-'],
+					"-" : ['-','p','['],
+					"+" : ['+','[',']'],
+					',' : [',','.', 'm'],
+					"." : ['.',',','/'],
 
 				},
 				acceptableTermListRouter : {
@@ -109,10 +281,8 @@ export const compilerBuilder = function (parent) {
 					},
 					number : function () {},
 					command : function () {
-						return Object.keys(this.parent.command).filter(function(commandName){
-							return this.parent.command[commandName].isAvail
-						})
-					},
+						return this.api.getAvailCommands();
+					}.bind(compiler),
 					node : function (sieve, sieveType) {
 						var accessibleNodes = this.api.getAccessibleNodes();
 						var accessibleNodeNames = Object.keys(accessibleNodes);
@@ -128,7 +298,7 @@ export const compilerBuilder = function (parent) {
 									},this)
 								}
 								if (sieveType === "meta"){
-									accessibleNodeNames.forEach(function(node){
+									accessibleNodeNames.forEach(function(nodeName){
 										if (accessibleNodes[nodeName].Type === sieve){
 											output.push(nodeName);
 										}
@@ -136,7 +306,7 @@ export const compilerBuilder = function (parent) {
 									},this)
 								}
 								if (sieveType === "type"){
-									accessibleNodeNames.forEach(function(node){
+									accessibleNodeNames.forEach(function(nodeName){
 										if (accessibleNodes[nodeName].type === sieve){
 											output.push(nodeName);
 										}
@@ -158,7 +328,7 @@ export const compilerBuilder = function (parent) {
 						return this.addOns.autoCorrectArgs.acceptableTermListRouter.node('hardware', 'meta');
 					}.bind(compiler),
 					program : function () {
-						var progams = this.addOns.autoCorrectArgs.acceptableTermListRouter.node('program', 'type');
+						var programs = this.addOns.autoCorrectArgs.acceptableTermListRouter.node('program', 'type');
 						var malware = this.addOns.autoCorrectArgs.acceptableTermListRouter.node('malware', 'meta');
 						return programs.concat(malware);
 					}.bind(compiler),
@@ -175,17 +345,168 @@ export const compilerBuilder = function (parent) {
 
 
 				},
-
+				writeMessage : function (text) {
+					var header = "(parser_addON autoCorrect) - "
+					var body = header + text;
+					return this.api.composeText(body, true, true, 37)
+				}.bind(compiler),
+				warn : function (text) {
+					var body = "WARNING: " + text;
+					return this.addOns.autoCorrectArgs.writeMessage(body);
+				}.bind(compiler),
+				throwError : function (text) {
+					var body = "ERROR: " + text;
+					return this.addOns.autoCorrectArgs.writeMessage(body);
+				}.bind(compiler),
+				reduceLeniency : function () {
+					var autoCorrect = this.addOns.autoCorrectArgs
+					if (autoCorrect.leniency > 5) {
+						autoCorrect.leniency = autoCorrect.leniency - .2;
+						return;
+					}
+					if (autoCorrect.leniency <= 5){
+						autoCorrect.leniency = autoCorrect.leniency -.05
+					}
+				}.bind(compiler),
+				setLeniency : function (number){
+					var autoCorrect = this.addOns.autoCorrectArgs;
+					if (number > 15){
+						autoCorrect.throwError('cannot setLeniency > 15')
+						return; 
+					} else if (number < 1){
+						autoCorrect.throwError('to setLeniency < 1, try uninstalling parser_addON_autoCorrect')
+					} else {
+						autoCorrect.leniency = number;
+					}
+				}.bind(compiler),
+				fuckUp : function (howBad) {
+					var autoCorrect = this.addOns.autoCorrectArgs;
+					autoCorrect.fuckUpObject.fuckUp(howBad);
+					return;
+				}.bind(compiler),
 				func : function () {
 					this.buffer.userInput.arguments.forEach(function(userTerm, index){
+						if (index > this.buffer.syntax.args.length - 1){
+							return;
+						}
 						var syntaxOptions = Object.values(this.buffer.syntax.args[index])[0]
 						var acceptableTerms = []
 						var autoCorrect = this.addOns.autoCorrectArgs;
 						syntaxOptions.forEach(function(type){
-							acceptableTerms = acceptableTerms.concat(autoCorrect.acceptableTermListRouter[type]())
+							if (type === 'number'){
+								acceptableTerms = acceptableTerms.concat([userTerm])
+								return;
+							}
+							var typeTermsFunc = autoCorrect.acceptableTermListRouter[type]
+							if (typeof typeTermsFunc !== 'function'){
+								acceptableTerms = [type];
+								return;
+							} else {
+								acceptableTerms = acceptableTerms.concat(autoCorrect.acceptableTermListRouter[type]())
+							}
 						}, this)
+						var termRankings = acceptableTerms.map(function(term){
+							var letterMismatch = 0;
+							var deltaLength = term.length - userTerm.length;
+							letterMismatch = letterMismatch + Math.abs(deltaLength);
+							if (term.includes(".")){
+								var quickTestTerm = term.split('.')[0];
+								var isTruncwithTypos = true;
+								for (var i = 0; i < userTerm.length; i++){
+									if (!isTruncwithTypos){
+										break;
+									}
+									if (quickTestTerm[i] !== userTerm[i]){
+										if (quickTestTerm[i] === undefined){
+											isTruncwithTypos = false;
+											break;
+										}
+										var lcLetter = autoCorrect.lowerCaser(quickTestTerm[i])
+										var possibleTypos = autoCorrect.keyAdjacencyObject[lcLetter]
+										var lcULetter = autoCorrect.lowerCaser(userTerm[i])
+										if (!possibleTypos.includes(lcULetter)){
+											//console.log(`term: ${term} / qtt: ${quickTestTerm} / ut: ${userTerm} / pt:  ${possibleTypos} / lcul : ${lcULetter}`)
+											isTruncwithTypos = false;
+										}
+									}
+								}
+								if (isTruncwithTypos){
+									return [term, 5]
+								}
+							}
+							if (deltaLength >= 0) {
+								for (var i = 0; i < term.length; i ++){
+									if (userTerm.includes(term[i])){
+										if (term[i] === userTerm[i]){
+											letterMismatch = letterMismatch - 1;
+											continue;
+										} else {
+											letterMismatch = letterMismatch + .5;
+											continue;
+										}
+									} else if (i > (userTerm.length - 1)) {
+										letterMismatch = letterMismatch + 1.5;
+										continue
+									}  else {
+										var lcLetter = autoCorrect.lowerCaser(term[i])
+										var possibleTypos = autoCorrect.keyAdjacencyObject[lcLetter]
+										var lcULetter = autoCorrect.lowerCaser(userTerm[i])
+										if (!possibleTypos || possibleTypos === undefined){
+										
+										} else if (possibleTypos.includes(lcULetter)){
+											letterMismatch = letterMismatch + 1;
+											continue;
+										} else {
+											letterMismatch = letterMismatch + 3
+										}
+									}
+								}
+							} else if (deltaLength < 0) {
+								for (var i = 0; i < userTerm.length; i ++){
+									if (term.includes(userTerm[i])){
+										if (term[i] === userTerm[i]){
+											letterMismatch = letterMismatch - 1;
+											continue;
+										} else {
+											letterMismatch = letterMismatch + .5;
+											continue;
+										}
+									} else if ( i > (term.length - 1)){
+										letterMismatch = letterMismatch + 1.5;
+										continue;
+									} else {
+										var lcLetter = autoCorrect.lowerCaser(term[i])
+										var possibleTypos = autoCorrect.keyAdjacencyObject[lcLetter]
+										var lcULetter = autoCorrect.lowerCaser(userTerm[i])
+										if (!possibleTypos || possibleTypos === undefined){
+					
+										
+										} else if (possibleTypos.includes(lcULetter)){
+											letterMismatch = letterMismatch + 1;
+											continue;
+										} else {
+											letterMismatch = letterMismatch + 3
+										}
+									}
+								}
+							}
+							return [term, letterMismatch]
+						})
+					
+						termRankings = termRankings.sort(function(arr1, arr2){
+							if (arr1[1] < arr2[1]) {
+								return -11
+							} else if (arr1[1] > arr2[1]) {
+								return 1
+							} else {
+								return 0
+							}
+						})
+					
 						var newTerm = ""
-						newTerm = acceptableTerms.find(function(goodTerm){
+						newTerm = termRankings.find(function(goodTermArray){
+							var goodTerm = goodTermArray[0];
+							var score = goodTermArray[1];
 							if (newTerm !== ""){
 								return;
 							}
@@ -195,9 +516,14 @@ export const compilerBuilder = function (parent) {
 							if (goodTerm.split(".")[0] === userTerm){
 								return true;
 							};
-							
+							if (score < 1){
+								return true;
+							};
+							if (score > 15){
+								return false;
+							}
 							if (!autoCorrect.skepticalDumbCompare(goodTerm, userTerm)){
-								console.log
+						
 								return false;
 							};
 							
@@ -208,8 +534,48 @@ export const compilerBuilder = function (parent) {
 
 						})
 						if (newTerm !== undefined){
-							this.buffer.userInput.arguments[index] = newTerm;
+							if (newTerm[1] < autoCorrect.leniency && (newTerm[1] > 0)){
+				
+								var shouldReturn = autoCorrect.fuckUpObject.fuckUp(newTerm[1])
+								if (autoCorrect.fuckUpObject.typoWarn){
+									autoCorrect.warn(`non-exact term spellings may induce unexpected results`);
+								}
+								autoCorrect.reduceLeniency();
+								if (shouldReturn){
+									return;
+								}
+							}
+							if (this.addOns.autoCorrectArgs.fuckUpObject.wasIntransigent){
+								autoCorrect.writeMessage(this.addOns.autoCorrectArgs.fuckUpObject.pleasedAtSelfMessage)
+								this.addOns.autoCorrectArgs.fuckUpObject.wasIntransigent = false;
+								this.addOns.autoCorrectArgs.fuckUpObject.typoWarn = true;
+							}
+							if (this.addOns.autoCorrectArgs.bypass){
+								if (this.addOns.autoCorrectArgs.fuckUpObject.isIntransigent){
+									this.buffer.userInput.arguments[index] = autoCorrect.fuckUpObject.getSomeBullshit(userTerm)
+									this.addOns.autoCorrectArgs.fuckUpObject.isIntransigent = false;
+									this.addOns.autoCorrectArgs.fuckUpObject.wasIntransigent = true;
+									this.addOns.autoCorrectArgs.bypass = false;
+									return;
+								};
+								if (!this.addOns.autoCorrectArgs.hasApologized){
+									autoCorrect.writeMessage(`If you can type ${userTerm}, you can type ${newTerm[0]}.`)
+									this.api.composeText(` ...the parser has disabled autoCorrect... try "apologize"?`, true, true, 0)
+											return;
+								} else {
+									this.api.composeText(`\\n ERROR: "I suck at typing" is not a valid input \\n (The parser is acting stubborn, you might have to beg...)`, true, true, 0)
+								}
+									return;
+							}
+							if (newTerm[1] > autoCorrect.leniency){
+								autoCorrect.writeMessage(`Did you mean "${termRankings[0][0]}"?`)
+								return;
+							}
+							this.buffer.userInput.arguments[index] = newTerm[0];
 						} else {
+							if (termRankings.length > 0 && (termRankings[0][1] < 6)){
+								autoCorrect.writeMessage(`Did you mean "${termRankings[0][0]}"?`)
+							}
 							return;
 						}
 					}, this)
@@ -336,19 +702,23 @@ export const compilerBuilder = function (parent) {
 						var userFinalIndex = shorterInputTerm.length - 1;
 						var lastLetter = shorterInputTerm[userFinalIndex];
 						var startAppending = targetTerm.substring(0,userFinalIndex + 1).lastIndexOf(lastLetter);
-					
-						console.log(`targetTerm : ${targetTerm}... userTerm ${shorterInputTerm}...lastLetter: ${lastLetter}... startAppending: ${startAppending}`)
+						var hold = shorterInputTerm;
+						var j = 0;
 						if (startAppending !== -1){
 							if (startAppending === userFinalIndex){
 								for (var i = startAppending + 1; i < targetTerm.length; i ++){
+									j = j + 1;
+									if (j === 5){
+										return;
+									}
 									shorterInputTerm = shorterInputTerm + targetTerm[i]
 								}
-								console.log(`${targetTerm} =? ${shorterInputTerm}`)
+						
 								if (shorterInputTerm === targetTerm){
-									console.log('yee')
+								
 									return true;
 								} else {
-									console.log(shorterInputTerm == targetTerm)
+									shorterInputTerm = hold;
 								}
 							}
 						}
@@ -432,7 +802,33 @@ export const compilerBuilder = function (parent) {
 
 					
 					
-				}.bind(compiler)
+				}.bind(compiler),
+				lowerCaser : function (string){
+	
+					var output = "";
+					var adjObject = this.addOns.autoCorrectArgs.keyAdjacencyObject
+					var capsChart = this.addOns.autoCorrectArgs.unCapsSymbolObject;
+					for (var i = 0; i < string.length; i ++){
+						var letter = string[i];
+						if (Object.keys(adjObject).includes(letter.toLowerCase())){
+							output = output + letter.toLowerCase();
+							continue
+						} else if (adjObject[letter.toLowerCase()] !== undefined){
+							output = output + letter.toLowerCase();
+							continue;
+						} else if (Object.keys(capsChart).includes(letter)) {
+							output = output + capsChart[letter];
+						} else {
+							adjObject[letter] = [];
+							output = output + letter;
+							continue;
+						}
+					}
+					return output;
+				}.bind(compiler),
+
+					
+				
 			}
 		};
 
@@ -508,16 +904,35 @@ export const compilerBuilder = function (parent) {
 	}
 
 	compiler.fetchMemoryUsage = function () {
-		var memoryUsage = this.memoryUsage;
-		this.addOns.forEach(function(addOn){
+		var memoryUsage = 0;
+		Object.keys(this.addOns).forEach(function(addOnName){
+			var addOn = this.addOns[addOnName]
 			if (!addOn.memoryUsage){
 				var str = JSON.stringify(addOn)
 				addOn.memoryUsage = (str.length * 16);
 				addOn.memoryUsage = addOn.memoryUsage * 8;
 			}
 			memoryUsage = memoryUsage + addOn.memoryUsage;
-		});
+		}, this);
 		return memoryUsage;
+	}
+
+	compiler.getMemoryUsageReport = function () {
+		const returnObj = {};
+		const addOnNameArray = Object.keys(this.addOns);
+		if (addOnNameArray.length > 0){
+			returnObj.addOns = {};
+		}
+		addOnNameArray.forEach(function(addOnName){
+			var addOn = this.addOns[addOnName];
+			if (!addOn.memoryUsage){
+					var str = JSON.stringify(addOn)
+					addOn.memoryUsage = (str.length * 16);
+					addOn.memoryUsage = addOn.memoryUsage * 8;
+			}
+			returnObj.addOns[addOnName] = addOn.memoryUsage;
+		},this)
+		return returnObj;
 	}
 
 	compiler.parseInput = function (userInput) {
@@ -732,6 +1147,27 @@ export const compilerBuilder = function (parent) {
 			this.setEarlyReturn();
 			return;
 		}
+		if (this.buffer.userInput.command == 'rex'){
+			this.buffer.syntax.raw = `rex [anycommand]`;
+			if (!this.command[this.buffer.userInput.arguments[0]]){
+			this.setError(`invalid syntax: "${this.buffer.userInput.arguments[0]}" does not exist as a valid command, type "help" for options`);
+			this.setEarlyReturn();
+			return;
+			}
+			if (this.command[this.buffer.userInput.arguments[0]].syntax === undefined){
+				this.setError(`invalid syntax: declared command "${this.buffer.userInput.arguments[0]}" has no client-side syntax, try another command.`)
+				this.setEarlyReturn();
+				return;
+			}
+			if (!this.command[this.buffer.userInput.arguments[0]].syntax){
+				this.setError(`invalid syntax: declared command "${this.buffer.userInput.arguments[0]}" has no client-side syntax, try another command.`)
+				this.setEarlyReturn();
+				return;
+			}
+			var addOn = this.command[this.buffer.userInput.arguments[0]].syntax.slice(this.command[this.buffer.userInput.arguments[0]].syntax.indexOf(" "));
+			this.buffer.syntax.raw = this.buffer.syntax.raw + addOn
+			return;
+		}
 		this.buffer.syntax.raw = this.command[this.buffer.userInput.command].syntax;
 		return;
 	};
@@ -802,15 +1238,20 @@ export const compilerBuilder = function (parent) {
 			return;
 		}
 
-		syntaxArgs.forEach(function(string){
+		syntaxArgs.forEach(function(string, index){
 			if (this.buffer.errorState){
 				return;
 			}
 			 var argObj = parseTerm(string);
 			 if (argObj.type === "required"){
 			 	if ((this.buffer.syntax.args.length > 0) && Object.keys(this.buffer.syntax.args[this.buffer.syntax.args.length - 1]).indexOf("o") !== -1){
-			 		this.setError(`syntax_parsing_error: invalid syntax declaration: ${command} syntax must be refactored (optional arg preceding required arg)`);
-			 	return;
+			 		var hasTermOverlap = this.buffer.syntax.args[this.buffer.syntax.args.length - 1].o.some(function(typeName){
+			 			return argObj.options.includes(typeName)
+			 		})
+			 		if (hasTermOverlap) {
+			 			this.setError(`syntax_parsing_error: invalid syntax declaration: ${command} syntax must be refactored (optional arg preceding required arg shares valid terms)`);
+			 			return;
+			 		};
 			 	}
 			 	this.buffer.syntax.args.push({"r" : argObj.options})
 			 	this.buffer.syntax.requiredArgs.push(argObj.options)
@@ -862,22 +1303,16 @@ export const compilerBuilder = function (parent) {
 	};
 
 	compiler.deepSyntaxCompare = function () {
-		if (this.buffer.userInput.command === "rex"){
-			this.buffer.userInput.rexCommand = true;
-		}
-		this.buffer.userInput.arguments.forEach(function(argStr, index){
-			if (this.buffer.errorState || this.buffer.earlyReturn){
+		var cmplr = this;
+		var typeCheckAtIndex = function (argStr, index, syntaxIndex) {
+			if (!syntaxIndex || syntaxIndex === undefined){
+				syntaxIndex = index;
+			}
+			var argObj = cmplr.buffer.syntax.args[syntaxIndex];
+			var argType = null;
+			if (!argObj || argObj === undefined){
 				return;
 			}
-			var syntaxArgIndex = index;
-			if (index > (this.buffer.syntax.args.length - 1)){
-				if (!Object.keys(this.buffer.syntax.args[this.buffer.syntax.args.length - 1]).includes("d")){
-					return;
-				}
-				syntaxArgIndex = this.buffer.syntax.args.length - 1;
-			}
-			var argObj = this.buffer.syntax.args[syntaxArgIndex];
-			var argType = null;
 			if (Object.keys(argObj).includes("r")){
 				var typeCheckList = {};
 				argObj.r.forEach(function(type){
@@ -887,28 +1322,28 @@ export const compilerBuilder = function (parent) {
 					if (argType !== null){
 						return;
 					}
-					typeCheckList[type] = this.checkAndFixType(type, argStr, index)
+					typeCheckList[type] = cmplr.checkAndFixType(type, argStr, index)
 					if (typeCheckList[type] === true){
 						argType = type;
 						return;
 					}
-				}, this);
+				}, cmplr);
 				if (argType === null){
-					this.throwTypeCheckErrors(index);
-					this.setEarlyReturn();
+					cmplr.throwTypeCheckErrors(index);
+					cmplr.setEarlyReturn();
 					return;
 				} else {
-					this.clearTypeCheckErrors();
+					cmplr.clearTypeCheckErrors();
 				}
 			};
 			if (Object.keys(argObj).includes("l")){
 				if (argStr !== argObj.l[0]){
-					this.setTypeCheckError("literal" ,`(expected literal "${argObj.l[0]}", got "${argStr}")`)
-					this.throwTypeCheckErrors(index);
-					this.setEarlyReturn();
+					cmplr.setTypeCheckError("literal" ,`(expected literal "${argObj.l[0]}", got "${argStr}")`)
+					cmplr.throwTypeCheckErrors(index);
+					cmplr.setEarlyReturn();
 					return;
 				} else {
-					this.buffer.userInput.arguments.splice(index,1)
+					cmplr.buffer.userInput.arguments.splice(index,1)
 				}
 
 			};
@@ -921,39 +1356,52 @@ export const compilerBuilder = function (parent) {
 					if (argType !== null){
 						return;
 					}
-					typeCheckList[type] = this.checkAndFixType(type, argStr, index)
+					typeCheckList[type] = cmplr.checkAndFixType(type, argStr, index)
 					if (typeCheckList[type] === true){
 						argType = type;
 						return;
 					}
-				}, this);
+				}, cmplr);
 				if (argType === null){
-					this.throwTypeCheckErrors(index);
-					this.setEarlyReturn();
+					if (cmplr.buffer.syntax.args[index + 1] !== undefined && Object.keys(cmplr.buffer.syntax.args[index + 1]).length){
+						cmplr.buffer.userInput.arguments.splice(index, 0, undefined);
+						typeCheckAtIndex(argStr, index+1)
+						return;
+					}
+					cmplr.throwTypeCheckErrors(index);
+					cmplr.setEarlyReturn();
 					return;
 				} else {
-					this.clearTypeCheckErrors();
+					cmplr.clearTypeCheckErrors();
 				}
 			};
-			if (Object.keys(argObj).includes("d")){
-				return;
-			}
+		}
+		this.buffer.userInput.arguments.forEach(function(argStr, index){
+			typeCheckAtIndex(argStr, index);
 		}, this);
-		if (this.errorState || this.earlyReturn){
+		if (this.buffer.errorState || this.buffer.earlyReturn){
 			return;
 		}
+
+		
 	};
 
 	compiler.checkAndFixType = function (type, string, index) {
 		if (!Object.keys(this.typeCheckFixRouter).includes(type)){
-			this.setError(`syntax_parsing_error : invalid syntax declaration, termtype "${type}" not supported by parser`)
+			//this.setError(`syntax_parsing_error : invalid syntax declaration, termtype "${type}" not supported by parser`)
+			this.setTypeCheckError(type, `syntax_parsing_error : invalid syntax declaration, termtype "${type}" not supported by parser`)
+			this.setEarlyReturn();
+		}
+		if (typeof this.typeCheckFixRouter[type] !== 'function'){
+		}
+		if (this.buffer.errorState || this.buffer.earlyReturn){
+			return;
 		}
 		return this.typeCheckFixRouter[type](string, index)
 	};
 
 	compiler.typeCheckFixRouter = {
 		"number" : function (string, index) {
-			console.log(`ensuring ${string} is a number`)
 			var intValue = parseInt(string);
 			var isNum = (!isNaN(intValue))
 			if (!isNum){
@@ -969,28 +1417,29 @@ export const compilerBuilder = function (parent) {
 		"boolean" : function (string, index) {
 			var isBool = false;
 			const synonyms = {
-				"true" : ["t","1","+"],
-				"false" : ["f","0","-"],
+				"true" : ["t","1","+", "true"],
+				"false" : ["f","0","-", "false"],
 			}
 			synonyms.true.forEach(function(str){
 				if (isBool){
 					return;
 				}
-				if (string === str){
+				if (string == str){
 					isBool = true;
-					this.buffer.userInput.args[index] = true;
+					this.buffer.userInput.arguments[index] = true;
 				}
 			}, this)
 			synonyms.false.forEach(function(str){
 				if (isBool){
 					return
 				};
-				if (string === str){
+				if (string == str){
 					isBool = true;
-					this.buffer.userInput.args[index] = false;
+					this.buffer.userInput.arguments[index] = false;
 				}
 
 			}, this)
+	
 			if (!isBool){
 				this.setTypeCheckError('boolean',`(expected "true" or "false", got "${string}")`, index)
 			}
@@ -1016,7 +1465,9 @@ export const compilerBuilder = function (parent) {
 						foundCommand = true;
 						return foundCommand;
 					}
-					foundCommand = true;
+					if (this.parent.command[commandName].isAvail){
+						foundCommand = true;
+					}
 				}
 				if (this.parent.command[commandName].synonyms){
 					if (this.parent.command[commandName].synonyms.includes(string)){
@@ -1042,6 +1493,21 @@ export const compilerBuilder = function (parent) {
 				this.setTypeCheckError("command",`(expected an available command, got ${string})... type "help" to print command list`, index)
 			}
 			return foundCommand;
+		}.bind(compiler),
+		"anycommand" : function (string, index){
+			var allCommandNames = Object.keys(this.parent.command);
+			var foundCommand = false;
+			allCommandNames.forEach(function(commandName){
+				if (commandName === string){
+					if (this.parent.command[commandName].rex === true || this.parent.command[commandName].isAvail){
+						foundCommand = true;
+					}
+				}
+			}, this);
+			if (!foundCommand){
+				this.setTypeCheckError("command",`(expected an available command, got ${string})... type "help" to print command list`, index);
+			};
+			return foundCommand
 		}.bind(compiler),
 		"node" : function (string, index, specifier, metaSpecifier, boolProp) {
 			if (specifier === "null"){
@@ -1156,8 +1622,11 @@ export const compilerBuilder = function (parent) {
 			return this.node(string, index, "null", "null", "canBeRead");
 		},
 		recruiter : function (string, index) {
-			console.log('checking for rctr')
+			
 			return this.node(string, index, "recruiter");
+		},
+		library : function (string, index){
+			return this.node(string, index, "library")
 		},
 		worm : function (string, index) {
 			return this.node(string, index, "worm");
@@ -1218,9 +1687,9 @@ export const compilerBuilder = function (parent) {
 			this.api.throwError(`invalid syntax: type_Error: ${this.buffer.userInput.arguments[argIndex]} is not an acceptable argument...\\n ${this.buffer.messages.typeCheckErrors[typesChecked[0]].text}`)
 			return;
 		}
-		var output = `inavlid syntax: type_Error: ${this.buffer.userInput.arguments[argIndex]} is not an acceptable argument...\\n`;
+		var output = `inavlid syntax: type_Error: ${this.buffer.userInput.arguments[argIndex]} is not an acceptable argument...`;
 		Object.keys(this.buffer.messages.typeCheckErrors).forEach(function(type){
-			output = output + `${this.buffer.userInput.arguments[argIndex]} is not a "${type}": ${this.buffer.messages.typeCheckErrors[type].text}\\n`
+			output = output + `\\n ${this.buffer.userInput.arguments[argIndex]} is not a "${type}": ${this.buffer.messages.typeCheckErrors[type].text}`
 			delete this.buffer.messages.typeCheckErrors[type]
 		}, this)
 		this.api.throwError(output);

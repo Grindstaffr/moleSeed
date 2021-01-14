@@ -1,5 +1,6 @@
 import { Terminal } from './terminalClass.js'
 import { buildAnimations } from './fullScreenAnimations.js'
+import { saveFileManagerConstructor } from './saveFileManager.js'
 
 export class TerminalActivator {
 	constructor (canvas, globalProps, nodeVerse) {
@@ -17,6 +18,7 @@ export class TerminalActivator {
 		this.activeTerminal.cache.rescaleCache();
 		this.keyHandler = this.keyHandler.bind(this)
 		this.animator = buildAnimations(canvas, this.selectColorScheme(0), this.terminalDimensions, globalProps.letterHeight);
+		this.saveFileManager = saveFileManagerConstructor(this);
 		
 	}
 	selectColorScheme (int) {
@@ -34,39 +36,56 @@ export class TerminalActivator {
 
 			},
 			1 : {
+				/*background: "#0000AA",*/
 				background: "#01060D",
-				text : "#EEF0FF",
-				stroke : "#EEF0FF",
+				text : "#AABBFF",
+				stroke : "#AABBFF",
 
 			},
 			2 : {
+				/*background: "#27190A",*/
 				background: "#01060D",
-				text : "#EEF0FF",
-				stroke : "#EEF0FF",
+				text : "#F6D158",
+				stroke : "#F6D158",
 
 			},
 			3 : {
+				/*background: "#13250F",*/
 				background: "#01060D",
-				text : "#EEF0FF",
-				stroke : "#EEF0FF",
+				text : "#A9FFA3",
+				stroke : "#A9FFA3",
 
 			},
 		}
 		return schemes[int]
 	}
 
-	addTerminal (node) {
+	addTerminal (node, saveFile) {
 		if (!node){
 			node = this.nodeVerse.getDefaultNode();
 		}
 		var currentTerminalCount = Object.keys(this.terminals).length
 		if (currentTerminalCount === 4){
+			console.log('here')
 			this.activeTerminal.api.throwError(`Max Terminal Capacity... cannot add any more terminals`)
-			return; 
+			return false; 
 		}
 		this.terminals[currentTerminalCount] = new Terminal(this.canvas, this.globalProps, node, this.selectColorScheme(currentTerminalCount), this, currentTerminalCount)
-	
+		this.terminals[currentTerminalCount].api.reallocateMemoryOnActiveNode();
+		return true;
 		
+	}
+
+	isTerminalAtIndex (number) {
+		if (this.terminals[number] && this.terminals[number].type === 'terminal'){
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	getTerminalCount () {
+		return (Object.keys(this.terminals).length)
 	}
 
 	activateTerminal (number) {

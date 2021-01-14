@@ -2,6 +2,7 @@ import {compilerBuilder} from './compiler.js'
 
 export class Terminal {
 	constructor (canvas, globalProps, node, colorScheme, terminalActivator, index) {
+		this.type = 'terminal'
 		this.activeNode = node;
 		
 		this.accessibleNodes = [];
@@ -19,7 +20,7 @@ export class Terminal {
 		this.terminalActivator = terminalActivator;
 		this.devMode = terminalActivator.devMode;
 		this.isActiveTerminal = true;
-		this.index = index
+		this.index = index;
 
 		this.style = colorScheme;
 
@@ -35,6 +36,7 @@ export class Terminal {
 		this.keyRouter = this.constructKeyRouter(this);
 		this.blinkyCursor = this.constructBlinkyCursor(this,this.style);
 		this.animations = this.constructAnimations(this.context, this.api, this);
+		this.memoryManager = this.constructMemoryManager(this)
 
 		if (terminalActivator.devMode){
 			this.turnOnDev();
@@ -113,6 +115,7 @@ export class Terminal {
 
 		//console.log('drawing Terminal')
 		this.context.strokeStyle = this.style.stroke
+
 		this.context.beginPath();
 		this.context.rect(this.leftLoc , this.topLoc, this.pxEdgeDimensions +2, this.pxEdgeDimensions+2)
 		this.context.stroke();
@@ -245,6 +248,11 @@ export class Terminal {
 	}
 
 	keyHandler  (e) {
+		if (e.keyCode === 112 || e.keyCode === 113 || e.keyCode === 114 || e.keyCode === 115){
+			e.preventDefault();
+			this.keyRouter.route(e)
+			return;
+		}
 		if (e.keyCode === 27 || e.keyCode === 9){
 			console.log(e.keyCode)
 			e.preventDefault();
@@ -270,7 +278,7 @@ export class Terminal {
 					this.handleGeneralCase(e);
 				}
 			},
-			specialKeys : ['8','9','13','16','37','38','39','40'],
+			specialKeys : ['8','9','13','16','37','38','39','40','112','113','114','115'],
 			'8' : function () {
 				var cache = this.defineCache();
 				cache.deleteFromInput();
@@ -318,6 +326,50 @@ export class Terminal {
 			'40' : function () {
 				this.parent.blinkyCursor.position.down()
 			},//downArrow
+			'112' : function () {
+				if (this.parent.index === 0) {
+					if (this.parent.isActiveTerminal){
+						return;
+					}
+				}
+				if (!this.parent.terminalActivator.isTerminalAtIndex(0)){
+					return;
+				}
+				this.parent.api.activateTerminalAtIndex(0)
+			},
+			'113' : function () {
+				if (this.parent.index === 1) {
+					if (this.parent.isActiveTerminal){
+						return;
+					}
+				}
+				if (!this.parent.terminalActivator.isTerminalAtIndex(1)){
+					return;
+				}
+				this.parent.api.activateTerminalAtIndex(1)
+			},
+			'114' : function () {
+				if (this.parent.index === 2) {
+					if (this.parent.isActiveTerminal){
+						return;
+					}
+				}
+				if (!this.parent.terminalActivator.isTerminalAtIndex(2)){
+					return;
+				}
+				this.parent.api.activateTerminalAtIndex(2)
+			},
+			'115' : function () {
+				if (this.parent.index === 3) {
+					if (this.parent.isActiveTerminal){
+						return;
+					}
+				}
+				if (!this.parent.terminalActivator.isTerminalAtIndex(3)){
+					return;
+				}
+				this.parent.api.activateTerminalAtIndex(3)
+			},
 			handleGeneralCase : function (e) {
 				var value = e.key.toString();
 				var cache = this.defineCache();
@@ -498,6 +550,95 @@ export class Terminal {
 		return credentials;
 	}
 
+	constructMemoryManager (parent) {
+		const memoryManager = {};
+		memoryManager.getTotalMemoryUsage = function () {
+			var runningTotal = this.defaultMemory;
+			var programNameArray = Object.keys(this.parent.programs);
+
+			if (programNameArray.length > 0){
+				returnObj.programs = {};
+			}
+			programNameArray.forEach(function(programName){
+				var programMemory = this.getProgramMemoryUsage(programName);
+				if (programMemory && !Number.isNaN(programMemory)){
+					runningTotal += programMemory;
+				}
+			}, this);
+
+			runningTotal += this.parent.compiler.fetchMemoryUsage();
+
+		}
+		memoryManager.getMemoryUsage = function () {
+			var returnObj = {};
+			var runningTotal = this.defaultMemory;
+
+			returnObj.remote = this.defaultMemory;
+
+			var programNameArray = Object.keys(this.parent.programs);
+
+			if (programNameArray.length > 0){
+				returnObj.programs = {};
+			}
+			programNameArray.forEach(function(programName){
+				if (programName === 'runningPrograms'){
+					return;
+				}
+				var programMemory = this.getProgramMemoryUsage(programName);
+				if (typeof programMemory === 'number' && programMemory && !Number.isNaN(programMemory)){
+					returnObj.programs[programName] = programMemory;
+					runningTotal += programMemory;
+				} else if (typeof programMemory === 'object'){
+					returnObj.programs[programName] = programMemory;
+					runningTotal += programMemory.total;
+				} else if (programMemory === undefined){
+					console.log(programName)
+				}
+			}, this);
+			returnObj.parser = this.parent.compiler.getMemoryUsageReport();
+
+			runningTotal += this.parent.compiler.fetchMemoryUsage();
+
+
+			returnObj.total = runningTotal;
+
+			return returnObj;
+		};
+		memoryManager.getProgramMemoryUsage = function (programName) {
+			if (!Object.keys(this.parent.programs).includes(programName)){
+				this.api.throwError(`No program found named ${programName}`)
+				return undefined;
+			} else {
+				if (programName === 'runningPrograms'){
+					return;
+				}
+				var programMemoryUsage = this.parent.programs[programName].methods.getMemoryUsage();
+				if (!programMemoryUsage){
+					this.api.warn(`get_memory_usage func returned undefined for prgm "${programName}"`);
+				} else {
+					return programMemoryUsage;
+				}
+				var size = this.parent.programs[programName].size;
+				var memory = this.parent.programs[programName].memory;
+				if (!size || size === undefined){
+						this.api.throwError(`program.size undefined for ${programName}`);
+						return undefined;
+				}
+				if (!memory || memory === undefined){
+						this.api.throwError(`program.memory undefined for ${programName}`);
+						return undefined;
+				}
+				return size + memory
+			}
+		}
+		const init = function (parent) {
+			memoryManager.parent = parent;
+			memoryManager.api = parent.api;
+			memoryManager.defaultMemory = 2332; 
+		};
+		init(parent);
+		return memoryManager;
+	}
 	constructCache  () {
 		var cache = {}
 		cache.parent = this;
@@ -1102,14 +1243,36 @@ export class Terminal {
 					cmd.error.ex(`${nodeToMoveto.name}_depth = 0 mb ; no free memory for terminal remote`)
 					return;
 				}
+				var targetNodeDepth = nodeToMoveto.getFreeMemory();
+				var memoryObject = trmnl.api.getMemoryUsage();
+
+				if (!memoryObject.total || !(typeof memoryObject.total === 'number')){
+					trmnl.api.throwError(`critical failure: memoryManager.getMemoryUsage returned ${memoryObject.total} instead of an integer`)
+					return;
+				}
+
+				if (memoryObject.total > targetNodeDepth){
+					trmnl.api.throwError(`${nodeToMoveto.name}_depth = ${targetNodeDepth}kb; terminal_remote_mem_usage = ${memoryObject.total}kb... try reducing size of terminal remote to less than ${targetNodeDepth}kb`)
+					return;
+				}
+
+
 				var lastNode = trmnl.activeNode
+
 				
-				cmd.cache.writeToVisibleRow(`moved to ${nodeName}`)
+				cmd.cache.writeToVisibleRow(` moved to ${nodeName}`)
 				cmd.cache.writeEmptyRow();
+
 				trmnl.activeNode = nodeToMoveto;
 				this.addToPrevNodes(lastNode);
+
 				var lastNode = this.retrieveLastPrevNode();
+
 				trmnl.activeNode.triggerOnMove(trmnl, lastNode);
+
+				trmnl.activeNode.allocateMemory(trmnl.index, memoryObject.total);
+				lastNode.deallocateMemory(trmnl.index);
+
 				cmd.assembleAccessibleNodes.ex();
 				cmd.assembleValidNodes.ex();
 				//console.log(Object.keys(trmnl.accessibleNodes))
@@ -1150,6 +1313,7 @@ export class Terminal {
 			\\n Installed programs utilize the active node's processor and memory access through the same interface that the terminal remote uses.`,
 			isAvail : true,
 			ex : function (programName) {
+
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
 				var inst = this;
@@ -1161,23 +1325,107 @@ export class Terminal {
 				if (trmnl.activeNode.name !== programName){
 					program = trmnl.accessibleNodes[programName]
 				};
+				trmnl.api.log(` constructing interNode dataStream link...`)
 				if (!trmnl.programs[programName]){
+					trmnl.api.lockInput();
 					program.install(function(program){
+						if (!program){
+							trmnl.api.throwError(` dataStream_failure: terminalRemote cannot communicate with target node (check your connection)`);
+							trmnl.api.unlockInput();
+							return;
+						}
 						program.install(trmnl, function(){
 							trmnl.programs[program.name] = program;
 							//console.log('successfully Installed')
+							trmnl.api.reallocateMemoryOnActiveNode();
+
 							inst.triggerFuncs.forEach(function(callback){
 								callback(program, program)
 							});
 							cmd.prgms.isAvail = true;
-					
-							cmd.cache.writeToVisibleRow(`${programName} installed successfully`);
-							cmd.cache.writeEmptyRow();
+							trmnl.api.log(` receiving ${program.memory}kb of data...`);
+							var dataDownloaded = 0;
+							var memoryAllocated = 0;
+							for (var i = 0; i <= program.size; i++){
+								if (i < program.size){
+									window.setTimeout(function(){
+										dataDownloaded = dataDownloaded + 1;
+										trmnl.api.writeToGivenRow(` receiving ${program.size}kb... ${dataDownloaded}kb receieved` ,trmnl.api.getRowCount()-3)
+
+									}, i*1.5)
+								} else if (i === program.size) {
+									window.setTimeout(function(){
+										window.setTimeout(function(){
+											trmnl.api.writeToGivenRow(` receiving ${program.size}kb of data... ${dataDownloaded}kb receieved, link complete.` ,trmnl.api.getRowCount()-3)
+										},5)
+										window.setTimeout(function(){
+											trmnl.api.log(`node_${trmnl.activeNode.name} allocating ${program.memory}kb @ ${trmnl.activeNode.address}`);
+											for (var i = 0 ; i <= program.memory ; i++){
+												if (i < program.memory){
+													window.setTimeout(function(){
+														memoryAllocated = memoryAllocated + 1;
+														trmnl.api.writeToGivenRow(` allocating ${program.memory}kb... ${memoryAllocated}kb allocated`,trmnl.api.getRowCount()-3)
+													}, i)
+												} else if (i === program.memory){
+													window.setTimeout(function(){
+														
+														trmnl.api.writeToGivenRow(` allocating ${program.memory}kb... ${memoryAllocated}kb allocated, allocation complete.`,trmnl.api.getRowCount()-3)
+													}, i)
+												}
+											}
+										}, 200)
+										window.setTimeout(function(){
+											trmnl.api.log(` running ${programName.split(".")[0]}.inst...`)
+											cmd.cache.writeEmptyRow();
+											var installBar = 0;
+											for (var i = 0; i <= trmnl.api.getRowCount(); i++ ){
+												if (i < trmnl.api.getRowCount()){
+													window.setTimeout(function () {
+														installBar = installBar  + 1;
+														trmnl.api.writeToGivenRow(" " + ('>').repeat(installBar -1), trmnl.api.getRowCount() - 2);
+													}, ((i * 6) + Math.floor(Math.random() * 6)))
+												} else if (i === trmnl.api.getRowCount()){
+													window.setTimeout(function(){
+														trmnl.api.writeToGivenRow(` running ${programName.split(".")[0]}.inst... ${programName.split(".")[0]}.inst complete.`, trmnl.api.getRowCount() - 4);
+														trmnl.api.writeToGivenRow(` ${programName} installed successfully`, trmnl.api.getRowCount() - 2);
+														cmd.cache.writeEmptyRow();
+														trmnl.api.unlockInput();
+													}, 600)
+												}
+											}
+										}, 550 + program.memory)
+									
+									}, (i*2 + 10))
+								}
+							}
+
+							
 						})
 					});
 					return;
 				}
 					cmd.error.ex('program already installed')
+			}
+		};
+		command.uninstall = {
+			name : 'uninstall',
+			desc : 'uninstall a program',
+			syntax : 'uninstall [program]',
+			reservedTerms : ['parser_addOn'],
+			isHidden : true,
+			isAvail: true,
+			ex: function (programName) {
+				var cmd = this.parent;
+				var trmnl = cmd.parent;
+				if(trmnl.programs[programName] === undefined || !trmnl.programs[programName]){
+					trmnl.api.throwError(`cannot uninstall ${programName}: ${programName} not installed`)
+				}
+				if (trmnl.programs[programName].uninstall){
+					trmnl.programs[programName].uninstall();
+				}
+				delete trmnl.programs[programName]
+				trmnl.api.reallocateMemoryOnActiveNode();
+				trmnl.api.log(`${programName} uninstalled successfully`);
 			}
 		};
 		command.ex = {
@@ -1270,10 +1518,23 @@ export class Terminal {
 				trmnl.api.deleteCommand('hello');
 			}
 		}
+		command.testParser = {
+			name : 'testParser',
+			desc : 'parser_tester',
+			isHidden : true,
+			isAvail : true,
+			syntax : `testParser (library/program) [number/boolean]`,
+			ex : function (nodeNum , numBool){
+				console.log(`lib/prgm: ${nodeNum}, numBool : ${numBool}`);
+				return;
+			}
+		};
 		command.read = {
 			name: 'read',
 			desc: 'read the contents of an adjacent node',
 			syntax: 'read [readable] (number) (number)',
+			hasHelp: true,
+			longHelp : `read [node_withReadableContent] (number_startIndex) (number_endIndex)`,
 			isAvail: true,
 			ex : function (nodeName, startIndex, endIndex) {
 				var cmd = this.parent;
@@ -1361,28 +1622,162 @@ export class Terminal {
 		command.rex = {
 			name : 'rex',
 			isAvail : true,
-			syntax : 'rex (command) ...',
+			syntax : 'rex [command] ...commandArgs',
 			isHidden: true,
-			ex : function () {
+			ex : function (commandName, arg1, arg2, arg3, arg4, arg5) {
 				var cmd = this.parent;
-				var reqObject = {
-					method : 'POST',
-
-					body : {
-					nodes : [],
-					edges: [] 
-					},	
-				}
-				const repoRequest = new Request('/rex',reqObject);
-
-				fetch(repoRequest).then(function(response){
-					response.json().then(function(data){
-						
-					})
-				})
-
+				cmd[commandName].ex(arg1,arg2,arg3,arg4,arg5);
+				return;
 			}
 		};
+		command.sysmem = {
+			name : 'sysmem',
+			rex : true,
+			isAVail : false,
+			isHidden : true,
+			syntax : "get_system_memory",
+			ex : function () {
+				var cmd = this.parent;
+				var trmnl = cmd.parent;
+
+				var memoryReport = trmnl.memoryManager.getMemoryUsage();
+
+				var printBody = `
+				\\n         --- system memory report --- 
+				\\n             -- trmnl_remote_${trmnl.index} -- 
+				\\n 
+				\\n component                         memory_used
+				\\n ---------                         -----------`
+
+				if (memoryReport.programs){
+					var programNames = Object.keys(memoryReport.programs)
+					if (programNames.length > 0){
+						programNames.forEach(function(programName){
+							if (typeof memoryReport.programs[programName] === 'number'){	
+								var line = "\\n " + programName;
+								var nameLen = programName.length;
+								var memString = memoryReport.programs[programName] + 'kb'
+								var memStringLen = memString.length;
+								var spaceCount = 45 - (nameLen + memStringLen);
+								line += (" ").repeat(spaceCount);
+								line += memString;
+								printBody += line
+							} else if (typeof memoryReport.programs[programName] === 'object'){
+								var subBody = ``
+								Object.keys(memoryReport.programs[programName]).forEach(function(fieldName){
+									if (typeof memoryReport.programs[programName][fieldName] === 'number'){
+										if (fieldName === 'total'){
+											var name = `${programName}_subtotal`
+											var line = `\\n ` + name
+											var nameLen = name.length;
+											var memString = memoryReport.programs[programName][fieldName]+ 'kb' ;
+											var memStringLen = memString.length
+											var spaceCount = 45 - (memStringLen + nameLen);
+											line += (" ").repeat(spaceCount);
+											line += memString;
+											subBody = line + subBody
+										} else {
+											var name = `   (${fieldName})`
+											var line = `\\n` + name
+											var nameLen = name.length;
+											var memString = '(' + memoryReport.programs[programName][fieldName]+ 'kb) ';
+											var memStringLen = memString.length
+											var spaceCount = 45 - (memStringLen + nameLen);
+											line += (" ").repeat(spaceCount);
+											line += memString;
+											subBody += line
+										}
+									} else if (typeof memoryReport.programs[programName][fieldName] === 'object') {
+										Object.keys(memoryReport.programs[programName][fieldName]).forEach(function(subFieldName){
+											var name = `   (${fieldName}:${subFieldName})`
+											var nameLen = name.length
+											var line = `\\n` + name;
+											var memString = '(' + memoryReport.programs[programName][fieldName][subFieldName] + 'kb) ';
+											var memStringLen = memString.length
+											var spaceCount = 45 - (memStringLen + nameLen);
+											line += (" ").repeat(spaceCount);
+											line += memString;
+											subBody += line
+										});
+									}
+								})
+								printBody += subBody
+							}
+						}, this)
+					}
+				}
+				if (memoryReport.parser){
+					var line = `trmnl_remote_${trmnl.index}_parser`
+					if (memoryReport.parser.addOns){
+						Object.keys(memoryReport.parser.addOns).forEach(function(addOnName){
+							var line = '\\n ' + 'parser_addOn:'+ addOnName;
+							var nameLen = addOnName.length+ 13;
+							var memString = memoryReport.parser.addOns[addOnName] + 'kb';
+							var memStringLen = memString.length
+							var spaceCount = 45 - (nameLen + memStringLen);
+							line += (" ").repeat(spaceCount);
+							line += memString
+							printBody += line
+						}, this)
+					}
+				}
+				if (memoryReport.remote){
+					var line = `\\n trmnl_remote_${trmnl.index}`
+					line += (" ").repeat(25) + memoryReport.remote + 'kb'
+					printBody += line
+
+				}
+				if (memoryReport.total){
+					var line = `\\n ` + ('-').repeat(45) +  `\\n` + (" ").repeat(33) + "TOTAL: " + memoryReport.total + 'kb'
+					printBody += line
+
+				}
+				console.log(memoryReport)
+				//trmnl.api.composeText(header, true, false, 0)
+				trmnl.api.composeText(printBody, true, false, 0)
+			},
+		}
+		command.birth_twin = {
+			name : 'birth_twin',
+			rex : true,
+			isAVail : false,
+			isHidden : true,
+			syntax: "birth_twin (address)",
+			ex: function () {
+				var cmd = this.parent;
+				var trmnl = cmd.parent;
+				var actv = trmnl.terminalActivator;
+
+				var newTerminalCreated = trmnl.api.addTerminal()
+				console.log(newTerminalCreated)
+				if (newTerminalCreated){
+					console.log('terminal birthed')
+					var newTermNum = trmnl.api.getLastTerminalIndex();
+					var message = `
+					 New terminal remote birthed at ${trmnl.activeNode.address}...
+					\\n -- new terminal activated with "F${newTermNum+1}" key
+					\\n -- this terminal activated with "F${trmnl.index+1}" key`
+					trmnl.api.composeText(message, true, true, 0)
+
+				} else {
+					console.log('something went wrong')
+					return;
+				}
+			},
+		}
+		command.fart = {
+			name : 'fart',
+			rex : true,
+			isAVail : false,
+			isHidden : true,
+			syntax : 'fart [number] [number] (boolean) [node]',
+			ex : function (num1, num2, bool, nodeName) {
+				console.log(`farted ${num2}ml of methane ${num1} times on ${nodeName}`)
+				if (bool){
+					console.log(`it was very stinky`)
+				}
+			}
+		}
 		command.smell = {
 			name : 'smell',
 			isHidden : true,
@@ -2122,7 +2517,6 @@ export class Terminal {
 		};
 		terminalInterface.writeToGivenRow = function (string, rowIndex){
 			this.cache.writeToGivenRow(string,rowIndex);
-		
 		};
 		terminalInterface.writeToCoordinate = function (string, rowIndex, columnIndex) {
 			if (string.length > 1){
@@ -2302,6 +2696,11 @@ export class Terminal {
 			this.command.addCommand.ex(commandObj);
 			this.command[commandObj.name].isAvail = false;
 		};
+		terminalInterface.getAvailCommands = function () {
+			return (Object.keys(this.command).filter(function(commandName){
+				return this.command[commandName].isAvail
+			}, this))
+		}
 		terminalInterface.commandAvailCheck = function (commandName){
 			if (!this.command[commandName]){
 				return false;
@@ -2313,6 +2712,15 @@ export class Terminal {
 				return true;
 			}
 			return false;
+		};
+		terminalInterface.deleteInterfaceFunction = function (funcName, programName){
+			if (!this[funcName]){
+				return;
+			}
+			this[funcName] = function () {
+				this.throwError(`${programNam} uninstalled... ${funcName} now deprecated`);
+				return;
+			}.bind(this)
 		};
 		terminalInterface.addInterfaceFunction = function (func, funcName){
 			if (!typeof func === "function"){
@@ -2399,6 +2807,44 @@ export class Terminal {
 			this.cache.composeText(text2)
 			this.cache.composeText(text3)
 			return;
+		};
+		terminalInterface.getMemoryUsage = function () {
+			return this.parent.memoryManager.getMemoryUsage();
+		};
+		terminalInterface.reallocateMemoryOnActiveNode = function () {
+			this.parent.activeNode.allocateMemory(this.parent.index, this.getMemoryUsage().total)
+		}
+		terminalInterface.addTerminal = function () {
+			if (this.parent.terminalActivator.getTerminalCount() <= 3){
+				return this.parent.terminalActivator.addTerminal(this.parent.activeNode /*this.getSaveFile();*/);
+			}
+		};
+		terminalInterface.activateTerminalAtIndex = function (index) {
+			if (this.parent.index === index) {
+					if (this.parent.isActiveTerminal){
+						return;
+					}
+				}
+				if (!this.parent.terminalActivator.isTerminalAtIndex(index)){
+					return;
+				}
+				this.parent.terminalActivator.activateTerminal(index);
+		};
+		terminalInterface.getLastTerminalIndex = function () {
+			var count = this.parent.terminalActivator.getTerminalCount();
+			if (this.parent.terminalActivator.isTerminalAtIndex(count - 1)){
+				return (count -1)
+			} else {
+				if (this.parent.terminalActivator.isTerminalAtIndex(count -2)){
+					return (count - 2);
+				} else {
+					if (this.parent.terminalActivator.isTerminalAtIndex(count -3)){
+						return (count -3);
+					} else {
+						return 0;
+					}
+				}
+			}
 		}
 		const init = function (trmnl) {
 			terminalInterface.parent = trmnl;

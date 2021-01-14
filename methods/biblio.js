@@ -2,6 +2,8 @@ export const program = {
 	name : `biblio.ext`,
 	isInstalled : false,
 	runsInBackground : false,
+	size : 17,
+	memory: 204,
 	data : {
 		library : {},
 		message : "",
@@ -447,6 +449,17 @@ export const program = {
 			return foundBiblioCommand
 		})
 		this.api.addCommand(this.installData.biblio)
+	},
+	uninstall : function () {
+		this.api.deleteCommand('biblio');
+		delete this.methods.api;
+		delete this.methods.data;
+		delete this.data.settings;
+
+		this.api = {};
+		this.trmnl = {};
+
+		this.isInstalled = false;
 	},
 	stop : function () {
 		this.api.clearReservedRows(0);
