@@ -661,15 +661,23 @@ export class Terminal {
 		cache.inputBufferVerfied = false;
 
 		cache.rescaleCache = function () {
-			
+			var oldCurrentRows = []
+			this.currentRows.forEach(function(row){
+				oldCurrentRows.push(row);
+			})
+
 			var newDisplay = new Array(this.rowCount - 1).fill([]);
 			var newInput = new Array(this.rowCount).fill("");
+
 			this.previousRows = new Array(this.rowCount).fill([]);
 			this.inputRowPrev = new Array(this.rowCount).fill("");
 		    this.inputRowNext = new Array(this.rowCount).fill("");
+
 		    var currentCacheLength = this.currentRows.length;
 		    var diff = currentCacheLength - this.rowCount;
 		    var inputLength = this.inputRow.indexOf("");
+
+
 		    for (var i = 0; i < inputLength; i++){
 		    	 newInput[i] = this.inputRow[i]
 		    }
@@ -680,21 +688,26 @@ export class Terminal {
 			    	}
 			    },this)
 		    } else if (diff > 0){
-		    	debugger;
 		    	for (var i = diff; i < currentCacheLength; i ++){
-		    		console.log(i)
-		    		if (this.currentRows[i].length > 0){
-		    			newDisplay[(i)-(diff + 1)] = this.currentRows[i]
+		    		if (!this.currentRows[i]){
+		    			this.currentRows[i] = [];
 		    		}
+		    		if (this.currentRows[i].length >= 0){
+		    			newDisplay[(i)-(diff + 1)] = this.currentRows[i]
+		    		} 
 		    	}
 		    } else {
 		    	for (var i = 0; i < currentCacheLength ; i ++){
-		    		if (this.currentRows[i].length > 0){
+		    		if (!this.currentRows[i]){
+		    			this.currentRows[i] = [];
+		    		}
+		    		if (this.currentRows[i].length >= 0){
 		    			newDisplay[(i)-(diff + 1)] = this.currentRows[i]
 		    		}
 		    	}
 
 		    }
+
 		    this.inputRow = newInput.slice(0,this.rowCount-1)
 			this.currentRows = newDisplay.slice(0,this.rowCount-1);
 		}.bind(cache)
@@ -1687,6 +1700,18 @@ export class Terminal {
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
 				trmnl.api.printStorage();
+			},
+		}
+		command.tstdiff = {
+			name: 'tstdiff',
+			rex : true,
+			isAVail : false,
+			isHidden : true,
+			syntax : 'tstdiff (number) (number) (number) (number)',
+			ex : function (node,trgt, nn, db) {
+				var cmd = this.parent;
+				var trmnl = cmd.parent;
+				trmnl.api.testDiffMod(node, trgt, nn, db);
 			},
 		}
 		command.save = {
@@ -2941,6 +2966,9 @@ export class Terminal {
 		};
 		terminalInterface.printStorage = function () {
 			this.parent.terminalActivator.saveFileManager.printStorage();
+		};
+		terminalInterface.testDiffMod = function (a,b,c,d) {
+			this.parent.terminalActivator.saveFileManager.appendEdge(a,b,c,d);
 		};
 		const init = function (trmnl) {
 			terminalInterface.parent = trmnl;

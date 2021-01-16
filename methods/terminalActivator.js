@@ -63,11 +63,10 @@ export class TerminalActivator {
 	}
 
 	restoreTerminal (index, saveFileCallbackObject){
-		console.log(saveFileCallbackObject);
+		console.log( index, saveFileCallbackObject);
 		this.terminals[index] = new Terminal(this.canvas, this.globalProps, this.nodeVerse.getDefaultNode(), this.selectColorScheme(index), this, index);
 		this.activateTerminal(index);
-		console.log(this);
-		console.log(this.activeTerminal)
+		this.terminals[index].exists = true;
 		this.terminalDimensions = this.activeTerminal.__calcLocAndDim();
 		this.activeTerminal.cache.rescaleCache();
 		this.terminals[index].__calcLocAndDim();
@@ -120,6 +119,7 @@ export class TerminalActivator {
 			if (terminalIndex === number.toString()){
 				this.activeTerminal = this.terminals[terminalIndex]
 				this.terminals[terminalIndex].isActiveTerminal = true;
+				this.activeTerminal.__calcLocAndDim();
 				return;
 			} else {
 				this.terminals[terminalIndex].isActiveTerminal = false;
@@ -171,7 +171,8 @@ export class TerminalActivator {
 			'help_count' : function (value) {
 				var number = value
 				if (typeof number !== 'number'){
-					number = parseInt(number);
+					
+					console.log(value);
 				}
 				if (Number.isNaN(number)){
 					console.log(`Cannot set UniversalValue p_ac_count to ${value}... ${value} is not a number`);
@@ -216,7 +217,6 @@ export class TerminalActivator {
 		var trmnlAct = this;
 		const keyRouter = {
 			'exists' : function (index) {
-				debugger;
 				if (trmnlAct.terminals[index] === undefined){
 					return false;
 				}
@@ -262,6 +262,9 @@ export class TerminalActivator {
 					if (currentNodeObject.name === '[EMPTY SLOT]'){
 						return accumulator
 					} else {
+						if (isNaN(parseInt(currentNodeObject.getTrueAddress()))){
+							debugger;
+						}
 						return accumulator + '#' + index + '@' + currentNodeObject.getTrueAddress();
 					}
 				}, "");

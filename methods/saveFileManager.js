@@ -5,11 +5,11 @@ export const saveFileManagerConstructor = function (activator) {
 		saveFileManager.activator = activator;
 		saveFileManager.api = activator.api;
 		saveFileManager.nodeVerse = activator.nodeVerse;
-		saveFileManager.stringToGraphConverter = constructGraphStringParser();
+		saveFileManager.stringToGraphConverter = constructGraphStringParser(saveFileManager.nodeVerse);
 		saveFileManager.convertToGraph = saveFileManager.stringToGraphConverter.convertToGraph
 		saveFileManager.parser = {};
 		saveFileManager.data = {
-			graphDiffString : "",
+			graphDiffString : "$0#0[()()]%",
 			p_ac_count : 0,
 			help_count : 0,
 			terminals : [{},{},{},{}],
@@ -54,8 +54,9 @@ export const saveFileManagerConstructor = function (activator) {
 				},
 			})
 		}, saveFileManager)
-
+		//debugger;
  		saveFileManager.initializeStorage();
+ 		//saveFileManager.appendEdge('0','0','0','0');
 	};
 	saveFileManager.initializeStorage = function () {
 		if (!localStorage.getItem('tony')){
@@ -76,7 +77,7 @@ export const saveFileManagerConstructor = function (activator) {
 		var help_count = this.data.help_count;
 		try {
 			localStorage.setItem('tony', 'tony is a word I often type');
-			localStorage.setItem('graphDiff', graphDiff);
+			localStorage.setItem('graphDiffString', graphDiff);
 			localStorage.setItem('p_ac_count', p_ac_count);
 			localStorage.setItem('help_count', help_count);
 			this.data.terminals[0].exists = true;
@@ -99,7 +100,8 @@ export const saveFileManagerConstructor = function (activator) {
 	saveFileManager.handleStartUp = function () {
 		this.data.terminals.forEach(function(terminalDataObj, index){
 		
-			if (terminalDataObj.exists){
+			if (terminalDataObj.exists && this.data.terminals[index].exists !== 'false'){
+				console.log(`terminal${index} does actually exist`);
 				this.loadTerminal(index, terminalDataObj)
 			}
 		},this)
@@ -205,6 +207,10 @@ export const saveFileManagerConstructor = function (activator) {
 					var currentRowCount = terminal.api.getRowCount();
 
 					var oldRows = cacheRestorationArray[1].split('\\PP');
+					console.log(`oldrows.lenght = ${oldRows.length}`)
+					console.log(`currentRowCount = ${currentRowCount}`)
+
+
 					
 
 					if (currentRowCount > prevRowCount){
@@ -247,7 +253,13 @@ export const saveFileManagerConstructor = function (activator) {
 
 	saveFileManager.loadFromStorage = function () {
 		try {
-			this.data.graphDiffString = localStorage.getItem('graphDiff');
+			if (localStorage.getItem('graphDiffString') !== null){
+				console.log(`doing this`)
+				this.data.graphDiffString = localStorage.getItem('graphDiffString');
+				this.convertToGraph(this.data.graphDiffString)
+			} else {
+				this.data.graphDiffString = "";
+			}
 			this.data.p_ac_count = localStorage.getItem('p_ac_count');
 			this.data.help_count = localStorage.getItem('help_count');
 
@@ -266,7 +278,7 @@ export const saveFileManagerConstructor = function (activator) {
 					this.data.terminals[index].exists = false;
 				} else {
 					console.log(`${existenceString} is type=${typeof existenceString}`)
-					debugger;
+				
 				}	
 			}, this)
 		} catch (error){
@@ -301,7 +313,10 @@ export const saveFileManagerConstructor = function (activator) {
 
 	saveFileManager.updateTerminalValue = function (key, value, index) {
 		if(Object.keys(this.data.terminals[index]).includes(key)){
-			if (key === 'name'){
+			if (key === 'name' || key === 'terminals'){
+				if (key === 'terminals'){
+					console.log(`WELL, THIS HAPPENED: `, this.data.terminals[index])
+				}
 				return;
 			}
 			if (key === 'exists' && value === true && index === 0){
@@ -416,7 +431,10 @@ export const saveFileManagerConstructor = function (activator) {
 				var line = `${key}... \n      mem_val: ${memVal}\n      stor_val: ${stoVal}\n`
 				message += line;
 			} else if (key === 'graphDiffString'){
-				console.log('graphDiffString' + 'NOT YET IMPLEMEMNTED IN HARVEST FUNC')
+				var memVal = this.data[key];
+				var stoVal = localStorage.getItem(key);
+				var line = `${key}... \n      mem_val: ${memVal}\n      stor_val: ${stoVal}\n`
+				message += line;
 			}
 		}, this)
 
@@ -473,14 +491,171 @@ export const saveFileManagerConstructor = function (activator) {
 
 		})
 	};
-	saveFileManager.appendEdge = function (truAddressA, truAddressB) {
-		
-		var truAddressA = 'fart'
-		if (this.data.graph) {
+	saveFileManager.appendEdge = function (truAddressA, truAddressB, nnTruAddress, dbTruAddress, directionalBool) {
+		var diffString = this.data.graphDiffString;
+		console.log(diffString)
 
+		const initializeNodeNetDiff = function (nodeNetTrueAddress) {
+			var string = `#${nodeNetTrueAddress}[()()]`;
+			return string;
+
+		};
+		const initializeDataBankDiff = function (dataBankTrueAddress) {
+			var string = `$${dataBankTrueAddress}%`;
+			return string;
+		};
+		const shouldAppendDBDiff = function (diffString, dataBankTrueAddress){
+			console.log(diffString)
+			console.log(diffString.includes(`$${dataBankTrueAddress}`))
+			return (!diffString.includes(`$${dataBankTrueAddress}`));
+		};
+		const shouldAppendNNDiff = function (diffString, nodeNetTrueAddress, dbTruAddress){
+			if (shouldAppendDBDiff(diffString, dbTruAddress)){
+				console.log(`earlyRet`)
+				return;
+			} else {
+				console.log('didnt early ret')
+				var startIndex = diffString.indexOf(`$${dbTruAddress}`);
+				var dbSubstring = diffString.substring(startIndex);
+				var endIndex = dbSubstring.indexOf(`%`);
+				dbSubstring = dbSubstring.substring(0, endIndex);
+				return (!dbSubstring.includes(`#${nodeNetTrueAddress}[`))
+			}
+		};
+		const appendDBDiff = function (diffString, dbTruAddress) {
+			return diffString + `$${dbTruAddress}%`
 		}
-		var x = this.data.graphDiffString
+		const appendNNDiff = function (diffString, nodeNetTrueAddress, dbTruAddress) {
+			var dbTruAddressString = dbTruAddress.toString();
+			var dbTruAddressLength = dbTruAddressString.length;
+			var insertIndex = diffString.indexOf(`$${dbTruAddressString}`) + (1 + dbTruAddressLength);
+			var preprendString = diffString.substring(0,insertIndex);
+			var postpendString = diffString.substring(insertIndex);
+			var returnString = preprendString + `#${nodeNetTrueAddress}[()()]` + postpendString;
+			return returnString;
+		};
+		const appendEdge = function (diffString, nodeTrueAddress, targetTrueAddress, nodeNetTrueAddress, dbTruAddress, isDirectionalEdge){
+			var dbTruAddressString = dbTruAddress.toString();
+			var dbTruAddressLength = dbTruAddressString.length;
+			var dbSubstringIndex = diffString.indexOf(`$${dbTruAddressString}`) + (1 + dbTruAddressLength);
+
+			var dbSubstring = diffString.substring(dbSubstringIndex);
+			dbSubstring = dbSubstring.substring(0, dbSubstring.indexOf('%'));
+
+			var nnTruAddressString = nodeNetTrueAddress.toString();
+			var nnTruAddressLength = nnTruAddressString.length;
+			var nodeNetSubstringIndex = dbSubstring.indexOf(`#${nnTruAddressString}[`);
+
+			var nnSubstring = dbSubstring.substring(nodeNetSubstringIndex);
+			nnSubstring = nnSubstring.substring(0, nnSubstring.indexOf(']'));
+
+			var edgeListStartIndex = nnSubstring.lastIndexOf('(') + 1;
+			var edgeListEndIndex = nnSubstring.lastIndexOf(')');
+			var edgeListSubstring = nnSubstring.substring(edgeListStartIndex, edgeListEndIndex);
+
+			var nodeTrueAddressString = nodeTrueAddress.toString();
+			var nodeTrueAddressLength = nodeTrueAddressString.length;
+
+			if (!isDirectionalEdge){
+				if (edgeListSubstring.includes(`a${nodeTrueAddress}=`)){
+					if (edgeListSubstring.includes(`a${nodeTrueAddress}={`)){
+						var targetListStartIndex = edgeListSubstring.indexOf(`a${nodeTrueAddress}={`) + 3 + nodeTrueAddressLength;
+						var targetListSubstring = edgeListSubstring.substring(targetListStartIndex)
+						var targetListEndIndex = targetListSubstring.indexOf('}')
+						targetListSubstring = targetListSubstring.substring(0, targetListEndIndex);
+						if (targetListSubstring.includes(targetTrueAddress)){
+							return;
+						} else {
+							var insertIndex = dbSubstringIndex + nodeNetSubstringIndex + edgeListStartIndex + + targetListStartIndex + targetListEndIndex;
+							var prependString = diffString.substring(0,insertIndex);
+							var postpendString = diffString.substring(insertIndex);
+							var appendThis = `,${targetTrueAddress}`
+							return prependString + appendThis + postpendString;
+						}
+					} else {
+						var targetListStartIndex = (edgeListSubstring.indexOf(`a${nodeTrueAddress}=`) + 2 + nodeTrueAddressLength);
+						var prevTarget = "";
+						for (var i = targetListStartIndex; i < edgeListSubstring.length ; i++){
+							var addressLetters = ['0','1','2','3','4','5','6','7','8','9']
+							if (addressLetters.includes(edgeListSubstring[i])){
+								prevTarget += edgeListSubstring[i];
+							} else {
+								break;
+							}
+						}
+						var prevTargetLength = prevTarget.length
+						var appendThis = `{${prevTarget},${targetTrueAddress}}`
+						var insertIndex = dbSubstringIndex + nodeNetSubstringIndex + edgeListStartIndex + targetListStartIndex;
+						var prependString = diffString.substring(0,insertIndex);
+						var postpendString = diffString.substring(insertIndex + prevTargetLength);
+						return prependString + appendThis + postpendString;
+					}
+				} else {
+					var insertIndex = dbSubstringIndex + nodeNetSubstringIndex + edgeListEndIndex;
+					var appendThis = `a${nodeTrueAddress}=${targetTrueAddress}`;
+					var prependString = diffString.substring(0,insertIndex);
+					var postpendString = diffString.substring(insertIndex);
+					return prependString + appendThis + postpendString;
+				}
+			} else {
+				if (edgeListSubstring.includes(`a${nodeTrueAddress}>`)){
+					if (edgeListSubstring.includes(`a${nodeTrueAddress}>{`)){
+						var targetListStartIndex = edgeListSubstring.indexOf(`a${nodeTrueAddress}>{`) + 3 + nodeTrueAddressLength;
+						var targetListSubstring = edgeListSubstring.substring(targetListStartIndex)
+						var targetListEndIndex = targetListSubstring.indexOf('}')
+						targetListSubstring = targetListSubstring.substring(0, targetListEndIndex);
+						if (targetListSubstring.includes(targetTrueAddress)){
+							return;
+						} else {
+							var insertIndex = dbSubstringIndex + nodeNetSubstringIndex + edgeListStartIndex + targetListStartIndex + targetListEndIndex;
+							var prependString = diffString.substring(0,insertIndex);
+							var postpendString = diffString.substring(insertIndex);
+							var appendThis = `,${targetTrueAddress}`
+							return prependString + appendThis + postpendString;
+						}
+					} else {
+							var targetListStartIndex = edgeListSubstring.indexOf(`a${nodeTrueAddress}>`) + 2 + nodeTrueAddressLength;
+						var prevTarget = "";
+						for (var i = targetListStartIndex; i < (edgeListSubstring.length) ; i++){
+							if (['0','1','2','3','4','5','6','7','8','9'].includes(edgeListSubstring[i])){
+								prevTarget += edgeListSubstring[i];
+							} else {
+								break;
+							}
+						}
+						var appendThis = `{${prevTarget},${targetTrueAddress}}`
+						var insertIndex = dbSubstringIndex + nodeNetSubstringIndex + edgeListStartIndex + targetListStartIndex;
+						var prependString = diffString.substring(0,insertIndex);
+						var postpendString = diffString.substring(insertIndex);
+						return prependString + appendThis + postpendString;
+					}
+				} else {
+					var insertIndex = dbSubstringIndex + nodeNetSubstringIndex + edgeListEndIndex;
+					var appendThis = `a${nodeTrueAddress}>${targetTrueAddress}`;
+					var prependString = diffString.substring(0,insertIndex);
+					var postpendString = diffString.substring(insertIndex);
+					return prependString + appendThis + postpendString;
+				}
+			}
+		};
+
+
+		if (shouldAppendDBDiff(diffString, dbTruAddress)){
+			diffString = appendDBDiff(diffString, dbTruAddress);
+			
+		};
+		
+		if (shouldAppendNNDiff(diffString, nnTruAddress, dbTruAddress)){
+			
+			diffString = appendNNDiff(diffString, nnTruAddress, dbTruAddress);
+		};
+		diffString = appendEdge(diffString, truAddressA, truAddressB, nnTruAddress, dbTruAddress, directionalBool)
+		console.log(diffString)
+		this.data.graphDiffString = diffString
+		localStorage.setItem('graphDiffString', diffString);
+		return diffString;
 	};
+
 	saveFileManager.deleteEdge = function () {
 
 	};

@@ -354,7 +354,7 @@ import { TerminalActivator } from './terminalActivator.js'
 			}
 		}
 
-		const sizeHandler = function () {
+		const sizeHandler = function (bool) {
 			if(devMode){
 				lacanvasa.width = window.innerWidth
 				lacanvasa.height = window.innerHeight
@@ -369,10 +369,11 @@ import { TerminalActivator } from './terminalActivator.js'
 			lacanvasa.style.fontkerning = 'none'
 			lacanvasa.style.fontfamily = 'terminalmonospace'
 			ctx.font = `${globalProps.letterSize}px terminalmonospace`;
-
-			terminalActivator.activeTerminal.setContext(ctx)
-			terminalActivator.activeTerminal.__calcLocAndDim();
-			terminalActivator.activeTerminal.cache.rescaleCache();
+			if (!bool){
+				terminalActivator.activeTerminal.setContext(ctx)
+				terminalActivator.activeTerminal.__calcLocAndDim();
+				terminalActivator.activeTerminal.cache.rescaleCache();
+			}
 		};
 
 	
@@ -390,11 +391,10 @@ import { TerminalActivator } from './terminalActivator.js'
 		var needToLoadPDF = false;
 		var needToScrubPDF = false;
 		var needToRefreshPDF = false;
-		const terminalActivator = new TerminalActivator(document.getElementById('the-canvas'), globalProps, buildNodeVerse());
+		var terminalActivator = {};
+		
 
-		window.addEventListener("keydown", terminalActivator.keyHandler);
-		window.addEventListener("click", terminalActivator.clickHandler.bind(terminalActivator));
-		window.addEventListener("mousemove", terminalActivator.mouseHandler.bind(terminalActivator));
+	
 
 		const mainLoop = function(terminal) {
 			cleanCanvasFrame(lacanvasa, ctx)
@@ -419,7 +419,12 @@ import { TerminalActivator } from './terminalActivator.js'
 			attachCanvases();
 
 			sizeCanvas(lacanvasa);
+			sizeHandler(true);
 		
+			terminalActivator = new TerminalActivator(document.getElementById('the-canvas'), globalProps, buildNodeVerse());
+			window.addEventListener("keydown", terminalActivator.keyHandler);
+			window.addEventListener("click", terminalActivator.clickHandler.bind(terminalActivator));
+			window.addEventListener("mousemove", terminalActivator.mouseHandler.bind(terminalActivator));
 			terminalActivator.activeTerminal.__calcLocAndDim();
 			terminalActivator.activeTerminal.cache.rescaleCache();
 			ctx.fillStyle = 'black'

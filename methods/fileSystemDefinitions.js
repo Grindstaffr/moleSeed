@@ -24,7 +24,7 @@ export class Node {
 		this.recruitable = false;
 		this.moveTriggeredFunctions = [];
 
-		this.trueAddress = this.getTrueAddress();
+		this.trueAddress = this.getTrueAddressfromFullAddress();
 		container[this.trueAddress] = this;
 
 		this.defaultMemory = 512;
@@ -94,6 +94,10 @@ export class Node {
 	}
 
 	getTrueAddress () {
+		return this.trueAddress
+	}
+
+	getTrueAddressfromFullAddress () {
 		var val_0 = this.address[4];
 		var val_1 = this.address[13];
 		var val_2 = this.address[9];
@@ -107,7 +111,8 @@ export class Node {
 		var decVal_2 = num_2 * 2401;
 
 		return (decVal_2 + decVal_1 + decVal_0 - 7821);
-	}
+	};
+
 	addMoveTriggeredFunction (func, shouldBind) {
 		if (!typeof func === 'function'){
 			return;
@@ -618,7 +623,6 @@ export class Program extends Node {
 			callback(program.program);
 		} else {
 			import(this.url).then(function(module){
-				console.log('fartcopter')
 				if (!module.program.methods || module.program.methods === undefined){
 					module.program.methods = {};
 				}
@@ -954,7 +958,7 @@ export class UniqueNode extends Node {
 };
 export class Malware extends UniqueNode {
 	constructor (container, name, address, url){
-		super(container, name);
+		super(container, name, address, url);
 		this.url = url;
 		this.name = name;
 		this.address = `FUCK YOURSELF`
@@ -973,6 +977,10 @@ export class Malware extends UniqueNode {
 			malware.exAnim(malware.api);
 			malware.methods.use.ex();
 		})
+	}
+
+	getTrueAddress () {
+		return this.trueAddress;
 	}
 
 	anim_stealMiddle (size) {
@@ -1008,8 +1016,8 @@ export class Worm extends Malware {
 
 
 export class Recruiter extends Malware {
-	constructor (container, name, url){
-		super(container, name, 'FUCKYOU',url);
+	constructor (container, name, address, url){
+		super(container, name, address ,url);
 		this.siloApi = {};
 		this.isSupported = false;
 		this.isArmed = false;

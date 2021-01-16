@@ -215,6 +215,7 @@ export const constructGraphStringParser = function (allNodes) {
 				}
 				if (this.state.collectingTargets && this.state.multipleTargets){
 					this.state.collectingTargets = false;
+					this.state.targetNodes.push(this.state.lastNode);
 					if (this.state.edgeMode){
 						this.addRemoveEdges();
 					} else if (this.state.nodeMode) {
