@@ -42,9 +42,14 @@ server.get('/', (req,res) => {
 })
 
 server.get('/defaultGraph', (req,res) => {
-	console.log(defaultGraph)
-	var defaultGraphtoRet = defaultGraph.getDefaultGraph()
-	res.send({ text: defaultGraphtoRet })
+	//console.log(req.headers['update-name'])
+
+	var updateName = req.headers['update-name'];
+	//console.log(defaultGraph)
+	console.log(updateName)
+	var defaultGraphtoRet = defaultGraph.getDefaultGraph(updateName)
+	console.log(defaultGraphtoRet)
+	res.send({ diff: defaultGraphtoRet })
 })
 
 server.get(`/libraryContents`, (req, res) => {

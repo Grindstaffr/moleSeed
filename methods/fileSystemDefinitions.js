@@ -108,6 +108,15 @@ export class Node {
 
 		return (decVal_2 + decVal_1 + decVal_0 - 7821);
 	}
+	addMoveTriggeredFunction (func, shouldBind) {
+		if (!typeof func === 'function'){
+			return;
+		}
+		if (shouldBind){
+			func = func.bind(this);
+		}
+		this.moveTriggeredFunctions.push(func);
+	}
 
 	triggerOnMove (context, lastNode) {
 		if (this.moveTriggeredFunctions.length === 0){
@@ -609,6 +618,7 @@ export class Program extends Node {
 			callback(program.program);
 		} else {
 			import(this.url).then(function(module){
+				console.log('fartcopter')
 				if (!module.program.methods || module.program.methods === undefined){
 					module.program.methods = {};
 				}

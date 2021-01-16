@@ -509,6 +509,7 @@ export class Terminal {
 			this.cache.rescaleCache();
 			console.log(this.rowCount + "<- rc    cr.l ->" + this.cache.currentRows.length)
 		}
+		console.log('calculatedlocanddim')
 		return [dim, this.leftLoc, this.topLoc, this.rowCount];
 	}
 
@@ -679,7 +680,9 @@ export class Terminal {
 			    	}
 			    },this)
 		    } else if (diff > 0){
+		    	debugger;
 		    	for (var i = diff; i < currentCacheLength; i ++){
+		    		console.log(i)
 		    		if (this.currentRows[i].length > 0){
 		    			newDisplay[(i)-(diff + 1)] = this.currentRows[i]
 		    		}
@@ -1016,6 +1019,7 @@ export class Terminal {
 			}
 			var row = new Array(this.inputRow.length).fill("");
 			string.split("").forEach(function(letter, index){
+				
 				row[index] = letter;
 			})
 			this.currentRows[rowNum] = row;
@@ -1107,7 +1111,11 @@ export class Terminal {
 						targetType = "node"
 					}
 				}
+				this.helpCount = parseInt(trmnl.api.getUniversalValue('help_count'));
 				this.helpCount = this.helpCount + 1;
+				trmnl.api.updateUniversalValue('help_count', this.helpCount)
+				console.log(this.helpCount)
+
 				if (Object.keys(this.helpMessages).includes(this.helpCount.toString())){
 					trmnl.api.composeText(this.helpMessages[this.helpCount], true, true, 0)
 					if (this.helpCount % 12 === 0){
@@ -1317,13 +1325,15 @@ export class Terminal {
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
 				var inst = this;
-				var program = trmnl.activeNode 
+				var program = trmnl.activeNode;
+				var address = trmnl.activeNode.getTrueAddress(); 
 				if (trmnl.accessibleNodes[programName].Type === 'malware'){
 					trmnl.accessibleNodes[programName].ex(trmnl);
 					return;
 				}
 				if (trmnl.activeNode.name !== programName){
-					program = trmnl.accessibleNodes[programName]
+					program = trmnl.accessibleNodes[programName];
+					address = program.getTrueAddress();
 				};
 				trmnl.api.log(` constructing interNode dataStream link...`)
 				if (!trmnl.programs[programName]){
@@ -1335,6 +1345,7 @@ export class Terminal {
 							return;
 						}
 						program.install(trmnl, function(){
+							program.trueAddress = address
 							trmnl.programs[program.name] = program;
 							//console.log('successfully Installed')
 							trmnl.api.reallocateMemoryOnActiveNode();
@@ -1654,12 +1665,48 @@ export class Terminal {
 				});
 			}
 		}
+		command.clr = {
+			name : 'clr',
+			rex : true,
+			isAVail : false,
+			isHidden : true,
+			syntax : 'clr',
+			ex : function () {
+				var cmd = this.parent;
+				var trmnl = cmd.parent;
+				trmnl.api.clearStorage();
+			},
+		}
+		command.pstor= {
+			name: 'pstor',
+			rex : true,
+			isAVail : false,
+			isHidden : true,
+			syntax : 'pstor',
+			ex : function () {
+				var cmd = this.parent;
+				var trmnl = cmd.parent;
+				trmnl.api.printStorage();
+			},
+		}
+		command.save = {
+			name : 'save',
+			rex : true,
+			isAVail : false,
+			isHidden : true,
+			syntax : 'save',
+			ex : function () {
+				var cmd = this.parent;
+				var trmnl = cmd.parent;
+				trmnl.api.saveTerminalStates();
+			}
+		}
 		command.sysmem = {
 			name : 'sysmem',
 			rex : true,
 			isAVail : false,
 			isHidden : true,
-			syntax : "get_system_memory",
+			syntax : "sysmem",
 			ex : function () {
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
@@ -2869,7 +2916,32 @@ export class Terminal {
 					}
 				}
 			}
-		}
+		};
+		terminalInterface.addRemoveEdge = function(nodeATrueAddress, nodeBTrueAddress, removeToggle, symmetricToggle){
+			this.parent.terminalActivator.addRemoveEdge(nodeATrueAddress, nodeBTrueAddress, removeToggle, symmetricToggle);
+		};
+		terminalInterface.addRemoveNode = function(nodeTrueAddress, removeToggle){
+			this.parent.terminalActivator.addRemoveNode(nodeTrueAddress, removeToggle);
+		};
+		terminalInterface.updateUniversalValue = function (key, value) {
+			this.parent.terminalActivator.updateUniversalValue(key, value);
+		};
+		terminalInterface.updateTerminalValue = function (key, value) {
+			this.parent.terminalActivator.updateTerminalValue(key, value, this.parent.index);
+		};
+		terminalInterface.getUniversalValue = function (key) {
+			return this.parent.terminalActivator.getUniversalValue(key)
+		};
+		terminalInterface.clearStorage = function () {
+			console.log('routing clearStorage to activator');
+			this.parent.terminalActivator.clearStorage();
+		};
+		terminalInterface.saveTerminalStates = function () {
+			this.parent.terminalActivator.saveFileManager.harvestAndSaveWorldState();
+		};
+		terminalInterface.printStorage = function () {
+			this.parent.terminalActivator.saveFileManager.printStorage();
+		};
 		const init = function (trmnl) {
 			terminalInterface.parent = trmnl;
 			terminalInterface.cache = trmnl.cache;

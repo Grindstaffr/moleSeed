@@ -37,7 +37,7 @@ export const compilerBuilder = function (parent) {
 				}.bind(compiler),
 			},
 			autoCorrectArgs : {
-				name : "input_auto_fill",
+				name : "autocorrect_terms",
 				memoryUsage : 416,
 				leniency : 10,
 				bypass: false,
@@ -189,7 +189,9 @@ export const compilerBuilder = function (parent) {
 						}.bind(compiler),
 					},
 					fuckUp : function (value) {
+						this.fuckUpCount =  parseInt(compiler.api.getUniversalValue('p_ac_count'));
 						this.fuckUpCount = this.fuckUpCount + 1;
+						compiler.api.updateUniversalValue('p_ac_count', this.fuckUpCount)
 						this.fuckUpIndex = this.fuckUpIndex + Math.floor(value);
 						if (Object.keys(this.fuckUpPrizeChart).includes(this.fuckUpCount.toString())){
 							return this.fuckUpPrizeChart[this.fuckUpCount.toString()]();
@@ -901,7 +903,15 @@ export const compilerBuilder = function (parent) {
 
 	compiler.fetchAddOns = function (){
 		return this.addOns;
-	}
+	};
+
+	compiler.verifyAddOnInstalled = function (addOnName){
+		if (Object.keys(this.addOns).includes(addOnName)){
+			return true;
+		} else {
+			return false;
+		}
+	};
 
 	compiler.fetchMemoryUsage = function () {
 		var memoryUsage = 0;

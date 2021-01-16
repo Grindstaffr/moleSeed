@@ -11,15 +11,17 @@ export class TerminalActivator {
 		this.nodeVerse = nodeVerse;
 		this.devMode = true;
 		this.shouldClick = true;
+		this.saveFileManager = saveFileManagerConstructor(this);
 		this.activeTerminal = {};
-		this.addTerminal();
-		this.activateTerminal(0);
+		this.saveFileManager.handleStartUp();
+
+		//this.addTerminal();
+		//this.activateTerminal(0);
+		console.log(this.activeTerminal)
 		this.terminalDimensions = this.activeTerminal.__calcLocAndDim();
 		this.activeTerminal.cache.rescaleCache();
 		this.keyHandler = this.keyHandler.bind(this)
 		this.animator = buildAnimations(canvas, this.selectColorScheme(0), this.terminalDimensions, globalProps.letterHeight);
-		this.saveFileManager = saveFileManagerConstructor(this);
-		
 	}
 	selectColorScheme (int) {
 		if (int > 3){
@@ -60,9 +62,28 @@ export class TerminalActivator {
 		return schemes[int]
 	}
 
-	addTerminal (node, saveFile) {
+	restoreTerminal (index, saveFileCallbackObject){
+		console.log(saveFileCallbackObject);
+		this.terminals[index] = new Terminal(this.canvas, this.globalProps, this.nodeVerse.getDefaultNode(), this.selectColorScheme(index), this, index);
+		this.activateTerminal(index);
+		console.log(this);
+		console.log(this.activeTerminal)
+		this.terminalDimensions = this.activeTerminal.__calcLocAndDim();
+		this.activeTerminal.cache.rescaleCache();
+		this.terminals[index].__calcLocAndDim();
+		var trmnlAct = this;
+		setTimeout(function(){saveFileCallbackObject.ex(trmnlAct.terminals[index]);})
+		
+
+		//saveFileCallbackObject.ex(this.terminals[index]);
+		console.log(this.terminals[index])
+	}
+
+	addTerminal (saveFileCallback) {
+		//needs to catch if node can handle novel terminal
+		console.log('old_rat... please implement catch for newRemote_sysmem>nodeDepth when instantiating new terminals')
 		if (!node){
-			node = this.nodeVerse.getDefaultNode();
+			var node = this.nodeVerse.getDefaultNode();
 		}
 		var currentTerminalCount = Object.keys(this.terminals).length
 		if (currentTerminalCount === 4){
@@ -72,6 +93,11 @@ export class TerminalActivator {
 		}
 		this.terminals[currentTerminalCount] = new Terminal(this.canvas, this.globalProps, node, this.selectColorScheme(currentTerminalCount), this, currentTerminalCount)
 		this.terminals[currentTerminalCount].api.reallocateMemoryOnActiveNode();
+
+		this.updateMultiterminalValues('help_count', this.saveFileManager.getUniversalValue('help_count'));
+		this.updateMultiterminalValues('p_ac_count', this.saveFileManager.getUniversalValue('p_ac_count'));
+		//need to mod savefil here
+		this.terminals[currentTerminalCount].exists = true;
 		return true;
 		
 	}
@@ -100,6 +126,196 @@ export class TerminalActivator {
 			}
 		}, this);
 		
+	}
+	addRemoveEdge (nodeATrueAddress, nodeBTrueAddress, removeToggle, symmetricToggle) {
+		this.saveFileManager.addRemoveEdge(nodeATrueAddress, nodeBTrueAddress, removeToggle, symmetricToggle);
+	}
+
+	addRemoveNode (nodeTrueAddress, removeToggle) {
+		this.saveFileManager.addRemoveNode(nodeTrueAddress, removeToggle);
+	}
+
+	getUniversalValue(key){
+		return this.saveFileManager.getUniversalValue(key)
+	}
+
+	updateUniversalValue (key, value) {
+		try {
+			this.saveFileManager.updateUniversalValue(key, value);
+		} catch (error) {
+			return;
+		}
+		this.updateMultiterminalValues(key, this.saveFileManager.getUniversalValue(key));
+	}
+
+	updateMultiterminalValues (key, value) {
+		var trmnlAct = this;
+		const keyUpdateRouter = {
+			'p_ac_count' : function (value) {
+				var number = value
+				if (typeof number !== 'number'){
+					number = parseInt(number);
+				}
+				if (Number.isNaN(number)){
+					console.log(`Cannot set UniversalValue p_ac_count to ${value}... ${value} is not a number`);
+					return;
+				}
+				Object.keys(trmnlAct.terminals).forEach(function(terminalIndex){
+					if (trmnlAct.terminals[terminalIndex].exists){
+						if (trmnlAct.terminals[terminalIndex].compiler.verifyAddOnInstalled('autoCorrectArgs')){
+							trmnlAct.terminals[terminalIndex].compiler.addOns.autoCorrectArgs.fuckUpObject.fuckUpCount = number
+						};
+					}
+				},trmnlAct)
+			},
+			'help_count' : function (value) {
+				var number = value
+				if (typeof number !== 'number'){
+					number = parseInt(number);
+				}
+				if (Number.isNaN(number)){
+					console.log(`Cannot set UniversalValue p_ac_count to ${value}... ${value} is not a number`);
+					return;
+				}
+				Object.keys(trmnlAct.terminals).forEach(function(terminalIndex){
+					if (trmnlAct.terminals[terminalIndex].exists){
+						if (trmnlAct.terminals[terminalIndex].command.help){
+							trmnlAct.terminals[terminalIndex].command.help.helpCount = number
+						};
+					}
+				},trmnlAct)
+
+			},
+		}
+		if (Object.keys(keyUpdateRouter).includes(key) && (typeof keyUpdateRouter[key] === 'function')){
+			keyUpdateRouter[key](value);
+		} else {
+			console.log(`cannot update ${key}... no such func in keyUpdateRouter (TerminalActivator)`)
+			return;
+		}
+	};
+
+
+	updateTerminalValue (key, value, index) {
+		try {
+			this.saveFileManager.updateTerminalValue(key, value)
+		} catch (error) {
+			return;
+		}
+		const keyUpdateRouter = {
+			exists : function () {},
+			prgmList : function () {},
+			storedNodes : function () {},
+			activeNode : function () {},
+			hist : function () {},
+			cache : function () {},
+		}
+	};
+
+	getTerminalValue (key, index) {
+		var trmnlAct = this;
+		const keyRouter = {
+			'exists' : function (index) {
+				debugger;
+				if (trmnlAct.terminals[index] === undefined){
+					return false;
+				}
+				if (trmnlAct.terminals[index].exists){
+					return true;
+				}
+				return false;
+			},
+			'prgmList' : function (index) {
+				if (!trmnlAct.terminals[index].exists){
+					console.log(`cannot retrieve property prgmList... terminal${index} does not exist`);
+					return;
+				}
+				var programs = trmnlAct.terminals[index].api.getPrograms()
+				if (programs === undefined){
+					console.log(`cannot retrieve property prgmList... trmnlAct.terminals[${index}].api.getPrograms() returned undefined`);
+					return;
+				}
+				var programNames = Object.keys(programs).filter(function(programName){
+					return programName !== 'runningPrograms';
+				},this);
+				var list = programNames.map(function(programName){
+					return programs[programName].trueAddress;
+				});
+				return list.reduce(function(accumulator, currentValue, index){
+					if (!currentValue){
+						return accumulator
+					}
+					return accumulator + '@' +  currentValue
+				}, "")
+			},
+			'storedNodes' : function (index) {
+				if (!trmnlAct.terminals[index].exists){
+					console.log(`cannot retrieve property storedNodes... terminal${index} does not exist`)
+					return "";
+				}
+				var programs = trmnlAct.terminals[index].api.getPrograms()
+				if (!Object.keys(programs).includes(`rucksack.ext`)){
+					console.log(`cannot retrieve property storedNodes... terminal${index} has no rucksack`)
+					return "";
+				}
+				return programs[`rucksack.ext`].data.storedNodes.reduce(function(accumulator, currentNodeObject, index){
+					if (currentNodeObject.name === '[EMPTY SLOT]'){
+						return accumulator
+					} else {
+						return accumulator + '#' + index + '@' + currentNodeObject.getTrueAddress();
+					}
+				}, "");
+			},
+			'activeNode' : function (index) {
+				if (!trmnlAct.terminals[index].exists){
+					console.log(`cannot retrieve property ${activeNode}... terminal${index} does not exist`)
+				}
+
+				return trmnlAct.terminals[index].activeNode.getTrueAddress();
+			},
+			'hist' : function (index) {
+				if (!trmnlAct.terminals[index].exists){
+					console.log(`cannot retrieve property ${hist}... terminal${index} does not exist`)
+				}
+
+				return trmnlAct.terminals[index].command.mv.prevNodes.reduce(function(accumulator, prevNode, index, arr){
+					if (prevNode && prevNode.getTrueAddress !== undefined){
+						if (index === arr.length -1){
+							return accumulator + prevNode.getTrueAddress()
+						}
+						return accumulator + prevNode.getTrueAddress() + ','
+					} else {
+						return accumulator
+					}
+				}, "")
+			},
+			'cache' : function (index) {
+				if (!trmnlAct.terminals[index].exists){
+					console.log(`cannot retrieve property ${cache}... terminal${index} does not exist`)
+				}
+				var rowCount = trmnlAct.terminals[index].api.getRowCount();
+				var currentRows = trmnlAct.terminals[index].cache.currentRows
+
+				return currentRows.reduce(function(accumulator, currentRow){
+					var rowAsString = currentRow.reduce(function(accumulator, currentLetter){
+						return accumulator + currentLetter;
+					}, "");
+					return accumulator + rowAsString + '\\PP';
+				},`${rowCount}%`)
+			},
+		}
+		if (Object.keys(keyRouter).includes(key)){
+			return keyRouter[key](index);
+		} else {
+			console.log('key mismatch (TerminalActivator.getTerminalValue)');
+			return;
+		}
+	}
+
+	clearStorage () {
+		console.log('routing clearStorage to saveFileManager')
+		this.saveFileManager.clearStorage();
+		this.saveFileManager.initializeStorage();
 	}
 
 	draw () {

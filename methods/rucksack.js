@@ -75,6 +75,13 @@ export const program = {
 			}, this)
 			return output;
 		},
+		api_injectNode : function (index, node){
+			if (!node.name){
+				console.log('cannot inject a nameless node')
+				return;
+			}
+			this.data.storedNodes[index] = node;
+		},
 		api_getEmptyRucksackSlot : function () {
 			var output = this.data.storedNodes.findIndex(function(storedNode){
 				return (storedNode.name === '[EMPTY SLOT]') 
@@ -212,9 +219,6 @@ export const program = {
 		terminal.programs[this.name] = this;
 		this.api = terminal.api;
 		this.methods.getMemoryUsage = this.methods.getMemoryUsage.bind(this);
-		if (callback){
-			callback(this.installData);
-		}
 		this.isInstalled = true;
 		this.data.settings = this.settings
 		this.methods.data = this.data;
@@ -224,17 +228,25 @@ export const program = {
 		this.installData.grab.ex = this.installData.grab.ex.bind(this);
 		this.installData.rummage.ex = this.installData.rummage.ex.bind(this);
 		this.installData.ditch.ex = this.installData.ditch.ex.bind(this);
+
 		this.installData.api_triggerReDraw = this.installData.api_triggerReDraw.bind(this);
 		this.installData.api_checkRucksackRunning = this.installData.api_checkRucksackRunning.bind(this);
 		this.installData.api_getStoredNodes = this.installData.api_getStoredNodes.bind(this);
 		this.installData.api_getEmptyRucksackSlot = this.installData.api_getEmptyRucksackSlot.bind(this);
+		this.installData.api_injectNode = this.installData.api_injectNode.bind(this);
+
 		this.api.addCommand(this.installData.grab);
 		this.api.addCommand(this.installData.rummage);
 		this.api.addInterfaceFunction(this.installData.api_triggerReDraw,`reRenderRucksack`);
 		this.api.addInterfaceFunction(this.installData.api_checkRucksackRunning, `checkRucksackRunning`)
 		this.api.addInterfaceFunction(this.installData.api_getStoredNodes, `getRucksackContents`)
 		this.api.addInterfaceFunction(this.installData.api_getEmptyRucksackSlot, `getFirstOpenRucksackSlot`);
+		this.api.addInterfaceFunction(this.installData.api_injectNode, 'injectNodeIntoRucksack')
 		this.uninstall = this.uninstall.bind(this);
+		
+		if (callback){
+			callback(this.installData);
+		}
 	},
 	uninstall : function () {
 		if (Object.keys(this.api.getPrograms()).includes('silo.ext')){

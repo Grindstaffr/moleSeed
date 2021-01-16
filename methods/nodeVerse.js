@@ -14,8 +14,17 @@ export const bigBang = function () {
 	nodeVerse.router = {};
 
 	nodeVerse.testGraphStringParser = function () {
+		console.log(this)
 		var testString = `$0#0[(a20)(a0=20)]%`
-		this.graphCompiler.convertToGraph(testString);
+		this.updateGraph({ 'update-name' : 'tony'});
+	}
+
+	nodeVerse.updateGraph = function (params) {
+		var nv = this;
+		this.retrieveServerSideDiff(params, function(diff){
+			console.log(diff)
+			nv.graphCompiler.convertToGraph(diff)
+		})
 	}
 
 	nodeVerse.getDatabank = function (trueAddress){
@@ -45,15 +54,30 @@ export const bigBang = function () {
 		}
 	}
 
-	nodeVerse.retrieveServerSideDiff = function () {
-		let defaultGraphRequest = new Request('/defaultGraph');
-		fetch(defaultGraphRequest).then(function(response) {
+	nodeVerse.retrieveServerSideDiff = function (params, callback) {
+		var reqHeaders = new Headers();
+		if (params && typeof params === 'object'){
+			Object.keys(params).forEach(function(key){
+				reqHeaders.append(key, params[key])
+			},this)
+		};
+		var init = {
+			headers : reqHeaders,
+			method : 'GET'
+		}
+		let graphDiffRequest = new Request('/defaultGraph', init);
+		fetch(graphDiffRequest).then(function(response) {
 			if (!response.ok) {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
 			return response.json();
 		})
 		.then(function(response) {
+			if (callback){
+				if (typeof callback === 'function'){
+					callback(response.diff)
+				}
+			}
 			console.log(response)
 		}).catch(function(err){
 			console.log(err);
@@ -417,8 +441,17 @@ export const bigBang = function () {
 
 	nodeVerse.databanks._NationalPatriotServerSolutions = new Databank(nodeVerse.allDataBanks,`_NationalPatriotServerSolutions`)
 
-
-	//init();
+	const init = function () {
+		Object.keys(nodeVerse).forEach(function(key){
+			if (typeof nodeVerse[key] === 'function'){
+				if (key === 'testGraphStringParser'){
+					console.log(key)
+				}
+				nodeVerse[key] = nodeVerse[key].bind(nodeVerse);
+			}
+		})
+	};
+	init();
 	nodeVerse.testGraphStringParser();
 	return nodeVerse
 
