@@ -1063,6 +1063,19 @@ export class Terminal {
 				this.currentRows[i] = row;
 			}
 		}
+		cache.retrieveHiddenRows = function(){
+			var numberOfRows = this.reservedRows + 2;
+			var rows = [];
+			for (var i = this.previousRows.length - 1; i >= (this.previousRows.length - (numberOfRows)); i --){
+				rows.push(this.previousRows[i]);
+			}
+			console.log(this.previousRows);
+			var output = {
+				rowCount : numberOfRows,
+				rows : rows,
+			}
+			return output;
+		}
 		cache.reserveRows = function (numberOfRows){
 			if (numberOfRows < this.reservedRows){
 				for (var i = this.reservedRows - 2; i >= numberOfRows; i--){
@@ -2614,6 +2627,9 @@ export class Terminal {
 		terminalInterface.writeToGivenRow = function (string, rowIndex){
 			this.cache.writeToGivenRow(string,rowIndex);
 		};
+		terminalInterface.getHiddenRows = function (){
+			return this.cache.retrieveHiddenRows();
+		}
 		terminalInterface.writeToCoordinate = function (string, rowIndex, columnIndex) {
 			if (string.length > 1){
 				this.command.error.ex(`Can only write one character per cell`);
@@ -2970,6 +2986,9 @@ export class Terminal {
 		terminalInterface.testDiffMod = function (a,b,c,d) {
 			this.parent.terminalActivator.saveFileManager.appendEdge(a,b,c,d);
 		};
+		terminalInterface.handleNodeAttachment = function (nodeA, nodeB) {
+			this.parent.terminalActivator.handleAttachingNodes(nodeA.getTrueAddress(), nodeB.getTrueAddress());
+		}
 		const init = function (trmnl) {
 			terminalInterface.parent = trmnl;
 			terminalInterface.cache = trmnl.cache;

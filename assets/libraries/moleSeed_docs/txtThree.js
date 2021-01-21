@@ -1,5 +1,6 @@
 export const doc = {
 	name : `work`,
+	address : 'l11',
 	text : `I have lots of work to do.
 	\\n I have lots of work
 	\\n I have so much work to do.

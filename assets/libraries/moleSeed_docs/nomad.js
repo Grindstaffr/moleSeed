@@ -1,5 +1,6 @@
 export const doc = {
 	name : `nomad`,
+	address : 'l5',
 	text : `
 	\\n
 	\\n --- Quick Start Guide for nomad.mole  --- 

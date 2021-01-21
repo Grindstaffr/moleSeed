@@ -1,5 +1,6 @@
 export const doc = {
 	name : `crawler`,
+	address : 'l2',
 	text : ` --- crawler.mse v.0.8.03  ---
 	\\n -- panmi --
 	\\n 

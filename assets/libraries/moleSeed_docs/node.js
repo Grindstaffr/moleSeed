@@ -1,5 +1,6 @@
 export const doc = {
 	name : `nodes`,
+    address : 'l4',
 	text : `--- User documentation for moleSeed ---
 	\\n   - Description and Classification of Nodes - 
     \\n   -- MX --

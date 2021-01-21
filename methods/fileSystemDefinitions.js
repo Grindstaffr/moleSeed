@@ -386,7 +386,7 @@ export class Library extends Node {
 		if (this.checkCensorStatus(fileName)){
 			return { type : 'null'};
 		}
-		const file = new LibraryFile(`${fileName}`, `xx` ,`../assets/libraries/${this.name}/${this.repository[fileName].url}`)
+		const file = new LibraryFile(this._meta._meta._meta.allNodes,`${fileName}`, `xx` ,`../assets/libraries/${this.name}/${this.repository[fileName].url}`)
 		this.attach(file)
 		return file
 	}
@@ -408,6 +408,9 @@ export class Library extends Node {
 		const repoRequest = new Request('/libraryContents', requestObject)
 		
 		fetch(repoRequest).then(function(response){
+			if (!response.ok){
+				throw new Error(response.status)
+			}
 			response.json().then(function(data){
 				library.files = data;
 				library.isLoaded = true;
@@ -505,11 +508,13 @@ export class Library extends Node {
 		this.files.forEach(function(fileName, index){
 			import(`../assets/libraries/${library.name}/${fileName}`).then(function(module){
 				library.repository[module.doc.name] = module.doc;
-				library.repository[module.doc.name].url = fileName
+				library.repository[module.doc.name].url = fileName;
 				if (index === library.files.length -1){
 					library.lastFileLoaded = true;
 					library.assemblerTrigger();
 				}
+			}).catch(function(err){
+				console.log(err);
 			})
 		})
 	}
@@ -1392,12 +1397,38 @@ export class TextDoc extends Readable {
 }
 
 export class LibraryFile extends TextDoc {
-	constructor (container, name, address, url) {
+	constructor (container, name, address, url, truAddress) {
 		super(container, name, address, url);
 		this.address = 'Non_Addressable_Nodelet';
 		this.type = `library_file`;
 		this.isNodelet = true;
+		if (!truAddress){
+			this.setTrueAddress();
+		} else {
+			this.trueAddress = truAddress;
+		}
 	}
+	static lastAddress = -1;
+	setTrueAddress () {
+		var lf = this;
+		var reqHeaders = new Headers();
+		reqHeaders.append('library-url', lf.location);
+		var init = {
+			headers : reqHeaders,
+			method : 'GET',
+		}
+		let addressRequest = new Request('/libraryFileTrueAddress', init);
+		fetch(addressRequest).then(function(response){
+			if (!response.ok){
+				throw new Error(`HTTP error! status: ${response.status}`)
+			}
+			return response.json();
+		}).then(function(response){
+			var address = response.truAddress;
+			lf.trueAddress = address;
+			console.log(`set ${lf.name} truaddress to ${address}`)
+		})
+	} 
 }
 
 export class InvisibleNode extends Node {
@@ -1652,6 +1683,7 @@ export class Databank {
 		Object.defineProperty(nodeNet, '_meta', {
 			value : this,
 			writable : false,
+			configurable : true,
 		})
 		this.nodeNets[nodeNet.name] = nodeNet;
 		this._meta.router[this.address][nodeNet.address] = {};
@@ -1687,6 +1719,13 @@ export class NodeNet {
 		return this.accessPoints;
 	}
 
+	deleteNode(nodeName){
+		var node = this[nodeName]
+		delete node._meta
+		delete this[nodeName]
+		delete this._meta._meta.router[this._meta.address][this.address][node.address];
+	}
+
 	addNode(node){
 		if (node.Type === `malware`){
 			return;
@@ -1695,6 +1734,7 @@ export class NodeNet {
 		Object.defineProperty(node, '_meta', {
 			value : this,
 			writable : false,
+			configurable : true,
 		})
 		//node._meta = this;
 		this[node.name] = node
@@ -1709,6 +1749,7 @@ export class NodeNet {
 		Object.defineProperty(node, '_meta', {
 			value : this,
 			writable : false,
+			configurable : true,
 		})
 		this._meta._meta.router[this._meta.address][this.address][node.address] = node;
 

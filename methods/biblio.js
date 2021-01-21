@@ -8,12 +8,8 @@ export const program = {
 		library : {},
 		message : "",
 		requestedFile : {type : 'null'},
-		shortCutTable : {
-
-		},
-		pages : {
-
-		},
+		shortCutTable : {},
+		pages : {},
 		currentPage : 0,
 		pseudonyms : {
 			search : ['-s','sea', 'lookfor', 'find'],
@@ -21,7 +17,7 @@ export const program = {
 			next : ['>','+page', '-n'],
 			prev : ['<','-page', '-p'],
 			request : ['-r', 'req','get','fetch', 'retrieve'],
-		}
+		},
 	},
 	settings : {
 		isRunning : false,
@@ -198,7 +194,7 @@ export const program = {
 					this.methods.changeLibraryMessage(`${fileArray.length} files found matching search term "${text}"`);
 					this.methods.resetDisplaySettings();
 					this.settings.displayPageOfFiles = true;
-				}
+				},
 			},
 			help : {
 				name : "help",
@@ -225,17 +221,17 @@ export const program = {
 						this.methods.changeLibraryMessage(`library cannot accept commands (performing another command)`)
 						return;
 					}
-					var file = this.data.library.getFile(text)
+					if (Object.keys(this.data.shortCutTable).indexOf(requestFile) !== -1){
+						requestFile = this.data.shortCutTable[requestFile];
+					}
+					var file = this.data.library.getFile(requestFile);
 					if (file.type === 'null'){
 						this.methods.changeLibraryMessage(`No file found with name ${text}`)
 						return;
 					}
 
-					if (Object.keys(this.data.shortCutTable).indexOf(requestFile) !== -1){
-						requestFile = this.data.shortCutTable[requestFile];
-					}
 
-					this.data.requestedFile = this.data.library.getFile(requestFile);
+					this.data.requestedFile = file;
 				
 					this.methods.resetDisplaySettings();
 					this.settings.displayReqFile = true;
@@ -411,10 +407,6 @@ export const program = {
 				biblio.wantsMoreCommands = false;
 			},
 		},
-		
-
-
-
 	},
 	install : function (trmnl, callback) {
 		this.trmnl = trmnl;

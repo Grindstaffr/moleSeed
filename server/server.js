@@ -10,10 +10,32 @@ console.log(`dirname ${path.dirname(moduleURL.pathname)}`);
 const __dirname = path.dirname(moduleURL.pathname);
 */
 const defaultGraphModule = require('./methods/defaultGraph.js');
-const defaultGraph = defaultGraphModule.defaultGraph
+const defaultGraph = defaultGraphModule.defaultGraph;
+//const cc = require('./methods/cardCatalogue');
+const cardCatalogue = {
+	addresses : {},
+	addressCount : 0,
+};
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+
+const init = function () {
+	fs.readdir(__dirname +` /../assets/libraries`, function(err, files){
+		files.forEach(function(fileName){
+			fs.readdir(__dirname + `/../assets/libraries/${fileName}`, function(err, libraryFiles){
+				libraryFiles.forEach(function(lFileName){
+					if (Object.values(cardCatalogue).includes(`../assets/libraries/${fileName}/${lFileName}`)){
+						return;
+					}
+					cardCatalogue.addresses[`l${cardCatalogue.addressCount}`] = `../assets/libraries/${fileName}/${lFileName}`
+					cardCatalogue.addressCount += 1;
+				}, this)
+			})
+		}, this)
+	});	
+}
 //const graphBuilder = require ('./methods/graphBuilder.js');
 //const allNodesConstructor = require ('./methods/nodeConstructor.js');
 
@@ -55,14 +77,108 @@ server.get('/defaultGraph', (req,res) => {
 server.get(`/libraryContents`, (req, res) => {
 	fs.readdir( __dirname + `/../assets/libraries/${req.headers[`library-name`]}`, function(err,files){
 		res.send(files)	})
-})
+});
+
+server.get(`/libraryFileURL`, (req, res) => {
+	console.log(`endpoint :: /libraryFileURL`)
+	var libraryDataObject = {
+		addresses : {},
+		addressCount : 0,
+	};
+	var output = {
+		lfurl : ''
+	};
+	if (cardCatalogue.addressCount >= 0){
+		libraryDataObject = cardCatalogue;
+	}
+
+	console.log(`looking for ${req.headers['library-address']} in ${Object.keys(cardCatalogue.addresses)}`)
+	
+	if (Object.keys(cardCatalogue.addresses).includes(req.headers[`library-address`])){
+		output.lfurl = cardCatalogue.addresses[req.headers[`library-address`]]
+		res.send(output);
+		return;
+	}
+
+
+	fs.readdir(__dirname +` /../assets/libraries`, function(err, files){
+		console.log(files)
+		files.forEach(function(fileName){
+			fs.readdir(__dirname + `/../assets/libraries/${fileName}`, function(err, libraryFiles){
+				console.log(libraryFiles)
+				libraryFiles.forEach(function(lFileName){
+					if (Object.values(cardCatalogue).includes(`../assets/libraries/${fileName}/${lFileName}`)){
+						return;
+					}
+					cardCatalogue.addresses[`l${cardCatalogue.addressCount}`] = `../assets/libraries/${fileName}/${lFileName}`
+					cardCatalogue.addressCount += 1;
+				}, this)
+				output.lfurl = cardCatalogue.addresses[req.headers[`library-address`]]
+				console.log(output)
+				res.send(output);
+				console.log('ccAC : ' + cardCatalogue.addressCount)
+			})
+		}, this)
+	});
+});
+
+server.get(`/libraryFileTrueAddress`, (req, res) => {
+	console.log(`endpoint :: /libraryFileTrueAddress`)
+	var libraryDataObject = {
+		addresses : {},
+		addressCount : 0,
+	};
+	var output = {
+		truAddress : ''
+	};
+	if (cardCatalogue.addressCount >= 0){
+		libraryDataObject = cardCatalogue;
+	}
+	console.log(`reqHeaders:: ${req.headers[`library-url`]}`)
+
+	if (Object.values(cardCatalogue.addresses).includes(req.headers[`library-url`])){
+		Object.keys(cardCatalogue.addresses).forEach(function(truAddress){
+			if (output.truAddress.length > 1){
+				return;
+			}
+			if (cardCatalogue.addresses[truAddress] === req.headers['library-url']){
+				output.truAddress += truAddress;
+			}
+		}, this)
+		if (output.truAddress === 'l'){
+			output.truAddress === 'undefined'
+		}
+		res.send(output);
+		return;
+	}
+	fs.readdir(__dirname +` /../assets/libraries`, function(err, files){
+		console.log(files)
+		files.forEach(function(fileName){
+			fs.readdir(__dirname + `/../assets/libraries/${fileName}`, function(err, libraryFiles){
+				libraryFiles.forEach(function(lFileName){
+					if (Object.values(cardCatalogue).includes(`../assets/libraries/${fileName}/${lFileName}`)){
+						return;
+					}
+					cardCatalogue.addresses[`l${cardCatalogue.addressCount}`] = `../assets/libraries/${fileName}/${lFileName}`
+					if (cardCatalogue.addresses[`l${cardCatalogue.addressCount}`] === req.headers['library-url']){
+						output.truAddress = `l${cardCatalogue.addressCount}`;
+					}
+					cardCatalogue.addressCount += 1;
+				}, this)
+				console.log(output)
+				res.send(output);
+				console.log('ccAC : ' + cardCatalogue.addressCount)
+			})
+		}, this)
+	});
+});
 
 server.post(`/rex`, (req,res) => {
 	//graphBuilder.sayHello();
 	res.send({node : 'donkey'})
 })
 
-
+init();
 
 
 server.listen(port, () => {

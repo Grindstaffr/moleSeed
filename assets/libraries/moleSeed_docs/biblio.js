@@ -1,5 +1,6 @@
 export const doc = {
 	name : `biblio`,
+	address : 'l1',
 	text : `
 	\\n --- biblio v 0.16.42 --- 
 	\\n -- panmi --

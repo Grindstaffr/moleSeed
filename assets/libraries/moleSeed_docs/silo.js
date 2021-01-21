@@ -1,5 +1,6 @@
 export const doc = {
 	name : `silo`,
+	address : 'l8',
 	text : ` --- silo.ext v.1.04.08 ---
 	\\n -- MX --
 	\\n

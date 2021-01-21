@@ -1,5 +1,6 @@
 export const doc = {
 	name : `rucksack`,
+	address : 'l7',
 	text : `\\n rucksack.ext v.0.6.14 
 	\\n  -- panmi --
 	\\n  

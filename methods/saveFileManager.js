@@ -159,11 +159,17 @@ export const saveFileManagerConstructor = function (activator) {
 						var injectIndex = storedNodeArr[0];
 						var nodeTrueAddress = storedNodeArr[1];
 
-						var node = funcObj.nodeVerse.getNode(nodeTrueAddress);
+						var node = funcObj.nodeVerse.getNode(nodeTrueAddress, function (node) {
+							trmnl.api.injectNodeIntoRucksack(injectIndex, node);
+						});
 
 						if (trmnl.api.injectNodeIntoRucksack === undefined){
 							console.log(trmnl.api)
 							console.log('saveFile error: tried to inject nodes to a terminal without rucksack... harvester problem? prgms 1st in queue...')
+							return;
+						}
+						if (node === undefined){
+							console.log(`awaiting nodeCreation`)
 							return;
 						}
 						trmnl.api.injectNodeIntoRucksack(injectIndex, node);
@@ -655,6 +661,8 @@ export const saveFileManagerConstructor = function (activator) {
 		localStorage.setItem('graphDiffString', diffString);
 		return diffString;
 	};
+
+
 
 	saveFileManager.deleteEdge = function () {
 

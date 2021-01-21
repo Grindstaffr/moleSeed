@@ -5,7 +5,7 @@ export const nodeAttachmentHandlerConstructor = function (nodeVerse, saveFileMan
 		nodeAttachmentHandler.saveFileManager = saveFileManager;
 	};
 
-	attachNodes = function (nodeTrueAddressA, nodeTrueAddressB) {
+	nodeAttachmentHandler.attachNodes = function (nodeTrueAddressA, nodeTrueAddressB) {
 		var nodeA = this.nodeVerse.getNode(nodeTrueAddressA);
 		if (!nodeA || !nodeA.name){
 			return;
@@ -28,7 +28,7 @@ export const nodeAttachmentHandlerConstructor = function (nodeVerse, saveFileMan
 		nodeA.attach(nodeB)
 	};
 
-	attachNodeTo = function (nodeTrueAddressA, nodeTrueAddressB){
+	nodeAttachmentHandler.attachNodeTo = function (nodeTrueAddressA, nodeTrueAddressB){
 		var nodeA = this.nodeVerse.getNode(nodeTrueAddressA);
 		if (!nodeA || !nodeA.name){
 			return;

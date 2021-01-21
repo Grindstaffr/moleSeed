@@ -1,4 +1,4 @@
-import { Directory, Library, Hardware, QRig, Malware, Recruiter, Worm, initializerAlpha, Node, Pdf, Asset, Readable, TerminalStoryPiece, TextDoc, Mole, Program, UniqueNode, Databank, NodeNet } from './fileSystemDefinitions.js'
+import { Directory, LibraryFile, Library, Hardware, QRig, Malware, Recruiter, Worm, initializerAlpha, Node, Pdf, Asset, Readable, TerminalStoryPiece, TextDoc, Mole, Program, UniqueNode, Databank, NodeNet } from './fileSystemDefinitions.js'
 import { constructGraphStringParser } from './stringToGraphConverter.js'
 
 export const bigBang = function () {
@@ -16,14 +16,15 @@ export const bigBang = function () {
 	nodeVerse.testGraphStringParser = function () {
 		console.log(this)
 		var testString = `$0#0[(a20)(a0=20)]%`
-		this.updateGraph({ 'update-name' : 'tony'});
+		this.updateGraph({ 'update-name' : 'tony'}, testString);
 	}
 
-	nodeVerse.updateGraph = function (params) {
+	nodeVerse.updateGraph = function (params, diffString) {
 		var nv = this;
 		this.retrieveServerSideDiff(params, function(diff){
 			console.log(diff)
-			nv.graphCompiler.convertToGraph(diff)
+			var newDiff = nv.graphCompiler.concatToString(diff, diffString);
+			console.log(newDiff);
 		})
 	}
 
@@ -45,11 +46,45 @@ export const bigBang = function () {
 		}
 	}
 
-	nodeVerse.getNode = function (trueAddress){
+	nodeVerse.getNode = function (trueAddress, callback){
+		var nv = this;
+		const tAdd = trueAddress
 		if (this.allNodes[trueAddress]){
 			return this.allNodes[trueAddress];
+		} else if (trueAddress[0] === 'l') {
+			var reqHeaders = new Headers();
+			reqHeaders.append('library-address',  trueAddress);
+			var init = {
+				headers : reqHeaders,
+				method : 'GET',
+			}
+			let urlRequest = new Request('/libraryFileURL', init);
+			fetch(urlRequest).then(function(response){
+				if (!response.ok){
+					throw new Error((`HTTP error! status: ${response.status}`))
+				}
+				return response.json()
+			}).then(function(response){
+				var url = response.lfurl;
+				console.log(response.lfurl)
+				import(url).then(function(module){
+					var name = module.doc.name
+					var newNode = new LibraryFile(nv.allNodes, name, 'xx', url, tAdd);
+					console.log('A');
+					if (callback){
+						console.log('B');
+						callback(newNode);
+					}
+					console.log('C');
+					return newNode;
+				}).catch(function (err){
+					throw new Error(err)
+				})
+			}).catch(function (err){
+				throw new Error(err)
+			})
 		} else {
-			console.log(`No node found with trueAddress = ${trueAddress}`);
+			console.log(`No node found with trueAddress = ${tAdd}`);
 			return undefined;
 		}
 	}

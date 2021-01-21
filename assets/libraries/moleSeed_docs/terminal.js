@@ -1,5 +1,6 @@
 export const doc = {
 	name : "terminal",
+	address : 'l9',
 	text : ` --- User documentation for moleSeed ---
 	\\n   - Description and Functioning of moleSeed Terminal -
 	\\n   -- by system_ludd --

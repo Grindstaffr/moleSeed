@@ -395,7 +395,7 @@ export const compilerBuilder = function (parent) {
 						var acceptableTerms = []
 						var autoCorrect = this.addOns.autoCorrectArgs;
 						syntaxOptions.forEach(function(type){
-							if (type === 'number'){
+							if (type === 'number' || type === 'text'){
 								acceptableTerms = acceptableTerms.concat([userTerm])
 								return;
 							}
@@ -505,7 +505,9 @@ export const compilerBuilder = function (parent) {
 							}
 						})
 					
-						var newTerm = ""
+						var newTerm = "";
+						var perf = false;
+						var goodTermA = '';
 						newTerm = termRankings.find(function(goodTermArray){
 							var goodTerm = goodTermArray[0];
 							var score = goodTermArray[1];
@@ -513,6 +515,8 @@ export const compilerBuilder = function (parent) {
 								return;
 							}
 							if (userTerm === goodTerm){
+								perf = true;
+								goodTermA = goodTerm;
 								return true;
 							};
 							if (goodTerm.split(".")[0] === userTerm){
@@ -535,6 +539,10 @@ export const compilerBuilder = function (parent) {
 							return false;
 
 						})
+						if (perf){
+							return;
+						}
+
 						if (newTerm !== undefined){
 							if (newTerm[1] < autoCorrect.leniency && (newTerm[1] > 0)){
 				

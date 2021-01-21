@@ -1,5 +1,6 @@
 export const doc = {
 	name : `moleSeed`,
+	address : 'l3',
 	text : ` --- User Documentation for moleSeed ---
 	\\n   - Summary of System Architecture and Design Philosophy - 
 	\\n   -- MX --

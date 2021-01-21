@@ -1,6 +1,7 @@
 import { Terminal } from './terminalClass.js'
 import { buildAnimations } from './fullScreenAnimations.js'
 import { saveFileManagerConstructor } from './saveFileManager.js'
+import {nodeAttachmentHandlerConstructor } from './nodeAttachmentHandler.js'
 
 export class TerminalActivator {
 	constructor (canvas, globalProps, nodeVerse) {
@@ -12,6 +13,7 @@ export class TerminalActivator {
 		this.devMode = true;
 		this.shouldClick = true;
 		this.saveFileManager = saveFileManagerConstructor(this);
+		this.nodeAttachmentHandler = nodeAttachmentHandlerConstructor(this.nodeVerse, this.saveFileManager);
 		this.activeTerminal = {};
 		this.saveFileManager.handleStartUp();
 
@@ -127,6 +129,10 @@ export class TerminalActivator {
 		}, this);
 		
 	}
+	handleAttachingNodes (tru) {
+		this.nodeAttachmentHandler.attachNodes()
+	}
+
 	addRemoveEdge (nodeATrueAddress, nodeBTrueAddress, removeToggle, symmetricToggle) {
 		this.saveFileManager.addRemoveEdge(nodeATrueAddress, nodeBTrueAddress, removeToggle, symmetricToggle);
 	}
@@ -263,7 +269,14 @@ export class TerminalActivator {
 						return accumulator
 					} else {
 						if (isNaN(parseInt(currentNodeObject.getTrueAddress()))){
-							debugger;
+							if (currentNodeObject.getTrueAddress()[0] === 'l'){
+								if (isNaN(parseInt(currentNodeObject.getTrueAddress().substring(1)))){
+									console.log('TRUEADDRESS ERROR');
+									return accumulator;
+								}
+							} else {
+								return accumulator;
+							}
 						}
 						return accumulator + '#' + index + '@' + currentNodeObject.getTrueAddress();
 					}
@@ -297,9 +310,33 @@ export class TerminalActivator {
 					console.log(`cannot retrieve property ${cache}... terminal${index} does not exist`)
 				}
 				var rowCount = trmnlAct.terminals[index].api.getRowCount();
-				var currentRows = trmnlAct.terminals[index].cache.currentRows
+				var reservedRows = trmnlAct.terminals[index].api.getReservedRowCount();
+				var currentRows = [];
 
-				return currentRows.reduce(function(accumulator, currentRow){
+				currentRows.pop();
+				trmnlAct.terminals[index].cache.currentRows.slice().reverse().forEach(function(row, index){
+					currentRows.unshift(row)
+					if (index === 0){
+						currentRows.shift();
+					}
+				});
+				if (currentRows[0] === undefined){
+					console.log('broken erly')
+				}
+
+				if (reservedRows > 0){
+					var hiddenRows = trmnlAct.terminals[index].api.getHiddenRows();
+					console.log(hiddenRows.rows)
+					for (var i = 0; i < hiddenRows.rowCount -1 ; i ++){
+						currentRows.splice(i, 1, hiddenRows.rows.pop());
+					}
+				}
+
+				return currentRows.reduce(function(accumulator, currentRow, index){
+					if (!currentRow){
+						console.log(index)
+						debugger;
+					}
 					var rowAsString = currentRow.reduce(function(accumulator, currentLetter){
 						return accumulator + currentLetter;
 					}, "");
