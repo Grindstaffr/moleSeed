@@ -239,7 +239,7 @@ export const program = {
 
 
 			if (!page){
-				if (!doc.pages[0]){
+				if (doc.pages[0] === undefined){
 					this.api.throwError(' .rdbl file is empty. ');
 					return;
 				};
@@ -277,15 +277,19 @@ export const program = {
 		},
 
 		textDocCallback : function (text, doc){
+			var skipCompile = false;
 			if ((doc.name === this.data.textName) && (doc.pages.length === this.data.pages.length)){
-				
 				this.methods.composeText(this.data, this.data.pages[this.data.currentPageNum]);
 				this.methods.drawWindow();
 				return;
 			};
 			if ((doc.hasBeenImported) && (doc.pages.length >= 1)){
-				this.data.pages === doc.pages;
+				console.log(doc.pages);
+				console.log(this.data.currentPageNum)
+				this.data.pages = doc.pages;
+				this.data.pageCount = doc.pages.length
 				this.data.blacklistedPageNums = doc.blacklistedPageNums;
+				skipCompile = true;
 			};
 			this.settings.isRunning = true;
 			this.api.appendToRunningPrograms('reader.ext', true)
@@ -299,7 +303,9 @@ export const program = {
 		
 			this.api.reserveRows(this.data.rowCount);
 			this.api.clearReservedRows();
-			this.methods.compileText(text,doc);
+			if (!skipCompile){
+				this.methods.compileText(text,doc);
+			}
 			this.methods.composeText(doc);
 			this.methods.drawWindow();
 
@@ -372,7 +378,7 @@ export const program = {
 			read : {
 				name : 'read',
 				desc: 'read an adjacent node',
-				syntax: 'read [NODE]',
+				syntax: 'read [node]',
 				hasDefault : true,
 				ex : function (nodeName) {
 					
@@ -453,8 +459,14 @@ export const program = {
 		this.api.renameCommand(`read`, `read_raw`);
 		this.api.hideCommand(`read_raw`);
 		this.api.addCommand(this.installData.commands.read);
-
-
+	},
+	uninstall : function () {
+		this.trmnl = {};
+		this.api = {};
+		this.installed = false;
+		this.api.deleteCommand('read');
+		this.api.renameCommand('read_raw', 'read');
+		this.api.unhideCommand('read');
 	},
 	ex : function (nodeName) {
 		var reader = this;

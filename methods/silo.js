@@ -335,7 +335,7 @@ export const program = {
 			desc : "silo-specific command syntax",
 			syntax : "silo [scommand] (text)",
 			hasHelp: true,
-			longhelp : ` --- Operation Guide for "silo" syntax ---
+			longHelp : ` --- Operation Guide for "silo" syntax ---
 			\\n
 			\\n silo
 			\\n \\t function : declares that the subsequent command is to be routed to the silo subroutine.

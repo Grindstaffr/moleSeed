@@ -121,8 +121,8 @@ export class Terminal {
 		this.context.stroke();
 
 		this.drawInputRow();
-		this.blinkyCursor.draw();
 		this.drawCurrentRows();
+		this.blinkyCursor.draw();
 
 		if (this.api.drawTriggerFunctions.length > 0){
 			this.api.drawTriggerFunctions.forEach(function(funcObj){
@@ -247,6 +247,14 @@ export class Terminal {
 		},this)
 	}
 
+	keyUpHandler (e) {
+		if (this.api.usingKeyUpHandling()){
+			this.api.useKeyUpRouter(e)
+		} else {
+			return;
+		}
+	}
+
 	keyHandler  (e) {
 		if (e.keyCode === 112 || e.keyCode === 113 || e.keyCode === 114 || e.keyCode === 115){
 			e.preventDefault();
@@ -261,6 +269,10 @@ export class Terminal {
 		}
 		if (this.inputIsLocked){
 			e.preventDefault();
+			return;
+		}
+		if (this.api.alternateKeyRouterActive()){
+			this.api.useAltKeyRouter(e);
 			return;
 		}
 		this.keyRouter.route(e);
@@ -298,6 +310,9 @@ export class Terminal {
 			},//enter
 			'16' : function () {
 				//make Uppercase
+			},
+			'18' : function () {
+
 			},
 			'37' : function () {
 				this.parent.blinkyCursor.position.left()
@@ -394,19 +409,40 @@ export class Terminal {
 		const blinkyCursor = {}
 		blinkyCursor.draw = function () {
 			var left_relative = this.position.x * this.parent.letterHeight;
-			var top_relative = ((this.cache.rowCount - this.position.y) * this.parent.letterHeight)
+			var top_relative = ((this.cache.rowCount - 1 - this.position.y) * this.parent.letterHeight)
 			var leftTrue = Math.min((this.parent.leftLoc + left_relative + ((3*this.parent.letterHeight)/2)), (this.parent.leftLoc + ((this.parent.api.getRowCount()-.5)*this.parent.letterHeight)));
-			var topTrue = (this.parent.botLoc - (this.parent.letterHeight/2 + this.parent.tinyBuff)) - this.parent.letterHeight
+
+			var topTrue = this.parent.topLoc + this.parent.letterHeight/2;
+
+			//console.log(`${topTrue} <-tt   pos.y -> ${this.position.y}`)
+
+			topTrue = topTrue + top_relative
 			//console.log( this.botLoc + '<-bl lh->' + this.letterHeight + 'tb->' + this.tinyBuff) 
 			//this.parent.botLoc - this.parent.letterHeight - (this.position.y * this.parent.letterHeight)
 			//this.parent.topLoc + top_relative ;
 			this.parent.context.fillStyle = this.style.background
 			this.blink();
+			if (this.position.y === 0){
+				topTrue = (this.parent.botLoc - (this.parent.letterHeight/2 + this.parent.tinyBuff)) - this.parent.letterHeight
+			}
 			this.parent.context.fillRect(leftTrue, topTrue, this.parent.letterHeight, this.parent.letterHeight)
 			if (this.position.y === 0){
 				if (this.position.x < this.parent.cache.inputRow.length){
 					this.parent.context.fillStyle = this.style.text
 					this.parent.context.fillText(this.parent.cache.inputRow[this.position.x], leftTrue, topTrue + this.parent.letterHeight)
+					return;
+				}
+			}
+			if (this.position.x < this.parent.api.getRowCount()){
+				this.parent.context.fillStyle = this.style.text
+			
+				var row = this.parent.cache.currentRows[this.parent.api.getRowCount() - this.position.y - 1]
+				if (!row){
+					return;
+				}
+				var letter = row[this.position.x + 1]
+				if (letter !== '' && letter !==undefined){
+					this.parent.context.fillText(letter, leftTrue, topTrue + this.parent.letterHeight)
 				}
 			}
 		};
@@ -434,7 +470,8 @@ export class Terminal {
 				x : 0,
 				y : 0,
 				up : function () {
-					if (this.y === (this.rowCount + 1)){
+					if (this.y >= (this.parent.parent.api.getRowCount())){
+						this.y = this.parent.parent.api.getRowCount();
 						return;
 					}
 					this.y = this.y + 1;
@@ -1024,6 +1061,24 @@ export class Terminal {
 				this.currentRows.push(this.nextRows.pop());
 			}
 		};
+		cache.writeToGivenCoordinate = function (letter, rowNum, colNum){
+			if (typeof string !== 'string'){
+				return;
+			}
+			if (string.length > 1){
+				return;
+			} 
+			if (typeof rowNum !== 'number'){
+				return;
+			}
+			if (typeof colNum !== 'number'){
+				return;
+			}
+			if (rowNum > this.rowCount-1){
+				return;
+			}
+			this.currentRows[rowNum][colNum] = letter;
+		}
 
 		cache.writeToGivenRow = function (string, rowNum) {
 			if (typeof string !== 'string'){
@@ -2638,7 +2693,7 @@ export class Terminal {
 			if (!this.cache.currentRows[rowIndex]){
 				return;
 			}
-			this.cache.currentRows[rowIndex][columnIndex] = string;
+			this.cache.writeToGivenCoordinate(string,rowIndex, columnIndex);
 			return;
 		}
 		terminalInterface.composeText = function (string, shouldUnSpace, shouldTab, tabWidth){
@@ -2886,9 +2941,14 @@ export class Terminal {
 				console.log(`cannot hide a non-existent command`)
 				return;
 			}
-			this.command[commandName].isAvail = false;
 			this.command[commandName].isHidden = true;
 		};
+		terminalInterface.unhideCommand = function (commandName){
+			if (!this.command[commandName]){
+				console.log('cannot unhide a non-existent command');
+			}
+			this.command[commandName].isHidden = false;
+		}
 		terminalInterface.incrementCommandUsedBy = function (commandName) {
 			this.command.incrementCommandUsedBy.ex(commandName);
 		};
@@ -2988,6 +3048,26 @@ export class Terminal {
 		};
 		terminalInterface.handleNodeAttachment = function (nodeA, nodeB) {
 			this.parent.terminalActivator.handleAttachingNodes(nodeA.getTrueAddress(), nodeB.getTrueAddress());
+		};
+		terminalInterface.alternateKeyRouterActive = function () {
+			return false;
+		};
+		terminalInterface.usingKeyUpHandling = function () {
+			return false;
+		};
+		terminalInterface.useDefaultKeyRouter = function (e) {
+			this.parent.keyRouter.route(e);
+			return;
+		};
+		terminalInterface.positionCursor = function (x,y){
+			if (typeof x !== 'number'){
+				return;
+			}
+			if (typeof y !== 'number'){
+				return;
+			}
+			this.parent.blinkyCursor.position.x = x;
+			this.parent.blinkyCursor.position.y = y;
 		}
 		const init = function (trmnl) {
 			terminalInterface.parent = trmnl;

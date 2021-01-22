@@ -445,4 +445,11 @@ export class TerminalActivator {
 			return;
 		}
 	}
+
+	keyUpHandler(e){
+		if (this.activeTerminal.isOn){
+			this.activeTerminal.keyUpHandler(e)
+			return;
+		}
+	}
 }
