@@ -640,10 +640,11 @@ export class Program extends Node {
 				program.program = module.program;
 				program.hasBeenInstalled = true;
 				program.commands[program.commands.indexOf('install')] = 'ex';
-			}).catch(function(err){
-				console.log(err)
-				callback(false)
 			})
+			/*.catch(function(err){
+				callback(false)
+				throw new Error(err)
+			})*/
 		}
 	}
 	ex(){

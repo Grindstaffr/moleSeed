@@ -265,8 +265,11 @@ export const bigBang = function () {
 		const oops3 = new Node(nodeVerse.allNodes,'CaN_I_hAve_a_nEw_1?');
 		this.addNode(oops3)
 
-		const nomad_mole_2 = new Mole(nodeVerse.allNodes,'nomad.mole', `n<*c0!pxvhp%0d\"rs`, './nomad.js')
+		const nomad_mole_2 = new Mole(nodeVerse.allNodes,'nomad.mole', `n<*c0!pxvhp%0d\"rs`, './nomad.js');
 		this.addNode(nomad_mole);
+
+		const editor_ext = new Program(nodeVerse.allNodes, 'editor.ext', false, './editor.js');
+		this.addNode(editor_ext)
 
 
 
@@ -289,6 +292,7 @@ export const bigBang = function () {
 		seed.attach(tonysIbsQ19);
 		seed.attach(silo_ext);
 		seed.attach(cordyceps)
+		seed.attach(editor_ext);
 		
 
 		this.seed.attachTo(moveHere);

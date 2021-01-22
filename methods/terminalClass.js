@@ -256,6 +256,11 @@ export class Terminal {
 	}
 
 	keyHandler  (e) {
+		if (this.api.alternateKeyRouterActive()){
+			console.log('doin this')
+			this.api.useAltKeyRouter(e);
+			return;
+		}
 		if (e.keyCode === 112 || e.keyCode === 113 || e.keyCode === 114 || e.keyCode === 115){
 			e.preventDefault();
 			this.keyRouter.route(e)
@@ -269,10 +274,6 @@ export class Terminal {
 		}
 		if (this.inputIsLocked){
 			e.preventDefault();
-			return;
-		}
-		if (this.api.alternateKeyRouterActive()){
-			this.api.useAltKeyRouter(e);
 			return;
 		}
 		this.keyRouter.route(e);
@@ -1062,21 +1063,27 @@ export class Terminal {
 			}
 		};
 		cache.writeToGivenCoordinate = function (letter, rowNum, colNum){
-			if (typeof string !== 'string'){
+			if (!(typeof letter === 'string')){
+				console.log(`(got "${letter}")   string not string.... typeof(string) == ${typeof letter}`);
 				return;
 			}
-			if (string.length > 1){
+			if (letter.length > 1){
+				console.log('string Length too long');
 				return;
 			} 
-			if (typeof rowNum !== 'number'){
+			if ((typeof rowNum )!= 'number'){
+				console.log('rownum not num');
 				return;
 			}
-			if (typeof colNum !== 'number'){
+			if ((typeof colNum) != 'number'){
+				console.log('colnum not num');
 				return;
 			}
 			if (rowNum > this.rowCount-1){
+				console.log('rowNum too high')
 				return;
 			}
+			//console.log(`trying to write "${letter}" to row_${rowNum} col_${colNum}`)
 			this.currentRows[rowNum][colNum] = letter;
 		}
 
@@ -1529,12 +1536,7 @@ export class Terminal {
 			\\n "ex" takes a single required term. That term must be an installed program.
 			\\n "ex" triggers an installed program's primary executable function.`,
 			isAvail : true,
-			ex : function (programName, bool) {
-				if (bool === 'true'){
-					bool = true;
-				} else {
-					bool = false;
-				}
+			ex : function (programName, arg1, arg2, arg3) {
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
 				if (cmd.stop && cmd.stop.isAvail){
@@ -1552,16 +1554,12 @@ export class Terminal {
 				}
 				for (var prgm in trmnl.programs.runningPrograms){
 				
-					if (bool){
-
-					} else {
 						if (!trmnl.programs.runningPrograms[prgm].runsInBackground && false){
 							cmd.error.ex('conflicting program already executing, stop conflicting programs and try again')
 							return;
 						}
-					}
 				}
-				trmnl.programs[programName].ex(trmnl);
+				trmnl.programs[programName].ex(arg1, arg2, arg3);
 				trmnl.programs.runningPrograms[programName] = trmnl.programs[programName]
 				trmnl.command.stop.isAvail = true;
 				cmd.assembleValidCommands.ex();
@@ -2693,6 +2691,7 @@ export class Terminal {
 			if (!this.cache.currentRows[rowIndex]){
 				return;
 			}
+		//	console.log('hit this')
 			this.cache.writeToGivenCoordinate(string,rowIndex, columnIndex);
 			return;
 		}
@@ -2894,6 +2893,7 @@ export class Terminal {
 				console.log(`MISTAKE: TYPE OF FUNC IS...${typeof func}`)
 				return
 			}
+			console.log(funcName)
 			this[funcName] = func;
 		};
 		terminalInterface.patchInterfaceFunction = function (func, funcName){
@@ -3061,14 +3061,25 @@ export class Terminal {
 		};
 		terminalInterface.positionCursor = function (x,y){
 			if (typeof x !== 'number'){
+				console.log(`early ret :: ${x} is apparently not a number`)
 				return;
 			}
 			if (typeof y !== 'number'){
+				console.log(`early ret :: ${y} is apparently not a number`)
 				return;
 			}
 			this.parent.blinkyCursor.position.x = x;
 			this.parent.blinkyCursor.position.y = y;
-		}
+		};
+		terminalInterface.restoreDefaultCursorPosition = function () {
+			this.parent.blinkyCursor.position.leadTheText();
+			this.parent.blinkyCursor.position.slamDown();
+		};
+		terminalInterface.logCursorPosition = function () {
+			var x = this.parent.blinkyCursor.position.x
+			var y = this.parent.blinkyCursor.position.y
+			console.log(`ACTUAL CURSOR POS   x =  ${x} .... y = ${y}`)
+		};
 		const init = function (trmnl) {
 			terminalInterface.parent = trmnl;
 			terminalInterface.cache = trmnl.cache;
