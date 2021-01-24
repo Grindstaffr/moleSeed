@@ -233,7 +233,10 @@ export class Terminal {
 	}
 
 	drawCurrentRows () {
-		
+		if (!this.fiskasd || this.fiskasd === undefined){
+			console.log(this);
+			this.fiskasd = 1;
+		}
 		var vStart = this.topLoc + this.letterHeight + this.letterHeight/2 + this.tinyBuff
 		var hStart = this.leftLoc + this.letterHeight/2 + this.tinyBuff
 		var trmnl = this
@@ -244,7 +247,7 @@ export class Terminal {
 				var hLoc = hStart + (characterIndex * trmnl.letterHeight)
 				if (Object.keys(this.cache.highlights).includes(rowIndex.toString())){
 					if(this.cache.highlights[rowIndex.toString()].includes(characterIndex)){
-						this.context.fillRect(hLoc, (vLoc - this.letterHeight), this.letterHeight, this.letterHeight)
+						this.context.fillRect(hLoc, (vLoc - this.letterHeight), this.letterHeight + .05, this.letterHeight+ .05)
 						this.context.fillStyle = this.style.background;
 						this.context.fillText(character, hLoc, vLoc)
 						this.context.fillStyle = this.style.text;
@@ -253,7 +256,7 @@ export class Terminal {
 				};
 				this.context.fillText(character, hLoc, vLoc)
 			},this)
-		},this)
+		},this)	
 	}
 
 	keyUpHandler (e) {
@@ -1172,10 +1175,39 @@ export class Terminal {
 
 		cache.addHighlight = function (rowIndex, colIndex){
 			if (Object.keys(this.highlights).includes(rowIndex.toString())){
+				var hRow = this.highlights[rowIndex.toString()]
+				if (hRow[hRow.length -1] === colIndex){
+					debugger;
+					return;
+				}
 				this.highlights[rowIndex].push(colIndex);
 			} else {
 				this.highlights[rowIndex.toString()] = [];
 				this.highlights[rowIndex.toString()].push(colIndex);
+			}
+		}
+
+		cache.removeHighlight = function (rowIndex, colIndex){
+			var  rowName = rowIndex.toString();
+			if (Object.keys(this.highlights).includes(rowName)){
+
+				var rowInitIndex = this.highlights[rowName][0];
+				var colIndexLoc = Math.abs(colIndex - rowInitIndex);
+
+				console.log(`looking for ${colIndex} in ${this.highlights[rowName]} at ${colIndexLoc}`)
+/*
+				if (this.highlights[rowName].indexOf(colIndex) === colIndexLoc){
+					debugger;
+				} else {
+					console.log(`calced index = ${colIndexLoc} actualIndex = ${this.highlights[rowName].indexOf(colIndex)}`)
+				}*/
+
+				this.highlights[rowName].splice(colIndexLoc, 1);
+				if (this.highlights[rowName].length === 0){
+					delete this.highlights[rowIndex]
+				}
+			} else {
+				return;
 			}
 		}
 
@@ -3117,7 +3149,10 @@ export class Terminal {
 			this.parent.blinkyCursor.setBright()
 		};
 		terminalInterface.highlightCell = function (rowIndex, colIndex) {
-			this.cache.addHighlight(rowIndex, colIndex)
+			this.cache.addHighlight(rowIndex, colIndex);
+		};
+		terminalInterface.unhighlightCell = function (rowIndex,colIndex) {
+			this.cache.removeHighlight(rowIndex,colIndex);
 		};
 		terminalInterface.clearHighlights = function () {
 			this.cache.clearHighlights();

@@ -13,6 +13,7 @@ export const program = {
 		clipBoard : "",
 		text : "",
 		highlight : [0,0],
+		prevHighlight : [0,0],
 		selectedText : false,
 		textWidth : 0,
 		displayHeight : 0,
@@ -144,6 +145,15 @@ export const program = {
 					return;
 				}
 				this.methods.keyStrokeRouter.generalCase(e);
+			},
+			'112' : function (e) {
+				this.methods.copy();
+			},
+			'113' : function (e) {
+				this.methods.cut();
+			},
+			'114' : function (e) {
+				this.methods.paste();
 			},
 			'115' : function (e) {
 				if (!this.settings.isRunning){
@@ -402,16 +412,30 @@ export const program = {
 			this.data.text = prepend + postpend;
 		},
 		copy : function () {
+			if (this.settings.slct_mode){
+				this.methods.toggleSelectMode();
+			} else {
+				return;
+			}
 			this.data.clipBoard = this.data.text.substring(this.data.highlight[0], this.data.highlight[1]);
 		},
 		cut : function () {
+			if (this.settings.slct_mode){
+				this.methods.toggleSelectMode();
+			} else {
+				return;
+			}
 			this.data.clipBoard = this.data.text.substring(this.data.highlight[0], this.data.highlight[1]);
 			var prepend = this.data.text.substring(0, this.data.highlight[0]);
 			var postpend = this.data.text.substring(this.data.highlight[1]);
 
 			this.data.text = prepend + postpend;
-
-			this.data.cursorLocation[2] -= this.data.clipBoard.length;
+			this.methods.recomposeText();
+			for (var i = 0; i < this.data.clipBoard.length; i++){
+				this.methods.decrementCursorLocation();
+			}
+			this.methods.positionTerminalCursor();
+			//this.data.cursorLocation[2] -= this.data.clipBoard.length;
 		},
 		paste : function () {
 			var insertLocation = this.data.cursorLocation[2];
@@ -421,8 +445,13 @@ export const program = {
 				var prepend = this.data.text.substring(0, insertLocation);
 				var postpend = this.data.text.substring(insertLocation);
 				this.data.text = prepend + this.data.clipBoard + postpend;
-				this.data.cursorLocation[2] += this.data.clipBoard.length;
+				//this.data.cursorLocation[2] += this.data.clipBoard.length;
+			};
+			this.methods.recomposeText();
+			for (var i = 0; i < this.data.clipBoard.length; i++){
+				this.methods.incrementCursorLocation();
 			}
+			this.methods.positionTerminalCursor();
 		},
 		reconstructCharacterMatrix : function () {
 			this.data.characterMatrix = [];
@@ -649,24 +678,64 @@ export const program = {
 			this.api.clearHighlights();
 		},
 		drawHighlight : function () {
-			this.methods.clearHighlight();
 			if (!this.settings.slct_mode){
 				return;
 			}
 
+			var situtation = 'A';
+
+			var shouldUnhighlight = false;
+
 			var pointA = this.data.highlight[0];
 			var pointB = this.data.highlight[1];
+
+			var prevA = this.data.prevHighlight[0];
+			var prevB = this.data.prevHighlight[1];
+
+			if (pointA > pointB){
+				if (prevB > pointB){
+					pointA = pointB;
+					pointB = prevB;
+				} else if (prevB < pointB) {
+					pointA = prevB;
+					pointB = pointB;
+					shouldUnhighlight = true;
+					situtation = 'B';
+				}
+			} else if (pointB > pointA){
+				if (prevB > pointB){
+					pointA = pointB;
+					pointB = prevB;
+					shouldUnhighlight = true;
+					situtation = 'C'
+				} else if (pointB > prevB) {
+					pointA = prevB;
+					pointB = pointB;
+					situtation = 'D'
+				}
+			} else if (pointA === pointB){
+				this.api.clearHighlights();
+
+			}
+
+			if (situtation === 'C'){
+				console.log(`pA = ${pointA} pointB = ${pointB}`)
+			}
 
 			var initialRow = -1;
 			var terminalRow = -1;
 
 			for (var i = 0; i < this.data.characterMatrix.length; i++) {
-				if (this.data.characterMatrix[i][1][0] > Math.min(pointA, pointB)){
+				var firstCell = this.data.characterMatrix[i][0];
+				if (firstCell.length === 0){
+					firstCell = this.data.characterMatrix[i][1];
+				}
+				if (firstCell[0] > Math.min(pointA, pointB)){
 					if (initialRow === -1){
 						initialRow = i-1;
 					}
 				}
-				if (this.data.characterMatrix[i][1][0] > Math.max(pointA, pointB)){
+				if (firstCell[0] > Math.max(pointA, pointB)){
 					if (terminalRow === -1){
 						terminalRow = i-1;
 						break;
@@ -675,6 +744,10 @@ export const program = {
 			}
 			if (initialRow === -1 || terminalRow === -1){
 				return;
+			}
+
+			if (situtation === 'C'){
+				console.log(`pARow = ${initialRow} pointBrow = ${terminalRow}`)
 			}
 
 			var initialColumn = this.data.characterMatrix[initialRow].findIndex(function(cell, index){
@@ -700,27 +773,82 @@ export const program = {
 				}
 			}, this)
 
-			if (initialColumn === undefined || terminalColumn === undefined){
+			if (initialColumn === -1 || terminalColumn === -1){
+				if (initialColumn === -1){
+					console.log(`seeking ${Math.min(pointA, pointB)} in ${this.data.characterMatrix[initialRow]}`)
+					console.log(this.data.characterMatrix)
+				} else {
+					console.log(`seeking ${Math.max(pointA, pointB)} in ${this.data.characterMatrix[terminalRow]}`)
+				}
+				console.log()
 				return;
 			}
-
-			var currentRow = initialRow;
-			var currentCol = initialColumn;
-			console.log(`irow: ${initialRow}, iCol: ${initialColumn}, trow: ${terminalRow}, tcol:${terminalColumn}`);
-
-			for (var i = initialRow; i <=terminalRow; i++){
-				for (var j = 0; j < this.data.textWidth - 1; j ++){
-					if (i === initialRow && j < initialColumn){
-						continue;
-					};
-					if (i === terminalRow && j >= terminalColumn){
-						break;
-					}; 
-					console.log(i, j)
-					this.api.highlightCell(i,(j + 1))
-				}
+			if (situtation === 'C'){
+				console.log(`pACol = ${initialColumn} pointBcol = ${terminalColumn}`)
 			}
 
+			initialRow -= this.data.vRowOffset;
+			terminalRow -= this.data.vRowOffset;
+			//console.log(`irow: ${initialRow}, iCol: ${initialColumn}, trow: ${terminalRow}, tcol:${terminalColumn}`);
+
+			
+			if (shouldUnhighlight){
+				if (initialRow === terminalRow){
+					if (initialColumn === terminalColumn){
+						this.api.unhighlightCell(initialRow, initialColumn + 1);
+						this.data.prevHighlight = [this.data.highlight[0],this.data.highlight[1]];
+						return;
+					}
+					if (terminalColumn === initialColumn + 1 || terminalColumn === initialColumn - 1){
+						this.api.unhighlightCell(initialRow, terminalColumn + 1);
+						this.data.prevHighlight = [this.data.highlight[0],this.data.highlight[1]];
+						return;
+					}
+					for (var k = this.data.textWidth -1; k >=0; k --){
+						if (k > terminalColumn){
+							continue;
+						} else if (k <= initialColumn){
+							break;
+						}
+						this.api.unhighlightCell(terminalRow, (k+1));
+					}
+					this.data.prevHighlight = [this.data.highlight[0],this.data.highlight[1]];
+					return;
+				}
+				for (var i = terminalRow; i >= initialRow; i--){
+					for (var j = this.data.textWidth - 1; j >=0; j--){
+						if (i === terminalRow && j > terminalColumn){
+							continue;
+						};
+						if (i === initialRow && j < initialColumn){
+							break;
+						}; 
+	
+						this.api.unhighlightCell(i,(j + 1))
+					}
+				}
+				this.data.prevHighlight = [this.data.highlight[0],this.data.highlight[1]];
+				return;
+			} else {
+				for (var i = initialRow; i <=terminalRow; i++){
+					for (var j = 0; j < this.data.textWidth ; j ++){
+						if (i === initialRow && j < initialColumn){
+							continue;
+						};
+						if (i === terminalRow && j >= terminalColumn){
+							break;
+						}; 
+					
+						this.api.highlightCell(i,(j + 1))
+						
+					}
+				}
+				this.data.prevHighlight = [this.data.highlight[0],this.data.highlight[1]];
+				return;
+			}
+			
+
+			this.data.prevHighlight = [this.data.highlight[0],this.data.highlight[1]];
 		},
 		drawDisplayBar : function () {
 			this.methods.clearDisplayBar();
@@ -1186,6 +1314,10 @@ export const program = {
 				}
 			}
 		},
+		positionTerminalCursor : function () {
+			var coordinates = this.methods.convertCursorLocationToXY()
+			this.api.positionCursor(coordinates[0], coordinates[1]);
+		},
 		convertCursorLocationToXY : function () {
 			var x = this.data.cursorLocation[1];
 			var y = this.api.getRowCount() - this.data.cursorLocation[0] - 1 + this.data.vRowOffset;
@@ -1198,8 +1330,7 @@ export const program = {
 				this.data.highlight[1] = this.data.cursorLocation[2];
 				console.log(this.data.highlight)
 			}
-			var coordinates = this.methods.convertCursorLocationToXY()
-			this.api.positionCursor(coordinates[0], coordinates[1]);
+			this.methods.positionTerminalCursor();
 		},
 		handleCursorDown : function () {
 			this.methods.moveCursorDown();
