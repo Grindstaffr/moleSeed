@@ -20,14 +20,45 @@ export const program = {
 		rowWidth : 0,
 		characterMatrix : [],
 		displayBarWidth : 20,
-		displayBar : [],
 		stringIndexOffset : 0,
 		vRowOffset : 0,
+		lastInsertIndex : 0,
+		scrollBar : '',
+		displayBar : {
+			keyBindings : {
+				'F1' : '(edit_mode) copy slctd text',
+				'F2' : '(edit_mode) cut slctd text',
+				'F3' : '(edit_mode) paste slctd text',
+				'F4' : 'toggle_mode [slow/fast]',
+				'F5' : 'toggle_mode [select/write]',
+				'F6' : 'toggle_mode [edit/terminal]',
+				'F7' : 'toggle sidebar_[on/off]',
+				'F8' : 'cycle sidebar pages',
+			},
+			commands : {
+				'stop' : 'stop editor.ext',
+				'save' : 'update active doc',
+				'open' : 'edit an accessible doc',
+				'new_rdbl' : 'create new .rdbl doc',
+				'new_wmt' : 'create new .wmt doc',
+				'rename' : 'rename active doc',
+			},
+			docData : {
+				'doc_name' : `"testName"`,
+				'doc_type' : `".rdbl"`,
+				'line_count' : 456,
+				'char_count' : 20182,
+				'word_count' : 4105,
+				'est_mem_use' : 8210,
+			},
+		},
 	},
 	settings: {
-		editMode : false,
+		edit_mode : false,
+		slct_mode : false,
+		fast_mode : false,
+		side_disp : 'special_keys', 
 		displaySidebar : true,
-
 	},
 	methods: {
 		commands : {
@@ -49,11 +80,10 @@ export const program = {
 				//backspace
 			},
 			'9' : function (e) {
-				this.methods.writeToText('     ')
+				this.methods.writeToText('\\t')
 			},
 			'13' : function (e) {
 				this.methods.writeToText('\\n')
-				console.log(this.data.text);
 			},
 			'16' : function (e) {
 				//shift
@@ -69,16 +99,44 @@ export const program = {
 				console.log(`altdown`)
 			},
 			'37' : function (e) {
-				this.methods.handleCursorLeft();
+				if (!this.settings.fast_mode){
+					this.methods.handleCursorLeft();
+				} else {
+					this.methods.handleCursorLeft();
+					this.methods.handleCursorLeft();
+					this.methods.handleCursorLeft();
+					this.methods.handleCursorLeft();
+				}
 			},
 			'38' : function (e) {
-				this.methods.handleCursorUp();
+				if (!this.settings.fast_mode){
+					this.methods.handleCursorUp();
+				} else {
+					this.methods.handleCursorUp();
+					this.methods.handleCursorUp();
+					this.methods.handleCursorUp();
+					this.methods.handleCursorUp();
+				}
 			},
 			'39' : function (e) {
-				this.methods.handleCursorRight();
+				if (!this.settings.fast_mode){
+					this.methods.handleCursorRight();
+				} else {
+					this.methods.handleCursorRight();
+					this.methods.handleCursorRight();
+					this.methods.handleCursorRight();
+					this.methods.handleCursorRight();
+				}
 			},
 			'40' : function (e) {
-				this.methods.handleCursorDown();
+				if (!this.settings.fast_mode){
+					this.methods.handleCursorDown();
+				} else {
+					this.methods.handleCursorDown();
+					this.methods.handleCursorDown();
+					this.methods.handleCursorDown();
+					this.methods.handleCursorDown();
+				}
 			},
 			'67' : function (e) {
 				if (this.data.ctrlDown){
@@ -87,12 +145,36 @@ export const program = {
 				}
 				this.methods.keyStrokeRouter.generalCase(e);
 			},
+			'115' : function (e) {
+				if (!this.settings.isRunning){
+					return;
+				}
+				this.methods.toggleFastMode();
+			},
+			'116' : function (e) {
+				if (!this.settings.isRunning){
+					return;
+				}
+				this.methods.toggleSelectMode();
+			},
 			'117' : function (e) {
 				if (!this.settings.isRunning){
 					return;
 				}
 				this.methods.toggleEditMode();
 				return;
+			},
+			'118' : function (e) {
+				if (!this.settings.isRunning){
+					return;
+				}
+				this.methods.toggleSideBar();
+			},
+			'119' : function (e){
+				if (!this.settings.isRunning){
+					return;
+				}
+				this.methods.cycleSidebarDisplay();
 			},
 			'86' : function (e) {
 				if (this.data.ctrlDown){
@@ -109,22 +191,43 @@ export const program = {
 		},
 		routeKeyStroke: function (e) {
 			e.preventDefault();
-			if (this.settings.displaySidebar){
-				this.methods.drawDisplayBar();
-			}
-			if (!this.settings.editMode){
+			if (!this.settings.edit_mode){
 				if (e.keyCode === 117){
 					this.methods.keyStrokeRouter['117'](e);
+					if (this.settings.displaySidebar){
+						this.methods.drawDisplayBar();
+					}
+					if (this.settings.slct_mode){
+						this.methods.drawHighlight();
+					}
+					this.methods.drawScrollBar();
+					this.methods.drawWindow();
 					return;
 				}
-				console.log(this.settings.editMode)
 				this.api.useDefaultKeyRouter(e)
+				if (this.settings.displaySidebar){
+					this.methods.drawDisplayBar();
+				}
+				if (this.settings.slct_mode){
+					this.methods.drawHighlight();
+				}
+				this.methods.drawScrollBar();
+				this.methods.drawWindow();
+				return;
 			}
 			if (Object.keys(this.methods.keyStrokeRouter).includes(e.keyCode.toString())){
 				this.methods.keyStrokeRouter[e.keyCode.toString()](e);
 			} else {
 				this.methods.keyStrokeRouter.generalCase(e);
 			}
+			if (this.settings.displaySidebar){
+				this.methods.drawDisplayBar();
+			}
+			if (this.settings.slct_mode){
+				this.methods.drawHighlight();
+			}
+			this.methods.drawScrollBar();
+			this.methods.drawWindow();
 		},
 		routeKeyUp : function (e) {
 			e.preventDefault();
@@ -142,22 +245,80 @@ export const program = {
 				console.log ('altup')
 			}
 		},
+		/*
+		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		                    TOGGLEFUNCTIONS
+		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		*/
 		toggleEditMode : function () {
-			if (this.settings.editMode == true){
-				this.settings.editMode = false;
+			if (this.settings.edit_mode == true){
+				this.settings.edit_mode = false;
 				this.api.restoreDefaultCursorPosition();
-			} else if (this.settings.editMode == false){
-				this.settings.editMode = true;
+			} else if (this.settings.edit_mode == false){
+				this.settings.edit_mode = true;
 				this.methods.inititalizeCursorPosition();
 				var coordinates = this.methods.convertCursorLocationToXY()
 				this.api.positionCursor(coordinates[0], coordinates[1]);
 			} else {
 				this.api.runCommand(`stop`);
-				this.api.throwError(`editor.ext crashed with status: editMode = ${this.data.editMode}`)
+				this.api.throwError(`editor.ext crashed with status: editMode = ${this.settings.edit_mode}`)
 			}
 		},
+		toggleFastMode : function () {
+			if (this.settings.fast_mode){
+				this.settings.fast_mode = false;
+			} else if (!this.settings.fast_mode) {
+				this.settings.fast_mode = true;
+			}
+		},
+		toggleSelectMode : function () {
+			if (this.settings.slct_mode){
+				this.settings.slct_mode = false;
+				this.methods.clearHighlight();
+			} else if (!this.settings.slct_mode){
+				this.settings.slct_mode = true;
+				this.data.highlight[0] = this.data.cursorLocation[2];
+				this.data.highlight[1] = this.data.cursorLocation[2];
+			}
+		},
+		toggleSideBar : function () {
+			if (this.settings.displaySidebar){
+				this.settings.displaySidebar = false;
+				this.methods.clearDisplayBar();
+				this.methods.inititalizeDimensions();
+			} else if (!this.settings.displaySidebar){
+				this.settings.displaySidebar = true;
+				this.methods.inititalizeDimensions();
+				this.methods.drawDisplayBar();
+			} else {
+				this.api.runCommand(`stop`);
+				this.api.throwError(`editor.ext crashed with status: displaySideBar = ${this.settings.displaySidebar}`)
+			}
+		},
+		cycleSidebarDisplay : function () {
+			var options = ['special_keys', 'commands', 'doc_data'];
+			var currentIndex = options.indexOf(this.settings.side_disp);
+			currentIndex += 1;
+			if (currentIndex === options.length){
+				currentIndex = 0;
+			}
+			this.settings.side_disp = options[currentIndex];
+			return;
+		},
+
+		/*
+		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+			TEXT EDIT FUNCTIONS
+		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		*/
 		writeToText : function (value) {
+		
+			var lastLoc = this.data.lastInsertIndex
 			var insertLocation = this.data.cursorLocation[2];
+			if (insertLocation === undefined || insertLocation === 0){
+			
+			}
+
 			if (insertLocation === this.data.text.length){
 				this.data.text += value;
 			} else {
@@ -168,48 +329,68 @@ export const program = {
 			var currentRow = this.data.cursorLocation[0];
 			var currentCol = this.data.cursorLocation[1];
 			var currentStringIndex = this.data.cursorLocation[2];
-
-			var nextNewLine = this.data.text.substring(currentStringIndex).indexOf('\\n');
-			if (this.data.text.substring(currentStringIndex, nextNewLine).includes('\\t')){
-
-			}
-			//BAD CODE WARNING
-			this.data.cursorLocation[2] += value.length;
+			var cell = this.data.characterMatrix[currentRow][currentCol];
 		
+
+			this.methods.recomposeText();
+
+			if (value.length === 1){
 				this.methods.incrementCursorLocation();
-		
+			} else if (value.length > 1){
+				if (value === '\\n'){
+					//this.methods.incrementCursorLocation();
+				}
+				this.methods.incrementCursorLocation();
+			}
 			var coordinates = this.methods.convertCursorLocationToXY()
 			this.api.positionCursor(coordinates[0], coordinates[1]);
-			this.data.characterMatrix = [];
-			this.methods.composeText();
-			this.methods.composeFromCharMatrix();
+		
 		},
 		deleteLetter : function () {
-			this.data.cursorLocation[2] -= 1;
+	
+			this.methods.decrementCursorLocation();
 			var deleteLocation = this.data.cursorLocation[2];
-			if (this.data.text.length === deleteLocation + 1){
-				this.data.text = this.data.text.substring(0,deleteLocation);
+			var currentRow = this.data.cursorLocation[0];
+			var currentCol = this.data.cursorLocation[1]
+			var cell = this.data.characterMatrix[currentRow][currentCol];
+
+			if (cell.length > 1){
+				if (this.data.text.length === deleteLocation + 2){
+					this.data.text = this.data.text.substring(deleteLocation + 2);
+				} else if (deleteLocation === 0) {
+					this.data.text = this.data.text.substring(deleteLocation + 2);
+				} else {
+					var prepend = this.data.text.substring(0,deleteLocation);
+					var postpend = this.data.text.substring(deleteLocation + 2);
+					this.data.text = prepend + postpend;
+				}
 			} else {
-				var prepend = this.data.text.substring(0,deleteLocation);
-				var postpend = this.data.text.substring(deleteLocation + 1);
-				this.data.text = prepend + postpend;
+				if (this.data.text.length === deleteLocation + 1){
+					this.data.text = this.data.text.substring(0,deleteLocation);
+				} else {
+					var prepend = this.data.text.substring(0,deleteLocation);
+					var postpend = this.data.text.substring(deleteLocation + 1);
+					this.data.text = prepend + postpend;
+				}
 			}
 
 			//STILL NEEDS HANDLING FOR DELETING \\n and \\t
+			if (cell.length > 1){
+				//this.methods.decrementCursorLocation();
+			} else if (cell.length === 1){
+			}
 
-			this.methods.decrementCursorLocation();
-			var coordinates = this.methods.convertCursorLocationToXY()
-			this.api.positionCursor(coordinates[0], coordinates[1]);
 			var oldLength = this.data.characterMatrix.length;
-			this.data.characterMatrix = [];
-			this.methods.composeText();
-			this.methods.composeFromCharMatrix();
+			this.methods.recomposeText();
 			if (this.data.characterMatrix.length < oldLength){
-				console.log('shorter');
 				for (var i = oldLength ; i >=this.data.characterMatrix.length; i--) {
 					this.api.writeToGivenRow("", i)
 				}
 			}
+			var coordinates = this.methods.convertCursorLocationToXY()
+			this.api.positionCursor(coordinates[0], coordinates[1]);
+			this.methods.reacquireStringIndex();
+		
 		},
 		multiDelete : function () {
 			var deleteStartIndex = this.data.highlight[0];
@@ -254,21 +435,37 @@ export const program = {
 		scaling functions Begin
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		*/
-		reComposeText : function () {
-
+		filterText : function () {
+			var string = this.data.text;
+			string = string.replaceAll('\n','');
+			string = string.replaceAll('\t','');
+			if(string.length < this.data.text){
+				this.data.text = string;
+			} else {
+				string = this.data.text.split('\n').join('').split('\t').join('');
+				this.data.text = string;
+			}
+			this.data.text += ' ';
+		},
+		recomposeText : function () {
+			this.data.characterMatrix = [];
+			this.methods.composeText();
+			this.methods.composeFromCharMatrix();
+			return;
 		},
 		composeText : function () {
 			var string = this.data.text;
 			var currentRow = 0;
 			var currentCol = 0;
 			var prevCharBackslash = false;
-			console.log(string.length)
 			for (var i = 0; i < string.length; i++) {
 				if (!this.data.characterMatrix[currentRow]){
 					this.methods.appendRowToCharacterMatrix();
 				}
-				currentCol += 1;
-				if (currentCol >= this.data.textWidth){
+				if (!prevCharBackslash){
+					currentCol += 1;
+				}
+				if (currentCol >= (this.data.textWidth)){
 					currentCol = 0;
 					if (this.settings.doubleSpacing){
 							currentRow += 2;
@@ -278,11 +475,17 @@ export const program = {
 							currentRow += 1;
 							this.methods.appendRowToCharacterMatrix();
 						}
-				} 	else if (string[i] === '\\'){
+				} else if (!string[i] || string[i] === undefined || string[i] === "" || string[i] === '\n' || string[i] === '\t') {
+					continue;
+				}else if (string[i] === '\\'){
 					prevCharBackslash = true;
+					this.data.characterMatrix[currentRow][currentCol][0] = i;
+					continue;
 				} else if (prevCharBackslash) {
 					if (string[i] === 'n'){
-						currentCol = 0;
+						prevCharBackslash = false;
+						this.data.characterMatrix[currentRow][currentCol][1] = i
+						this.data.characterMatrix[currentRow][currentCol][2] = 0;
 						if (this.settings.doubleSpacing){
 							currentRow += 2;
 							this.methods.appendRowToCharacterMatrix();
@@ -291,14 +494,15 @@ export const program = {
 							currentRow += 1;
 							this.methods.appendRowToCharacterMatrix();
 						}
-						prevCharBackslash = false;
-					
+						currentCol = 0;
+						continue;
 					} else if (string[i] === 't'){
-						this.data.characterMatrix[currentRow][currentCol][0] = i
-						for (var j = 0; j < 3; j++) {
+						this.data.characterMatrix[currentRow][currentCol][1] = i
+						this.data.characterMatrix[currentRow][currentCol][2] = 4
+						for (var j = 1; j < this.data.characterMatrix[currentRow][currentCol][2]; j++) {
 							this.data.characterMatrix[currentRow][currentCol + j][0] = " ";	
 						};
-						currentCol += 2
+						currentCol += 3
 						prevCharBackslash = false;
 						continue;
 					}
@@ -317,14 +521,13 @@ export const program = {
 			this.data.characterMatrix.push(row);
 		},
 		composeFromCharMatrix : function () {
-			console.log(this.data.characterMatrix)
-			console.log(this.data.text[42])
 			var prevCharBackslash = false;
 			var lineBreak = false;
 			var pageBreak = false;
 			var rowOffset = 0;
 			var colOffset = 1;
-			this.data.characterMatrix.forEach(function(row, rowIndex){
+			var bufferCellsRemaining = 0;
+			this.data.characterMatrix.slice(this.data.vRowOffset, this.data.vRowOffset + (this.data.displayHeight - 1)).forEach(function(row, rowIndex){
 				row.forEach(function(cell, colIndex){
 					var rowTranslate = rowIndex + rowOffset;
 					var colTranslate = colIndex + colOffset;
@@ -346,6 +549,9 @@ export const program = {
 						return
 					}
 					var character = ""
+					if (cell.length > 1){
+						this.api.writeToCoordinate(" ", rowTranslate, colTranslate);
+					}
 					if (cell[0] !== " " ){
 						var character = this.data.text[parseInt(cell[0])]
 						//console.log(`rowINdex = ${rowIndex} colIndex = ${colIndex}  cellValue = ${cell[0]} character : ${character}`)
@@ -391,9 +597,9 @@ export const program = {
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		*/
 		setTextWidth : function () {
-			this.data.textWidth = this.api.getRowCount() - 2;
+			this.data.textWidth = this.api.getRowCount() - 3;
 			if (this.settings.displaySidebar){
-				this.data.textWidth -= this.data.displayBarWidth;
+				this.data.textWidth -= (this.data.displayBarWidth);
 			};
 			return;
 		},
@@ -406,25 +612,299 @@ export const program = {
 		},
 		inititalizeDimensions : function () {
 			this.methods.setTextWidth();
+			this.methods.clearTextZone();
 			this.methods.setDisplayHeight();
-			this.methods.reconstructCharacterMatrix();
+			this.methods.recomposeText();
 			this.methods.reserveRows();
 		},
 		/*
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		scaling functions end
+		      DRAW FUNCTIONS
+                      ||
+		      marker?\||/
+			  ________\/_______
+              |________________[D,   n
+		                          \_/
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		*/
-		drawDisplayBar : function () {
-			var string = `editMode:${this.settings.editMode}`
-			var rightEdge = this.api.getRowCount();
-			var j = string.length;
-			for (var i = rightEdge -1; i > rightEdge - 20; i--){
-				j --;
-				if (j >= 0)
-				this.api.writeToCoordinate(string[j], 2, i)
+		clearTextZone : function () {
+			var rightEdge = this.data.textWidth + 2;
+			for (var i = 0; i < rightEdge; i++){
+				for (var j = 0; j < this.data.displayHeight -1; j ++)
+					this.api.writeToCoordinate("", j,i)
 			}
 		},
+		clearDisplayBar : function () {
+			var rightEdge = this.api.getRowCount() -1;
+			var startIndex = rightEdge - 20;
+			var height = this.data.displayHeight;
+
+			for (var i = 0; i < height; i++) {
+				for (var j = startIndex; j <= rightEdge; j++) {
+					this.api.writeToCoordinate("", i, j);
+				}
+			}
+		},
+		clearHighlight : function () {
+			this.api.clearHighlights();
+		},
+		drawHighlight : function () {
+			this.methods.clearHighlight();
+			if (!this.settings.slct_mode){
+				return;
+			}
+
+			var pointA = this.data.highlight[0];
+			var pointB = this.data.highlight[1];
+
+			var initialRow = -1;
+			var terminalRow = -1;
+
+			for (var i = 0; i < this.data.characterMatrix.length; i++) {
+				if (this.data.characterMatrix[i][1][0] > Math.min(pointA, pointB)){
+					if (initialRow === -1){
+						initialRow = i-1;
+					}
+				}
+				if (this.data.characterMatrix[i][1][0] > Math.max(pointA, pointB)){
+					if (terminalRow === -1){
+						terminalRow = i-1;
+						break;
+					}
+				}
+			}
+			if (initialRow === -1 || terminalRow === -1){
+				return;
+			}
+
+			var initialColumn = this.data.characterMatrix[initialRow].findIndex(function(cell, index){
+				if (cell[0] === Math.min(pointA, pointB)){
+					console.log(index)
+					return true;
+				} else {
+					if (cell[0] === Math.min(pointA, pointB) + 1){
+						return true;
+					}
+					return false;
+				}
+			}, this)
+
+			var terminalColumn = this.data.characterMatrix[terminalRow].findIndex(function(cell){
+				if (cell[0] === Math.max(pointA, pointB)){
+					return true;
+				} else {
+					if (cell[0] === Math.max(pointA, pointB) + 1){
+						return true;
+					}
+					return false;
+				}
+			}, this)
+
+			if (initialColumn === undefined || terminalColumn === undefined){
+				return;
+			}
+
+			var currentRow = initialRow;
+			var currentCol = initialColumn;
+			console.log(`irow: ${initialRow}, iCol: ${initialColumn}, trow: ${terminalRow}, tcol:${terminalColumn}`);
+
+			for (var i = initialRow; i <=terminalRow; i++){
+				for (var j = 0; j < this.data.textWidth - 1; j ++){
+					if (i === initialRow && j < initialColumn){
+						continue;
+					};
+					if (i === terminalRow && j >= terminalColumn){
+						break;
+					}; 
+					console.log(i, j)
+					this.api.highlightCell(i,(j + 1))
+				}
+			}
+
+		},
+		drawDisplayBar : function () {
+			this.methods.clearDisplayBar();
+			
+			var rightEdge = this.api.getRowCount() - 1;
+			var startIndex = rightEdge - 18;
+			var selectedDataStartIndex = 15
+			Object.keys(this.settings).forEach(function(setting, index){
+				if (setting === 'displaySidebar' || setting === 'isRunning'){
+					return;
+				}
+				var setting = setting;
+				var bool = this.settings[setting];
+				var line = `${setting} : ${bool}`;
+				var j = 0;
+				for (var i = startIndex; i < rightEdge; i++) {
+					if (line[j] !== undefined){
+						this.api.writeToCoordinate(line[j], (2*index) + 2, i);
+					j+=1;
+					}
+				}
+			}, this);
+			if (this.settings.side_disp === 'special_keys'){
+				Object.keys(this.data.displayBar.keyBindings).forEach(function(key, index){
+					var firstTerm = this.data.displayBar.keyBindings[key].substring(0, this.data.displayBar.keyBindings[key].indexOf(" "));
+					var otherTerms = this.data.displayBar.keyBindings[key].substring(this.data.displayBar.keyBindings[key].indexOf(" "));
+					var line = `${key}: ${firstTerm}`;
+					var line2 = `${otherTerms}`;
+					var j = 0;
+					for (var i = startIndex; i < rightEdge; i++) {
+						if (line[j] !== undefined){
+							this.api.writeToCoordinate(line[j], (3*index) + selectedDataStartIndex, i);
+						}
+						if (line2[j] !== undefined){
+							this.api.writeToCoordinate(line2[j], (3*index) + (selectedDataStartIndex + 1), i)
+						}
+						j+=1;
+					}
+				},this)
+			} else if (this.settings.side_disp === 'commands'){
+				Object.keys(this.data.displayBar.commands).forEach(function(key, index){
+					var firstTerm = this.data.displayBar.commands[key].substring(0, this.data.displayBar.commands[key].indexOf(" "));
+					var otherTerms = this.data.displayBar.commands[key].substring(this.data.displayBar.commands[key].indexOf(" "));
+					var line = `${key}: ${firstTerm}`;
+					var line2 = `${otherTerms}`;
+					var j = 0;
+					for (var i = startIndex; i < rightEdge; i++) {
+						if (line[j] !== undefined){
+							this.api.writeToCoordinate(line[j], (3*index) + selectedDataStartIndex, i);
+						}
+						if (line2[j] !== undefined){
+							this.api.writeToCoordinate(line2[j], (3*index) + (selectedDataStartIndex + 1), i)
+						}
+						j+=1;
+					}
+				},this);
+			} else if (this.settings.side_disp === 'doc_data'){
+				Object.keys(this.data.displayBar.docData).forEach(function(key, index){
+					if (typeof this.data.displayBar.docData[key] === 'number'){
+						var line = `${key}`
+						var line2 = `    ${this.data.displayBar.docData[key]}`
+						var j = 0;
+						for (var i = startIndex; i < rightEdge; i++) {
+							if (line[j] !== undefined){
+								this.api.writeToCoordinate(line[j], (3*index) + selectedDataStartIndex, i);
+							}
+							if (line2[j] !== undefined){
+								this.api.writeToCoordinate(line2[j], (3*index) + (selectedDataStartIndex + 1), i)
+							}
+							j+=1;
+						}
+					} else {
+						var line = `${key}`;
+						var line2 = `    ${this.data.displayBar.docData[key]}`;
+						var j = 0;
+						for (var i = startIndex; i < rightEdge; i++) {
+							if (line[j] !== undefined){
+								this.api.writeToCoordinate(line[j], (3*index) + selectedDataStartIndex, i);
+							}
+							if (line2[j] !== undefined){
+								this.api.writeToCoordinate(line2[j], (3*index) + (selectedDataStartIndex + 1), i)
+							}
+							j+=1;
+						}
+					}
+				},this);
+			}
+
+		},
+
+		drawScrollBar : function () {
+			for (var i = 0; i < this.data.scrollBar.length; i++) {
+				this.api.writeToCoordinate(this.data.scrollBar[i], i, (this.data.textWidth + 2));
+			}
+		},
+
+		drawWindow : function () {
+			var width = this.api.getRowCount();
+			var title = 'editor.ext'
+			title = title.split('').reverse().join('');
+			var toggle = false;
+			var j = 0;
+			for (var i = (width - 1); i >= 0; i--){
+				if (j < title.length){
+					this.api.writeToCoordinate(title[j], this.data.displayHeight -1, i);
+					console.log
+					j += 1;
+				} else {
+					if (toggle){
+						this.api.writeToCoordinate('-', this.data.displayHeight -1, i)
+						toggle = false;
+					} else {
+						this.api.writeToCoordinate(' ', this.data.displayHeight -1, i)
+						toggle = true;
+					}
+				}
+
+			}
+		},
+
+		/*
+		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		WINDOW TRANSLATION METHODS
+		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		*/
+		translateWindowUp : function () {
+			this.data.vRowOffset += 1;
+			this.methods.scaleAndPositionScrollBar();
+			this.methods.recomposeText();
+		},
+
+		translateWindowDown : function () {
+			this.data.vRowOffset -= 1;
+			this.methods.scaleAndPositionScrollBar();
+			this.methods.recomposeText();
+		},
+
+		scaleAndPositionScrollBar : function () {
+			var prependCount = 0;
+			var postpendCount = 0;
+			var barHeight = this.data.displayHeight - 1;
+			this.data.scrollBar = ('#').repeat(barHeight);
+			var displayRatio = (barHeight / this.data.characterMatrix.length).toPrecision(10);
+			if (displayRatio > 1){
+				return;
+			}
+			var barIndexes = Math.round(barHeight * (displayRatio));
+			var scrollIndexes = barHeight - barIndexes;
+
+			var botSpill = ((this.data.characterMatrix.length) - (this.data.vRowOffset) - (barHeight))
+
+			let k = (scrollIndexes/(this.data.vRowOffset + botSpill)).toPrecision(10);
+
+
+
+			console.log(this.data.characterMatrix)
+			if (botSpill !== 0){
+				var offsetProportion = (this.data.vRowOffset / botSpill).toPrecision(10);
+			} else {
+				offsetProportion = 9999999;
+			}
+
+			//var unDisplayedBot = (this.data.characterMatrix.length - (this.data.vRowOffset + this.barHeight));
+			
+			if (barIndexes < 0){
+				debugger
+			}
+		
+			prependCount = Math.round(k * this.data.vRowOffset);
+		
+			if (prependCount < 0){
+				prependCount === 0;
+			}
+			postpendCount = scrollIndexes - prependCount;
+			if (postpendCount < 0){
+				postpendCount === 0;
+			}
+			var scrollBar = ('|').repeat(prependCount) + ('#').repeat(barIndexes) + ('|').repeat(postpendCount);
+			if (scrollBar.length < barHeight){
+				scrollBar += '|';
+			}
+			this.data.scrollBar = scrollBar;
+		},
+
 
 		/*
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -433,6 +913,11 @@ export const program = {
 		has got to do actual work... 
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		*/
+		reacquireStringIndex : function () {
+			var presentRow = this.data.cursorLocation[0];
+			var presentColumn = this.data.cursorLocation[1];
+			this.data.cursorLocation[2] = this.data.characterMatrix[presentRow][presentColumn][0];
+		},
 		decrementCursorLocation : function () {
 			var newLoc = [0,0,-1]
 			var presentRow = this.data.cursorLocation[0];
@@ -440,9 +925,18 @@ export const program = {
 			if (this.data.cursorLocation[2] === 0){
 				return;
 			}
-			for (var i = presentColumn - 1; i >= 0; i--){
-				if (!Number.isNaN(this.data.characterMatrix[presentRow][i][0])){
-					var cell = this.data.characterMatrix[presentRow][i][0]
+			for (var j = presentColumn - 1; j >= 0; j--){
+				if (this.data.characterMatrix[presentRow][j][0] === " "){
+					continue;
+				}
+				if (this.data.characterMatrix[presentRow][j].length > 1){
+					newLoc[0] = presentRow;
+					newLoc[1] = j;
+					newLoc[2] = this.data.characterMatrix[presentRow][j][0];
+					break;
+				}
+				if (!Number.isNaN(this.data.characterMatrix[presentRow][j][0])){
+					var cell = this.data.characterMatrix[presentRow][j][0]
 					if (cell === undefined){
 						continue;
 					}
@@ -452,14 +946,9 @@ export const program = {
 					if (this.data.text[cell] === '\\'){
 						continue;
 					}
-					if (this.data.text[cell] === 'n' || this.data.text[cell] === 't'){
-						if (this.data.text[cell - 1] === '\\'){
-						continue;
-						}
-					}
 					newLoc[0] = presentRow;
-					newLoc[1] = i;
-					newLoc[2] = this.data.characterMatrix[presentRow][i][0];
+					newLoc[1] = j;
+					newLoc[2] = this.data.characterMatrix[presentRow][j][0];
 					break;
 				}
 				continue;
@@ -467,7 +956,25 @@ export const program = {
 			if (newLoc[2] === -1){
 				for (var i = presentRow -1; i >= 0; i--){
 					for (var j = this.data.characterMatrix[i].length -1 ; j >= 0 ; j --){
+						if (this.data.characterMatrix[presentRow][j][0] === " "){
+							continue;
+						}
+						if (this.data.characterMatrix[i][j].length > 1){
+							newLoc[0] = i;
+							newLoc[1] = j;
+							newLoc[2] = this.data.characterMatrix[i][j][0];
+							if (newLoc[2] === undefined){
+					
+							}
+							break;
+						}
 						var cell = this.data.characterMatrix[i][j][0]
+						if (cell){
+							console.log(cell)
+						}
+						if (this.data.characterMatrix[i][j][0] === undefined){
+								continue;
+							}
 						if (!Number.isNaN(this.data.characterMatrix[i][j][0])){
 							if (this.data.characterMatrix[i][j][0] === undefined){
 								continue;
@@ -475,37 +982,12 @@ export const program = {
 							if (this.data.text[cell] === undefined){
 								continue;
 							}
-							if (this.data.text[cell] === '\\'){
-								continue;
-							}
-							if (this.data.text[cell] === 'n' || this.data.text[cell] === 't'){
-								if (j === 0 || !this.data.characterMatrix[i][j -1 ]){
-									console.log(this.data.textWidth);
-									console.log(this.data.characterMatrix);
-									console.log(`i == ${i}`);
-									var lastChar = "";
-									for (var k = this.data.textWidth - 1 ; k >= 0; k--){
-										if (this.data.characterMatrix[i-1][k][0] === undefined){
-											continue;
-										} else if (typeof this.data.characterMatrix[i-1][k][0] === 'number'){
-											lastChar = this.data.text[this.data.characterMatrix[i-1][k][0]];
-											break;
-										}
-									}
-									if (lastChar === `\\`){
-										continue;
-									}
-								} else {
-									if (this.data.text[this.data.characterMatrix[i][j -1 ][0]] === '\\'){
-										continue;
-									}	
-								}
-							}
 							newLoc[0] = i;
 							newLoc[1] = j;
 							newLoc[2] = this.data.characterMatrix[i][j][0];
 							break;
 						}
+						continue;
 					}
 					if (newLoc[2] !== -1){
 						break;
@@ -514,6 +996,9 @@ export const program = {
 				if (newLoc[2] === -1){
 					return;
 				}
+			}
+			if (newLoc[0] < this.data.vRowOffset){
+				this.methods.translateWindowDown();
 			}
 			this.data.cursorLocation[0] = newLoc[0]
 			this.data.cursorLocation[1] = newLoc[1];
@@ -529,7 +1014,15 @@ export const program = {
 				return;
 			}
 			for (var j = presentColumn + 1; j < this.data.characterMatrix[presentRow].length; j++) {
-	
+				if (this.data.characterMatrix[presentRow][j][0] === " "){
+					continue;
+				}
+				if (this.data.characterMatrix[presentRow][j].length > 1){
+					newLoc[0] = presentRow;
+					newLoc[1] = j;
+					newLoc[2] = this.data.characterMatrix[presentRow][j][0];
+					break;
+				}
 				if (!Number.isNaN(this.data.characterMatrix[presentRow][j][0])){
 					var cell = this.data.characterMatrix[presentRow][j][0]
 					if (cell === undefined){
@@ -541,11 +1034,6 @@ export const program = {
 					if (this.data.text[cell] === '\\'){
 						continue;
 					}
-					if (this.data.text[cell] === 'n' || this.data.text[cell] === 't'){
-						if (this.data.text[cell - 1] === '\\'){
-						continue;
-						}
-					}
 					newLoc[0] = presentRow;
 					newLoc[1] = j;
 					newLoc[2] = this.data.characterMatrix[presentRow][j][0];
@@ -556,10 +1044,19 @@ export const program = {
 			if (newLoc[2] === -1){
 				for (var i = presentRow + 1; i < this.data.characterMatrix.length; i++) {
 					for (var j = 0; j < this.data.characterMatrix[i].length; j ++){
-						var cell = this.data.characterMatrix[i][j][0]
-						if (cell){
-							console.log(cell)
+						if (this.data.characterMatrix[presentRow][j][0] === " "){
+							continue;
 						}
+						if (this.data.characterMatrix[i][j].length > 1){
+							newLoc[0] = i;
+							newLoc[1] = j;
+							newLoc[2] = this.data.characterMatrix[i][j][0];
+							if (newLoc[2] === undefined){
+					
+							}
+							break;
+						}
+						var cell = this.data.characterMatrix[i][j][0]
 						if (this.data.characterMatrix[i][j][0] === undefined){
 								continue;
 							}
@@ -569,34 +1066,6 @@ export const program = {
 							}
 							if (this.data.text[cell] === undefined){
 								continue;
-							}
-							if (this.data.text[cell] === '\\'){
-								continue;
-							}
-							if (this.data.text[cell] === 'n' || this.data.text[cell] === 't'){
-								console.log(j)
-								if (j === 0){
-									console.log(this.data.textWidth);
-									console.log(this.data.characterMatrix);
-									console.log(`i == ${i}`);
-									var lastChar = "";
-									for (var k = this.data.textWidth - 1 ; k >= 0; k--){
-										if (this.data.characterMatrix[i-1][k][0] === undefined){
-											continue;
-										} else if (typeof this.data.characterMatrix[i-1][k][0] === 'number'){
-											lastChar = this.data.text[this.data.characterMatrix[i-1][k][0]];
-											break;
-										}
-									}
-									if (lastChar === `\\`){
-										continue;
-									}
-								} else {
-									if (this.data.text[this.data.characterMatrix[i][j -1][0]] === '\\'){
-										continue;
-									}
-
-								}
 							}
 							newLoc[0] = i;
 							newLoc[1] = j;
@@ -612,6 +1081,9 @@ export const program = {
 				if (newLoc[2] === -1){
 					return;
 				}
+			}
+			if (newLoc[0] > (this.data.vRowOffset + this.data.displayHeight - 2)){
+				this.methods.translateWindowUp();
 			}
 			this.data.cursorLocation[0] = newLoc[0]
 			this.data.cursorLocation[1] = newLoc[1];
@@ -637,7 +1109,7 @@ export const program = {
 				for (var i = presentRow - 1; i >= 0; i--) {
 					for (var j = presentColumn; j >=0; j--){
 						var targetCell = this.data.characterMatrix[i][j];
-						if (targetCell !== undefined && targetCell[0] !== " "){
+						if (targetCell !== undefined && targetCell[0] !== " " && targetCell.length >0){
 							if (this.data.text[targetCell[0]]){
 								newLoc[0] = i;
 								newLoc[1] = j;
@@ -650,6 +1122,9 @@ export const program = {
 						break;
 					}
 				}
+			}
+			if (newLoc[0] < this.data.vRowOffset){
+				this.methods.translateWindowDown();
 			}
 			this.data.cursorLocation[0] = newLoc[0]
 			this.data.cursorLocation[1] = newLoc[1];
@@ -665,7 +1140,6 @@ export const program = {
 				return;
 			}
 			var targetCell = this.data.characterMatrix[presentRow + 1][presentColumn];
-			console.log(targetCell)
 			if (targetCell !== undefined && targetCell[0] !== " " && targetCell.length >0){
 				if (this.data.text[targetCell[0]]){
 					newLoc[0] = presentRow + 1;
@@ -676,10 +1150,7 @@ export const program = {
 				for (var i = presentRow + 1; i < this.data.characterMatrix.length; i++) {
 					for (var j = presentColumn; j >=0; j--){
 						var targetCell = this.data.characterMatrix[i][j];
-						if (!isNaN(targetCell[0] + 5)){
-							debugger;
-						}
-						if (targetCell !== undefined && targetCell[0] !== " "){
+						if (targetCell !== undefined && targetCell[0] !== " "&& targetCell.length >0){
 							if (this.data.text[targetCell[0]]){
 								newLoc[0] = i;
 								newLoc[1] = j;
@@ -694,6 +1165,10 @@ export const program = {
 				}
 				
 			}
+			if (newLoc[0] > (this.data.vRowOffset + this.data.displayHeight - 2)){
+				this.methods.translateWindowUp();
+			}
+			
 			this.data.cursorLocation[0] = newLoc[0]
 			this.data.cursorLocation[1] = newLoc[1];
 			this.data.cursorLocation[2] = newLoc[2];
@@ -713,29 +1188,43 @@ export const program = {
 		},
 		convertCursorLocationToXY : function () {
 			var x = this.data.cursorLocation[1];
-			var y = this.api.getRowCount() - this.data.cursorLocation[0] - 1;
+			var y = this.api.getRowCount() - this.data.cursorLocation[0] - 1 + this.data.vRowOffset;
 			var z = this.data.cursorLocation[2];
-			console.log(`c[col] = ${x}.... c[row] = ${this.data.cursorLocation[0]} ... stringIndex = ${z} string = ${this.data.text[this.data.cursorLocation[2]]}`)
-			this.api.logCursorPosition();
 			return [x,y];
 		},
 		handleCursorUp : function () {
 			this.methods.moveCursorUp();
+			if (this.settings.slct_mode){
+				this.data.highlight[1] = this.data.cursorLocation[2];
+				console.log(this.data.highlight)
+			}
 			var coordinates = this.methods.convertCursorLocationToXY()
 			this.api.positionCursor(coordinates[0], coordinates[1]);
 		},
 		handleCursorDown : function () {
 			this.methods.moveCursorDown();
+			if (this.settings.slct_mode){
+				this.data.highlight[1] = this.data.cursorLocation[2];
+				console.log(this.data.highlight)
+			}
 			var coordinates = this.methods.convertCursorLocationToXY()
 			this.api.positionCursor(coordinates[0], coordinates[1]);
 		},
 		handleCursorLeft : function () {
 			this.methods.decrementCursorLocation();
+			if (this.settings.slct_mode){
+				this.data.highlight[1] = this.data.cursorLocation[2];
+				console.log(this.data.highlight)
+			}
 			var coordinates = this.methods.convertCursorLocationToXY()
 			this.api.positionCursor(coordinates[0], coordinates[1]);
 		},
 		handleCursorRight : function () {
 			this.methods.incrementCursorLocation();
+			if (this.settings.slct_mode){
+				this.data.highlight[1] = this.data.cursorLocation[2];
+				console.log(this.data.highlight)
+			}
 			var coordinates = this.methods.convertCursorLocationToXY()
 			this.api.positionCursor(coordinates[0], coordinates[1]);
 		},
@@ -747,12 +1236,7 @@ export const program = {
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		*/
 		startEditext : function (text, doc) {
-			if (this.api.commandAvailCheck(`stop`)){
-				this.api.runCommand('stop')
-			}
-			this.api.readyCommand('stop');
 			this.settings.isRunning = true;
-			this.api.appendToRunningPrograms('edit.ext');
 
 			this.methods.inititalizeDimensions();
 			this.api.clearReservedRows();
@@ -766,6 +1250,7 @@ export const program = {
 
 			if (text !== undefined){
 				this.data.text = text;
+				this.methods.filterText();
 			} else {
 				this.data.text = "";
 			}
@@ -774,6 +1259,13 @@ export const program = {
 
 			this.methods.composeText();
 			this.methods.composeFromCharMatrix();
+			this.methods.scaleAndPositionScrollBar();
+
+			if (this.settings.displaySidebar){
+				this.methods.drawDisplayBar();
+			}
+			this.methods.drawScrollBar();
+			this.methods.drawWindow();
 		},
 
 	},
@@ -792,6 +1284,15 @@ export const program = {
 			openNoDoc : false,
 			docToOpen : "",
 			ex : function (target) {
+				if (this.api.commandAvailCheck('stop')){
+					this.api.runCommand('stop');
+				}
+				this.api.readyCommand('stop')
+				if (!this.api.checkIfRunning(`${this.name}`)){
+					console.log(this.name)
+				
+					this.api.appendToRunningPrograms(`${this.name}`, false)
+				}
 				var edit = this.installData.edit;
 				var prgm = this;
 				console.log(target)
@@ -803,9 +1304,6 @@ export const program = {
 					noDocVer = false;
 					openNoDoc = false;
 					docToOpen = "";
-					if (this.api.checkIfRunning('editor.ext')){
-						this.api.runCommand('stop');
-					}
 					return;
 				}
 				if (!target && !edit.cndVer) {

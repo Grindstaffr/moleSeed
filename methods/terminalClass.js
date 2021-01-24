@@ -242,6 +242,15 @@ export class Terminal {
 			row.forEach(function(character, characterIndex){
 				var vLoc = vStart + (rowIndex * trmnl.letterHeight)
 				var hLoc = hStart + (characterIndex * trmnl.letterHeight)
+				if (Object.keys(this.cache.highlights).includes(rowIndex.toString())){
+					if(this.cache.highlights[rowIndex.toString()].includes(characterIndex)){
+						this.context.fillRect(hLoc, (vLoc - this.letterHeight), this.letterHeight, this.letterHeight)
+						this.context.fillStyle = this.style.background;
+						this.context.fillText(character, hLoc, vLoc)
+						this.context.fillStyle = this.style.text;
+						return;
+					}
+				};
 				this.context.fillText(character, hLoc, vLoc)
 			},this)
 		},this)
@@ -257,7 +266,6 @@ export class Terminal {
 
 	keyHandler  (e) {
 		if (this.api.alternateKeyRouterActive()){
-			console.log('doin this')
 			this.api.useAltKeyRouter(e);
 			return;
 		}
@@ -697,6 +705,7 @@ export class Terminal {
 		cache.inputRowOffset = 0;
 		cache.inputBuffer = [];
 		cache.inputBufferVerfied = false;
+		cache.highlights = {};
 
 		cache.rescaleCache = function () {
 			var oldCurrentRows = []
@@ -1160,6 +1169,21 @@ export class Terminal {
 			this.reservedRows = 0;
 			return;
 		}
+
+		cache.addHighlight = function (rowIndex, colIndex){
+			if (Object.keys(this.highlights).includes(rowIndex.toString())){
+				this.highlights[rowIndex].push(colIndex);
+			} else {
+				this.highlights[rowIndex.toString()] = [];
+				this.highlights[rowIndex.toString()].push(colIndex);
+			}
+		}
+
+		cache.clearHighlights = function () {
+			Object.keys(this.highlights).forEach(function(key){
+				delete this.highlights[key];
+			}, this)
+		}
 		
 		return cache;
 	}
@@ -1458,7 +1482,7 @@ export class Terminal {
 											trmnl.api.writeToGivenRow(` receiving ${program.size}kb of data... ${dataDownloaded}kb receieved, link complete.` ,trmnl.api.getRowCount()-3)
 										},5)
 										window.setTimeout(function(){
-											trmnl.api.log(`node_${trmnl.activeNode.name} allocating ${program.memory}kb @ ${trmnl.activeNode.address}`);
+											trmnl.api.log(` node_${trmnl.activeNode.name} allocating ${program.memory}kb @ ${trmnl.activeNode.address}`);
 											for (var i = 0 ; i <= program.memory ; i++){
 												if (i < program.memory){
 													window.setTimeout(function(){
@@ -1561,6 +1585,7 @@ export class Terminal {
 				}
 				trmnl.programs[programName].ex(arg1, arg2, arg3);
 				trmnl.programs.runningPrograms[programName] = trmnl.programs[programName]
+				console.log(trmnl.programs.runningPrograms)
 				trmnl.command.stop.isAvail = true;
 				cmd.assembleValidCommands.ex();
 				cmd.assembleValidNodes.ex();
@@ -1574,12 +1599,15 @@ export class Terminal {
 			isAvail : false,
 			hasDefault: true,
 			ex : function (programName) {
+				console.log('hit stop')
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
 				if (!programName){
 					programName = Object.keys(trmnl.programs.runningPrograms)[0]
+					console.log(programName)
 				}
 				if (trmnl.programs.runningPrograms[programName] === undefined){
+					console.log(trmnl.programs.runningPrograms)
 					cmd.error.ex(`cannot stop a program that's not executing`)
 					return;
 				}
@@ -3070,15 +3098,29 @@ export class Terminal {
 			}
 			this.parent.blinkyCursor.position.x = x;
 			this.parent.blinkyCursor.position.y = y;
+			this.setCursorBright();
 		};
 		terminalInterface.restoreDefaultCursorPosition = function () {
 			this.parent.blinkyCursor.position.leadTheText();
 			this.parent.blinkyCursor.position.slamDown();
 		};
+		terminalInterface.getCursorPosition = function () {
+			var x = this.parent.blinkyCursor.position.x
+			var y = this.parent.blinkyCursor.position.y
+			return [x,y];
+		}
 		terminalInterface.logCursorPosition = function () {
 			var x = this.parent.blinkyCursor.position.x
 			var y = this.parent.blinkyCursor.position.y
-			console.log(`ACTUAL CURSOR POS   x =  ${x} .... y = ${y}`)
+		};
+		terminalInterface.setCursorBright = function () {
+			this.parent.blinkyCursor.setBright()
+		};
+		terminalInterface.highlightCell = function (rowIndex, colIndex) {
+			this.cache.addHighlight(rowIndex, colIndex)
+		};
+		terminalInterface.clearHighlights = function () {
+			this.cache.clearHighlights();
 		};
 		const init = function (trmnl) {
 			terminalInterface.parent = trmnl;
