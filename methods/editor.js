@@ -5,6 +5,14 @@ export const program = {
 	size : 5,
 	memory : 10,
 	data : {
+		activeDoc : {
+			name : "",
+			type : "",
+			line_count : 0,
+			char_count : 0,
+			word_count : 0,
+			est_mem_use : 0,
+		},
 		cursorLocation : [0,0,0],
 		inserting : false,
 		shiftDown : false,
@@ -44,14 +52,6 @@ export const program = {
 				'new_wmt' : 'create new .wmt doc',
 				'rename' : 'rename active doc',
 			},
-			docData : {
-				'doc_name' : `"testName"`,
-				'doc_type' : `".rdbl"`,
-				'line_count' : 456,
-				'char_count' : 20182,
-				'word_count' : 4105,
-				'est_mem_use' : 8210,
-			},
 		},
 	},
 	settings: {
@@ -59,7 +59,7 @@ export const program = {
 		slct_mode : false,
 		fast_mode : false,
 		side_disp : 'special_keys', 
-		displaySidebar : true,
+		displaySidebar : false,
 	},
 	methods: {
 		commands : {
@@ -73,7 +73,7 @@ export const program = {
 		},
 		keyStrokeRouter : {
 			'8' : function (e) {
-				if (this.data.selectedText){
+				if (this.settings.slct_mode){
 					this.methods.multiDelete();
 				} else {
 					this.methods.deleteLetter();
@@ -81,10 +81,18 @@ export const program = {
 				//backspace
 			},
 			'9' : function (e) {
-				this.methods.writeToText('\\t')
+				if (this.settings.slct_mode){
+
+				} else {
+					this.methods.writeToText('\\t')
+				}
 			},
 			'13' : function (e) {
-				this.methods.writeToText('\\n')
+				if (this.settings.slct_mode){
+
+				} else {
+					this.methods.writeToText('\\n')
+				}
 			},
 			'16' : function (e) {
 				//shift
@@ -139,13 +147,6 @@ export const program = {
 					this.methods.handleCursorDown();
 				}
 			},
-			'67' : function (e) {
-				if (this.data.ctrlDown){
-					this.methods.copy();
-					return;
-				}
-				this.methods.keyStrokeRouter.generalCase(e);
-			},
 			'112' : function (e) {
 				this.methods.copy();
 			},
@@ -186,16 +187,11 @@ export const program = {
 				}
 				this.methods.cycleSidebarDisplay();
 			},
-			'86' : function (e) {
-				if (this.data.ctrlDown){
-					this.methods.paste();
-					return;
-				}
-				this.methods.keyStrokeRouter.generalCase(e);
-			},
 			generalCase : function (e) {
 				var value = e.key.toString();
-				this.methods.writeToText(value);
+				if (!this.settings.slct_mode){
+					this.methods.writeToText(value);
+				}
 			},
 
 		},
@@ -214,15 +210,7 @@ export const program = {
 					this.methods.drawWindow();
 					return;
 				}
-				this.api.useDefaultKeyRouter(e)
-				if (this.settings.displaySidebar){
-					this.methods.drawDisplayBar();
-				}
-				if (this.settings.slct_mode){
-					this.methods.drawHighlight();
-				}
-				this.methods.drawScrollBar();
-				this.methods.drawWindow();
+				this.api.useDefaultKeyRouter(e);
 				return;
 			}
 			if (Object.keys(this.methods.keyStrokeRouter).includes(e.keyCode.toString())){
@@ -240,20 +228,7 @@ export const program = {
 			this.methods.drawWindow();
 		},
 		routeKeyUp : function (e) {
-			e.preventDefault();
-			if (e.keyCode === 16) {
-				e.preventDefault();
-				this.data.shiftDown = false;
-				console.log('shiftup')
-			} else if (e.keyCode === 17) {
-				e.preventDefault();
-				this.data.ctrlDown = false;
-				console.log('ctrlup')
-			} else  if (e.keyCode === 18) {
-				e.preventDefault();
-				this.data.altDown = false;
-				console.log ('altup')
-			}
+			
 		},
 		/*
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -266,8 +241,11 @@ export const program = {
 				this.api.restoreDefaultCursorPosition();
 			} else if (this.settings.edit_mode == false){
 				this.settings.edit_mode = true;
+				if (!this.settings.displaySidebar){
+					this.methods.toggleSideBar();
+				}
 				this.methods.inititalizeCursorPosition();
-				var coordinates = this.methods.convertCursorLocationToXY()
+				var coordinates = this.methods.convertCursorLocationToXY();
 				this.api.positionCursor(coordinates[0], coordinates[1]);
 			} else {
 				this.api.runCommand(`stop`);
@@ -296,14 +274,25 @@ export const program = {
 				this.settings.displaySidebar = false;
 				this.methods.clearDisplayBar();
 				this.methods.inititalizeDimensions();
+				this.methods.repositionCursor();
+				if (this.settings.slct_mode){
+					this.api.clearHighlights();
+					this.methods.drawHighlight();
+				}
 			} else if (!this.settings.displaySidebar){
 				this.settings.displaySidebar = true;
 				this.methods.inititalizeDimensions();
+				this.methods.repositionCursor();
+				if (this.settings.slct_mode){
+					this.api.clearHighlights();
+					this.methods.drawHighlight();
+				}
 				this.methods.drawDisplayBar();
 			} else {
 				this.api.runCommand(`stop`);
 				this.api.throwError(`editor.ext crashed with status: displaySideBar = ${this.settings.displaySidebar}`)
 			}
+
 		},
 		cycleSidebarDisplay : function () {
 			var options = ['special_keys', 'commands', 'doc_data'];
@@ -354,6 +343,7 @@ export const program = {
 			}
 			var coordinates = this.methods.convertCursorLocationToXY()
 			this.api.positionCursor(coordinates[0], coordinates[1]);
+			this.methods.updateActiveDoc();
 		
 		},
 		deleteLetter : function () {
@@ -400,6 +390,7 @@ export const program = {
 			var coordinates = this.methods.convertCursorLocationToXY()
 			this.api.positionCursor(coordinates[0], coordinates[1]);
 			this.methods.reacquireStringIndex();
+			this.methods.updateActiveDoc();
 		
 		},
 		multiDelete : function () {
@@ -410,6 +401,7 @@ export const program = {
 			var postpend = this.data.text.substring(deleteEndIndex + 1);
 
 			this.data.text = prepend + postpend;
+			this.methods.updateActiveDoc();
 		},
 		copy : function () {
 			if (this.settings.slct_mode){
@@ -418,6 +410,7 @@ export const program = {
 				return;
 			}
 			this.data.clipBoard = this.data.text.substring(this.data.highlight[0], this.data.highlight[1]);
+			this.methods.updateActiveDoc();
 		},
 		cut : function () {
 			if (this.settings.slct_mode){
@@ -425,16 +418,23 @@ export const program = {
 			} else {
 				return;
 			}
-			this.data.clipBoard = this.data.text.substring(this.data.highlight[0], this.data.highlight[1]);
-			var prepend = this.data.text.substring(0, this.data.highlight[0]);
-			var postpend = this.data.text.substring(this.data.highlight[1]);
+			var pointA = Math.min(this.data.highlight[0], this.data.highlight[1]);
+			var pointB = Math.max(this.data.highlight[0], this.data.highlight[1]);
+
+
+			this.data.clipBoard = this.data.text.substring(pointA, pointB);
+			var prepend = this.data.text.substring(0, pointA);
+			var postpend = this.data.text.substring(pointB);
 
 			this.data.text = prepend + postpend;
 			this.methods.recomposeText();
-			for (var i = 0; i < this.data.clipBoard.length; i++){
-				this.methods.decrementCursorLocation();
+			if (this.data.highlight[1] >= this.data.highlight[0]){
+				for (var i = 0; i < this.data.clipBoard.length; i++){
+					this.methods.decrementCursorLocation();
+				}
 			}
 			this.methods.positionTerminalCursor();
+			this.methods.updateActiveDoc();
 			//this.data.cursorLocation[2] -= this.data.clipBoard.length;
 		},
 		paste : function () {
@@ -452,6 +452,7 @@ export const program = {
 				this.methods.incrementCursorLocation();
 			}
 			this.methods.positionTerminalCursor();
+			this.methods.updateActiveDoc();
 		},
 		reconstructCharacterMatrix : function () {
 			this.data.characterMatrix = [];
@@ -485,14 +486,18 @@ export const program = {
 		composeText : function () {
 			var string = this.data.text;
 			var currentRow = 0;
-			var currentCol = 0;
+			var currentCol = -1;
 			var prevCharBackslash = false;
+			var prevCharBullshit = false;
 			for (var i = 0; i < string.length; i++) {
 				if (!this.data.characterMatrix[currentRow]){
 					this.methods.appendRowToCharacterMatrix();
 				}
-				if (!prevCharBackslash){
+				if (!prevCharBackslash && !prevCharBullshit){
 					currentCol += 1;
+				}
+				if (prevCharBullshit){
+					prevCharBullshit = false;
 				}
 				if (currentCol >= (this.data.textWidth)){
 					currentCol = 0;
@@ -505,6 +510,7 @@ export const program = {
 							this.methods.appendRowToCharacterMatrix();
 						}
 				} else if (!string[i] || string[i] === undefined || string[i] === "" || string[i] === '\n' || string[i] === '\t') {
+					prevCharBullshit = true;
 					continue;
 				}else if (string[i] === '\\'){
 					prevCharBackslash = true;
@@ -523,7 +529,7 @@ export const program = {
 							currentRow += 1;
 							this.methods.appendRowToCharacterMatrix();
 						}
-						currentCol = 0;
+						currentCol = -1;
 						continue;
 					} else if (string[i] === 't'){
 						this.data.characterMatrix[currentRow][currentCol][1] = i
@@ -685,6 +691,8 @@ export const program = {
 			var situtation = 'A';
 
 			var shouldUnhighlight = false;
+			var shouldRerun = false;
+			var skipDiff = false;
 
 			var pointA = this.data.highlight[0];
 			var pointB = this.data.highlight[1];
@@ -693,37 +701,74 @@ export const program = {
 			var prevB = this.data.prevHighlight[1];
 
 			if (pointA > pointB){
-				if (prevB > pointB){
-					pointA = pointB;
-					pointB = prevB;
-				} else if (prevB < pointB) {
-					pointA = prevB;
-					pointB = pointB;
-					shouldUnhighlight = true;
-					situtation = 'B';
+				if (prevA < prevB){
+					this.api.clearHighlights();
+					skipDiff = true;
 				}
 			} else if (pointB > pointA){
-				if (prevB > pointB){
-					pointA = pointB;
-					pointB = prevB;
-					shouldUnhighlight = true;
-					situtation = 'C'
-				} else if (pointB > prevB) {
-					pointA = prevB;
-					pointB = pointB;
-					situtation = 'D'
+				if (prevB < prevA){
+					this.api.clearHighlights();
+					skipDiff = true;
 				}
-			} else if (pointA === pointB){
-				this.api.clearHighlights();
+			} 
+			if (!skipDiff){
+				if (pointA > pointB){
+					if (prevB > pointB){
+						pointA = pointB;
+						pointB = prevB;
+					} else if (prevB < pointB) {
+						pointA = prevB;
+						pointB = pointB;
+						shouldUnhighlight = true;
+						situtation = 'B';
+					} else if (pointB === prevB){
 
+					}
+				} else if (pointB > pointA){
+					if (prevB > pointB){
+						pointA = pointB;
+						pointB = prevB;
+						shouldUnhighlight = true;
+						situtation = 'C'
+					} else if (pointB > prevB) {
+						pointA = prevB;
+						pointB = pointB;
+						situtation = 'D'
+					} else if (pointB === prevB){
+
+					}
+				} else if (pointA === pointB){
+					this.api.clearHighlights();
+
+				}
 			}
 
-			if (situtation === 'C'){
-				console.log(`pA = ${pointA} pointB = ${pointB}`)
-			}
-
+	
 			var initialRow = -1;
 			var terminalRow = -1;
+
+			if (pointA === 719 || pointB === 719){
+				debugger;
+			}
+
+			var coordinatesA = this.methods.getCoordinatesFromStringIndex(pointA);
+			var coordinatesB = this.methods.getCoordinatesFromStringIndex(pointB);
+
+			initialRow = Math.min(coordinatesA[0], coordinatesB[0]);
+			terminalRow = Math.max(coordinatesA[0], coordinatesB[0]);
+
+			var initialColumn = Math.min(coordinatesA[1], coordinatesB[1]);
+			var terminalColumn = Math.max(coordinatesA[1], coordinatesB[1]);
+
+			if (coordinatesA[0] < coordinatesB[0]){
+				initialColumn = coordinatesA[1];
+				terminalColumn = coordinatesB[1];
+			} else if (coordinatesB[0] < coordinatesA[0]){
+				initialColumn = coordinatesB[1];
+				terminalColumn = coordinatesA[1];
+			}
+
+			/*
 
 			for (var i = 0; i < this.data.characterMatrix.length; i++) {
 				var firstCell = this.data.characterMatrix[i][0];
@@ -746,13 +791,9 @@ export const program = {
 				return;
 			}
 
-			if (situtation === 'C'){
-				console.log(`pARow = ${initialRow} pointBrow = ${terminalRow}`)
-			}
-
+	
 			var initialColumn = this.data.characterMatrix[initialRow].findIndex(function(cell, index){
 				if (cell[0] === Math.min(pointA, pointB)){
-					console.log(index)
 					return true;
 				} else {
 					if (cell[0] === Math.min(pointA, pointB) + 1){
@@ -786,6 +827,7 @@ export const program = {
 			if (situtation === 'C'){
 				console.log(`pACol = ${initialColumn} pointBcol = ${terminalColumn}`)
 			}
+			*/
 
 			initialRow -= this.data.vRowOffset;
 			terminalRow -= this.data.vRowOffset;
@@ -797,11 +839,27 @@ export const program = {
 					if (initialColumn === terminalColumn){
 						this.api.unhighlightCell(initialRow, initialColumn + 1);
 						this.data.prevHighlight = [this.data.highlight[0],this.data.highlight[1]];
+						if (shouldRerun){
+							console.log(`rerunning`)
+							this.methods.drawHighlight();
+						}
 						return;
 					}
 					if (terminalColumn === initialColumn + 1 || terminalColumn === initialColumn - 1){
-						this.api.unhighlightCell(initialRow, terminalColumn + 1);
+
+
+
+
+						if (this.data.highlight[1] < this.data.highlight[0]){
+							this.api.unhighlightCell(initialRow, terminalColumn);
+						} else {
+							this.api.unhighlightCell(initialRow, terminalColumn + 1)
+						}
 						this.data.prevHighlight = [this.data.highlight[0],this.data.highlight[1]];
+						if (shouldRerun){
+							console.log(`rerunning`)
+							this.methods.drawHighlight();
+						}
 						return;
 					}
 					for (var k = this.data.textWidth -1; k >=0; k --){
@@ -813,44 +871,84 @@ export const program = {
 						this.api.unhighlightCell(terminalRow, (k+1));
 					}
 					this.data.prevHighlight = [this.data.highlight[0],this.data.highlight[1]];
+					if (shouldRerun){
+						console.log(`rerunning`)
+						this.methods.drawHighlight();
+					}
 					return;
 				}
-				for (var i = terminalRow; i >= initialRow; i--){
-					for (var j = this.data.textWidth - 1; j >=0; j--){
-						if (i === terminalRow && j > terminalColumn){
-							continue;
-						};
-						if (i === initialRow && j < initialColumn){
-							break;
-						}; 
-	
-						this.api.unhighlightCell(i,(j + 1))
+				if (this.data.highlight[1] < this.data.highlight[0]){
+					console.log('debug at pb < pA')
+					for (var i = initialRow; i <= terminalRow; i++){
+						for (var j = 0; j < this.data.textWidth ; j ++){
+							if (i === initialRow && j < initialColumn){
+								continue;
+							}; 
+							if (i === terminalRow && j >= terminalColumn){
+								break;
+							};
+		
+							this.api.unhighlightCell(i,(j + 1))
+						}
 					}
+					this.data.prevHighlight = [this.data.highlight[0],this.data.highlight[1]];
+					if (shouldRerun){
+						console.log(`rerunning`)
+						this.methods.drawHighlight();
+					}
+					return;
+				} else {
+					for (var i = terminalRow; i >= initialRow; i--){
+						for (var j = this.data.textWidth - 1; j >=0; j--){
+							if (i === terminalRow && j > terminalColumn){
+								continue;
+							};
+							if (i === initialRow && j < initialColumn){
+								break;
+							}; 
+		
+							this.api.unhighlightCell(i,(j + 1))
+						}
+					}
+					this.data.prevHighlight = [this.data.highlight[0],this.data.highlight[1]];
+					if (shouldRerun){
+						console.log(`rerunning`)
+						this.methods.drawHighlight();
+					}
+					return;
 				}
-				this.data.prevHighlight = [this.data.highlight[0],this.data.highlight[1]];
-				return;
 			} else {
-				for (var i = initialRow; i <=terminalRow; i++){
-					for (var j = 0; j < this.data.textWidth ; j ++){
-						if (i === initialRow && j < initialColumn){
-							continue;
-						};
-						if (i === terminalRow && j >= terminalColumn){
-							break;
-						}; 
-					
-						this.api.highlightCell(i,(j + 1))
-						
+				//console.log(`irow=(${initialRow}) trow=(${terminalRow}) icol=(${initialColumn}) tcol=(${terminalColumn}) `)
+					for (var i = initialRow; i <=terminalRow; i++){
+						for (var j = 0; j < this.data.textWidth ; j ++){
+							if (i === initialRow && j < initialColumn){
+								continue;
+							};
+							if (i === terminalRow && j >= terminalColumn){
+								break;
+							}; 
+							this.api.highlightCell(i,(j + 1))
+						}
 					}
-				}
-				this.data.prevHighlight = [this.data.highlight[0],this.data.highlight[1]];
-				return;
+					this.data.prevHighlight = [this.data.highlight[0],this.data.highlight[1]];
+					if (shouldRerun){
+						console.log(`rerunning`)
+						this.methods.drawHighlight();
+					}
+					return;
+
+			
 			}
 			
 
 			this.data.prevHighlight = [this.data.highlight[0],this.data.highlight[1]];
+			if (shouldRerun){
+				console.log(`rerunning`)
+				this.methods.drawHighlight();
+			}
 		},
 		drawDisplayBar : function () {
+			
 			this.methods.clearDisplayBar();
 			
 			var rightEdge = this.api.getRowCount() - 1;
@@ -906,10 +1004,10 @@ export const program = {
 					}
 				},this);
 			} else if (this.settings.side_disp === 'doc_data'){
-				Object.keys(this.data.displayBar.docData).forEach(function(key, index){
-					if (typeof this.data.displayBar.docData[key] === 'number'){
+				Object.keys(this.data.activeDoc).forEach(function(key, index){
+					if (typeof this.data.activeDoc[key] === 'number'){
 						var line = `${key}`
-						var line2 = `    ${this.data.displayBar.docData[key]}`
+						var line2 = `    ${this.data.activeDoc[key]}`
 						var j = 0;
 						for (var i = startIndex; i < rightEdge; i++) {
 							if (line[j] !== undefined){
@@ -922,7 +1020,7 @@ export const program = {
 						}
 					} else {
 						var line = `${key}`;
-						var line2 = `    ${this.data.displayBar.docData[key]}`;
+						var line2 = `    ${this.data.activeDoc[key]}`;
 						var j = 0;
 						for (var i = startIndex; i < rightEdge; i++) {
 							if (line[j] !== undefined){
@@ -940,12 +1038,14 @@ export const program = {
 		},
 
 		drawScrollBar : function () {
+			
 			for (var i = 0; i < this.data.scrollBar.length; i++) {
 				this.api.writeToCoordinate(this.data.scrollBar[i], i, (this.data.textWidth + 2));
 			}
 		},
 
 		drawWindow : function () {
+
 			var width = this.api.getRowCount();
 			var title = 'editor.ext'
 			title = title.split('').reverse().join('');
@@ -1041,10 +1141,178 @@ export const program = {
 		has got to do actual work... 
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		*/
+		assignHighlightSelection : function () {
+			if (this.data.cursorLocation[2] > this.data.highlight[0]){
+				this.data.highlight[1] = this.data.cursorLocation[2];
+			} else if (this.data.cursorLocation[2] === this.data.highlight[0]){
+				this.data.highlight[1] = this.data.cursorLocation[2];
+			} else {
+				var row = this.data.cursorLocation[0];
+				var col = this.data.cursorLocation[1];
+				var cell = this.data.characterMatrix[row][col];
+				if (cell.length === 1){
+					this.data.highlight[1] = this.data.cursorLocation[2] + 1;
+				} else if (cell.length === 3){
+					this.data.highlight[1] = this.data.cursorLocation[2] + 2
+				}
+			}
+		},
+		repositionCursor : function () {
+			this.methods.setPositionFromStringIndex(this.data.cursorLocation[2])
+		},
+		setPositionFromStringIndex : function (stringIndex){
+			var coordinates = this.methods.getCoordinatesFromStringIndex(stringIndex);
+			this.data.cursorLocation[0] = coordinates[0];
+			this.data.cursorLocation[1] = coordinates[1];
+			this.methods.positionTerminalCursor();
+		},
 		reacquireStringIndex : function () {
 			var presentRow = this.data.cursorLocation[0];
 			var presentColumn = this.data.cursorLocation[1];
 			this.data.cursorLocation[2] = this.data.characterMatrix[presentRow][presentColumn][0];
+		},
+		getCoordinatesFromStringIndex : function (stringIndex) {
+			//I've just come to the realization that all these algorithms could be so much faster.
+			//By which I mean the damn highlighter Func can use this... which is much faster;
+			var targetValue = stringIndex;
+			var row = -1;
+			var col = -1;
+			var initialIndex = 0;
+			var searchRowIndex = Math.floor(this.data.characterMatrix.length /2);
+			var rowFidelity = searchRowIndex;
+			var searchColIndex = 0;
+			var counter = 2*this.data.characterMatrix.length
+			//this can be reinstantiated as a binary tree search
+
+			while(col === -1 && counter > 0){
+				var guessCell = this.data.characterMatrix[searchRowIndex][searchColIndex];
+				initialIndex = 0;
+				if (searchColIndex === 0){
+					var rowGuessCell = this.data.characterMatrix[searchRowIndex][initialIndex];
+					if (rowGuessCell.length === 0){
+						if (initialIndex === 0){
+							initialIndex += 1
+							rowGuessCell = this.data.characterMatrix[searchRowIndex][initialIndex];
+						}
+					}
+					guessCell = rowGuessCell;
+				}
+				if (guessCell === undefined){
+				
+		
+				}
+				if (guessCell[0] === targetValue) {
+					row = searchRowIndex;
+					col = searchColIndex;
+					break;
+				}
+				if (row === -1){
+			
+					if (guessCell[0] > targetValue){
+				
+						if (this.data.characterMatrix[searchRowIndex -1][initialIndex][0] < targetValue){
+						
+							row = searchRowIndex - 1;
+							searchRowIndex = row;
+						
+							counter -= 1;
+							continue;
+						}
+						searchRowIndex -= Math.ceil(rowFidelity/2);
+						rowFidelity = Math.max(Math.floor(rowFidelity/2), 1)
+					}
+					if (guessCell[0] < targetValue) {
+						
+						if (!this.data.characterMatrix[searchRowIndex +1]){
+							row = searchRowIndex;
+							searchRowIndex = row;
+							counter -= 1;
+							continue
+						}
+						if (this.data.characterMatrix[searchRowIndex +1][initialIndex][0] > targetValue){
+							row = searchRowIndex;
+							searchRowIndex = row;
+							
+							counter -= 1;
+							continue;
+						}
+						searchRowIndex += Math.ceil(rowFidelity/2);
+						rowFidelity = Math.max(Math.floor(rowFidelity/2), 1)
+					}
+					if (guessCell[0] === targetValue){
+				
+						row = searchRowIndex;
+						col = 0;
+						break;
+					}
+				} else {
+				
+					if (searchColIndex === 0){
+						searchColIndex = (targetValue - this.data.characterMatrix[row][initialIndex][0]);
+						if (searchColIndex === undefined){
+					
+						}
+						if (this.data.characterMatrix[row][searchColIndex][0] === targetValue){
+							col = searchColIndex;
+							break;
+						} else {
+							searchColIndex = Math.floor(this.data.characterMatrix[row].length/2);
+						}
+					}
+					if (col === -1){
+						if (targetValue === 1282){
+							debugger;
+						}
+						guessCell = this.data.characterMatrix[searchRowIndex][searchColIndex]
+						if (guessCell === undefined || guessCell.length === 0){
+							searchColIndex -= 1;
+							counter-=1;
+							continue;
+						}
+						if (guessCell[0] === " "){
+							searchColIndex -= 1;
+							counter-=1;
+							continue;
+						}
+						if (guessCell[0] > targetValue){
+							var estimatedIndexes = guessCell[0] - targetValue;
+							searchColIndex -= estimatedIndexes
+							counter -= 1;
+							continue;
+						}
+						if (guessCell[0] < targetValue){
+							var estimatedIndexes =  targetValue - guessCell[0];
+							searchColIndex += estimatedIndexes
+							counter -= 1;
+							continue
+						}
+						if (guessCell[0] === targetValue){
+							col = searchColIndex;
+							break;
+						}
+					} else {
+						console.log(col)
+					}
+				}
+				counter -= 1;
+			}
+			if (counter === 0){
+				console.log(`search timeout: getCoordinatesFromStringIndex... algo too slow... looking for ${targetValue} in row ${searchRowIndex} at col ${searchColIndex}`)
+				console.log(`col = ${col}, row = ${row}`)
+				console.log(this.data.characterMatrix)
+				return;
+			}
+
+			if (row === -1){
+				return;
+			}
+
+			if (col === -1){
+				return;
+			}
+
+		
+			return [row, col, targetValue]			
 		},
 		decrementCursorLocation : function () {
 			var newLoc = [0,0,-1]
@@ -1327,16 +1595,14 @@ export const program = {
 		handleCursorUp : function () {
 			this.methods.moveCursorUp();
 			if (this.settings.slct_mode){
-				this.data.highlight[1] = this.data.cursorLocation[2];
-				console.log(this.data.highlight)
+				this.methods.assignHighlightSelection();
 			}
 			this.methods.positionTerminalCursor();
 		},
 		handleCursorDown : function () {
 			this.methods.moveCursorDown();
 			if (this.settings.slct_mode){
-				this.data.highlight[1] = this.data.cursorLocation[2];
-				console.log(this.data.highlight)
+				this.methods.assignHighlightSelection();
 			}
 			var coordinates = this.methods.convertCursorLocationToXY()
 			this.api.positionCursor(coordinates[0], coordinates[1]);
@@ -1344,8 +1610,7 @@ export const program = {
 		handleCursorLeft : function () {
 			this.methods.decrementCursorLocation();
 			if (this.settings.slct_mode){
-				this.data.highlight[1] = this.data.cursorLocation[2];
-				console.log(this.data.highlight)
+				this.methods.assignHighlightSelection();
 			}
 			var coordinates = this.methods.convertCursorLocationToXY()
 			this.api.positionCursor(coordinates[0], coordinates[1]);
@@ -1353,8 +1618,7 @@ export const program = {
 		handleCursorRight : function () {
 			this.methods.incrementCursorLocation();
 			if (this.settings.slct_mode){
-				this.data.highlight[1] = this.data.cursorLocation[2];
-				console.log(this.data.highlight)
+				this.methods.assignHighlightSelection();
 			}
 			var coordinates = this.methods.convertCursorLocationToXY()
 			this.api.positionCursor(coordinates[0], coordinates[1]);
@@ -1366,6 +1630,28 @@ export const program = {
 		END CURSOR SHIT
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		*/
+		updateActiveDoc : function (text, doc) {
+			if (!text || text === undefined){
+				text = this.data.text;
+			}
+			this.data.activeDoc.word_count = text.split("\\n").join(" ").split('\\t').join(" ").split(" ").filter(function(x){
+				return x !== ""
+			}).length;
+			this.data.activeDoc.char_count = text.length;
+			this.data.activeDoc.line_count = text.split("\\n").length;
+			this.data.activeDoc.est_mem_use = this.data.activeDoc.char_count * 2;
+			if (doc && doc !== undefined){
+				this.data.activeDoc.name = doc.name;
+				if (doc.isWormTongueProgram){
+					this.data.activeDoc.type = '.wmt';
+				} else {
+					this.data.activeDoc.type = '.rdbl'
+				}
+				if (doc.writable === true){
+					this.data.activeDoc.writable = true;
+				}
+			}
+		},
 		startEditext : function (text, doc) {
 			this.settings.isRunning = true;
 
@@ -1385,8 +1671,7 @@ export const program = {
 			} else {
 				this.data.text = "";
 			}
-			this.api.log(` use "F6" to switch between input modes`);
-			this.api.log(` use "F7" to toggle sidebar display`)
+			this.methods.updateActiveDoc(text, doc);
 
 			this.methods.composeText();
 			this.methods.composeFromCharMatrix();
@@ -1397,6 +1682,8 @@ export const program = {
 			}
 			this.methods.drawScrollBar();
 			this.methods.drawWindow();
+
+			this.api.log(` use "F6" to switch between terminal input and editor interface`);
 		},
 
 	},
@@ -1420,40 +1707,37 @@ export const program = {
 				}
 				this.api.readyCommand('stop')
 				if (!this.api.checkIfRunning(`${this.name}`)){
-					console.log(this.name)
-				
 					this.api.appendToRunningPrograms(`${this.name}`, false)
 				}
 				var edit = this.installData.edit;
 				var prgm = this;
-				console.log(target)
 				if (edit.errorState){
-					createNewDoc = false;
-					cndVer = false;
-					wantsExistingDoc = false;
-					wedVer = false;
-					noDocVer = false;
-					openNoDoc = false;
-					docToOpen = "";
+					edit.createNewDoc = false;
+					edit.cndVer = false;
+					edit.wantsExistingDoc = false;
+					edit.wedVer = false;
+					edit.noDocVer = false;
+					edit.openNoDoc = false;
+					edit.docToOpen = "";
 					return;
 				}
 				if (!target && !edit.cndVer) {
-					prgm.api.verifyCommand(`Would you like to create a new document?`, function (bool, toggle){
+					prgm.api.verifyCommand(` Would you like to create a new document?`, function (bool, toggle){
 						toggle.toggle = true;
 						if (bool){
 							edit.cndVer = true;
 							edit.createNewDoc = true;
 							return;
 						} else {	
-							edit.cndVer = false;
+							edit.cndVer = true;
 							return
 						}
 					})
 					return;
 				}
 				if (!target && edit.cndVer){
-					if (!edit.createNewDoc && !wedVer){
-						prgm.api.verifyCommand(`Would you like to open an accessible document?`, function(bool, toggle){
+					if (!edit.createNewDoc && !edit.wedVer){
+						prgm.api.verifyCommand( `Would you like to open an accessible document?`, function(bool, toggle){
 							toggle.toggle = true;
 							if (!bool){
 								edit.wedVer = true;
@@ -1465,7 +1749,7 @@ export const program = {
 							}
 						})
 						return;
-					} else if (!edit.createNewDoc && wedVer){
+					} else if (!edit.createNewDoc && edit.wedVer){
 						if (edit.wantsExistingDoc){
 							prgm.api.requestInput(function(commandFull){
 								var inputTerms = commandFull.split(" ");
@@ -1492,7 +1776,7 @@ export const program = {
 						} else if (!edit.wantsExistingDoc){
 							if (!edit.noDocVer) {
 
-							prgm.api.verifyCommand('Open edit.ext without any doc to edit?', function (bool, toggle) {
+							prgm.api.verifyCommand(' Open edit.ext without any doc to edit?', function (bool, toggle) {
 								toggle.toggle = true;
 								if (bool){
 									edit.noDocVer = true;
@@ -1513,17 +1797,24 @@ export const program = {
 						}
 					} else if (edit.createNewDoc) {
 						//start program with command that handles row reservation and shit;
+						edit.createNewDoc = false;
+						edit.cndVer = false;
+						edit.wantsExistingDoc = false;
+						edit.wedVer = false;
+						edit.noDocVer = false;
+						edit.openNoDoc = false;
+						edit.docToOpen = "";
 						this.methods.startEditext();
 					}
 				}
 				if (edit.errorState){
-					createNewDoc = false;
-					cndVer = false;
-					wantsExistingDoc = false;
-					wedVer = false;
-					noDocVer = false;
-					openNoDoc = false;
-					docToOpen = "";
+					edit.createNewDoc = false;
+					edit.cndVer = false;
+					edit.wantsExistingDoc = false;
+					edit.wedVer = false;
+					edit.noDocVer = false;
+					edit.openNoDoc = false;
+					edit.docToOpen = "";
 					if (this.api.checkIfRunning('editor.ext')){
 						this.api.runCommand('stop');
 					}
@@ -1552,6 +1843,8 @@ export const program = {
 		this.api = terminal.api;
 
 		this.installData.edit.ex = this.installData.edit.ex.bind(this)
+
+		this.api.addCommand(this.installData.edit);
 
 		Object.keys(this.methods.keyStrokeRouter).forEach(function(funcName){
 			this.methods.keyStrokeRouter[funcName] = this.methods.keyStrokeRouter[funcName].bind(this);
@@ -1597,14 +1890,20 @@ export const program = {
 	},
 	stop : function () {
 		this.settings.isRunning = false;
+		this.api.patchInterfaceFunction(function(){
+			return false;
+		}, 'alternateKeyRouterActive');
+		this.api.patchInterfaceFunction(function(){
+			return false;
+		}, 'usingKeyUpHandling');
 		this.api.clearReservedRows();
 		this.api.reserveRows(0);
-		this.api.patchInterfaceFunction('alternateKeyRouterActive', function(){
-			return false;
-		});
-		this.api.patchInterfaceFunction('usingKeyUpHandling', function(){
-			return false;
-		});
+
+		var program = this;
+		setTimeout(function(){
+			program.api.clearReservedRows();
+			program.api.reserveRows(0);
+		}, 12)
 	},
 	ex : function (target) {
 		this.installData.edit.ex(target)

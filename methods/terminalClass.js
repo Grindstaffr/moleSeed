@@ -27,7 +27,7 @@ export class Terminal {
 		this.__calcLocAndDim();
 
 		this.programs = this.constructPrograms();
-		this.cache = this.constructCache();
+		this.cache = this.constructCache(this);
 		this.command = this.constructCommands(this.cache, this);
 		//this.compiler = this.constructCompiler(this.command, this);
 		this.api = this.constructAPI();
@@ -242,21 +242,33 @@ export class Terminal {
 		var trmnl = this
 		this.context.fillStyle = this.style.text 
 		this.cache.currentRows.forEach(function(row, rowIndex){
-			row.forEach(function(character, characterIndex){
+			row.forEach(function(characterCell, characterIndex){
+				if (characterCell.length === 0){
+					return;
+				}
+				if (characterCell[0] === undefined){
+					debugger;
+				}
 				var vLoc = vStart + (rowIndex * trmnl.letterHeight)
 				var hLoc = hStart + (characterIndex * trmnl.letterHeight)
-				if (Object.keys(this.cache.highlights).includes(rowIndex.toString())){
-					if(this.cache.highlights[rowIndex.toString()].includes(characterIndex)){
+				if (characterCell.length > 1 && characterCell[1] === true){
+					if (this.cache.clearHighlightsTrigger){
+						characterCell[1] = false;
+					} else {
 						this.context.fillRect(hLoc, (vLoc - this.letterHeight), this.letterHeight + .05, this.letterHeight+ .05)
 						this.context.fillStyle = this.style.background;
-						this.context.fillText(character, hLoc, vLoc)
+						this.context.fillText(characterCell[0], hLoc, vLoc)
 						this.context.fillStyle = this.style.text;
 						return;
 					}
 				};
-				this.context.fillText(character, hLoc, vLoc)
+				this.context.fillText(characterCell[0], hLoc, vLoc)
 			},this)
-		},this)	
+		},this)
+		if (this.cache.clearHighlightsTrigger){
+			this.cache.clearHighlightsTrigger = false;
+			this.cache.asyncAddHighlights();
+		}
 	}
 
 	keyUpHandler (e) {
@@ -452,7 +464,7 @@ export class Terminal {
 				if (!row){
 					return;
 				}
-				var letter = row[this.position.x + 1]
+				var letter = row[this.position.x + 1][0]
 				if (letter !== '' && letter !==undefined){
 					this.parent.context.fillText(letter, leftTrue, topTrue + this.parent.letterHeight)
 				}
@@ -689,34 +701,83 @@ export class Terminal {
 		init(parent);
 		return memoryManager;
 	}
-	constructCache  () {
+	constructCache  (parent) {
 		var cache = {}
-		cache.parent = this;
-		cache.previousRows = new Array(this.rowCount).fill([]);
-		cache.nextRows = new Array(this.rowCount).fill([]);
-		cache.currentRows = new Array(this.rowCount).fill([]);
-		cache.inputRow = new Array(this.rowCount).fill("");
-		cache.inputRowPrev = new Array(this.rowCount).fill("");
-		cache.inputRowNext = new Array(this.rowCount).fill("");
-		cache.inputIndex = 0;
-		cache.inputLength = 0;
-		cache.deletedText = new Array(20).fill("");
-		cache.previousInputIndex = 0;
-		cache.previousInputRows = new Array(10).fill([]);
-		cache.previousInputSelector = 0;
-		cache.vRowOffset = 0;
-		cache.inputRowOffset = 0;
-		cache.inputBuffer = [];
-		cache.inputBufferVerfied = false;
-		cache.highlights = {};
+		const init = function (parent){
+			cache.parent = parent;
+			cache.rowCount = parent.rowCount
+			cache.previousRows = cache.initializeCurrentRows()
+			cache.nextRows = cache.initializeCurrentRows();
+			cache.currentRows = cache.initializeCurrentRows();
+			cache.inputRow = new Array(cache.rowCount).fill("");
+			cache.inputRowPrev = new Array(cache.rowCount).fill("");
+			cache.inputRowNext = new Array(cache.rowCount).fill("");
+			cache.inputIndex = 0;
+			cache.inputLength = 0;
+			cache.deletedText = new Array(20).fill("");
+			cache.previousInputIndex = 0;
+			cache.previousInputRows = new Array(10).fill([]);
+			cache.previousInputSelector = 0;
+			cache.vRowOffset = 0;
+			cache.inputRowOffset = 0;
+			cache.inputBuffer = [];
+			cache.inputBufferVerfied = false;
+			cache.highlightsQueue = [];
+		};
 
+		cache.initializeCurrentRows = function () {
+			var currentRows = new Array(this.rowCount - 1);
+			for (var i = 0; i < this.rowCount -1; i++){
+				currentRows[i] = new Array(this.rowCount);
+				for (var j = 0; j < this.rowCount; j ++){
+					currentRows[i][j] = new Array(0);
+					currentRows[i][j].push("");
+				}
+			}
+			console.log(currentRows)
+			return currentRows;
+		};
+		cache.assembleRowFromString = function (string) {
+			if (typeof string === "object"){
+				if (string.length !== undefined){
+					if (typeof string[0] === "object"){
+						if (string[0].length !== undefined)
+							return string;
+					}
+				}
+			}
+			var newRow = new Array(this.rowCount)
+			for (var i = 0; i < this.rowCount; i++) {
+				if ( i <= (string.length -1)){
+					var cell = new Array(0);
+					cell.push(string[i])
+					newRow[i] = (cell)
+				} else {
+					var cell = new Array(0);
+					cell.push("")
+					newRow[i] = (cell)
+				}
+			}
+			return newRow
+		};
+		cache.assembleNewRow = function () {
+			var row = new Array(this.rowCount)
+			for (var i = 0; i < row.length; i ++ ){
+				row[i] = new Array(0);
+				row[i].push("");
+			}
+			return row;
+		};
 		cache.rescaleCache = function () {
 			var oldCurrentRows = []
 			this.currentRows.forEach(function(row){
 				oldCurrentRows.push(row);
 			})
 
-			var newDisplay = new Array(this.rowCount - 1).fill([]);
+			var newDisplay = new Array(this.rowCount - 1)
+			newDisplay.forEach(function(cellToBe, index, array){
+				array[index] = new Array(1);
+			})
 			var newInput = new Array(this.rowCount).fill("");
 
 			this.previousRows = new Array(this.rowCount).fill([]);
@@ -740,7 +801,7 @@ export class Terminal {
 		    } else if (diff > 0){
 		    	for (var i = diff; i < currentCacheLength; i ++){
 		    		if (!this.currentRows[i]){
-		    			this.currentRows[i] = [];
+		    			this.currentRows[i] = new Array(this.rowCount).fill([]);
 		    		}
 		    		if (this.currentRows[i].length >= 0){
 		    			newDisplay[(i)-(diff + 1)] = this.currentRows[i]
@@ -749,7 +810,7 @@ export class Terminal {
 		    } else {
 		    	for (var i = 0; i < currentCacheLength ; i ++){
 		    		if (!this.currentRows[i]){
-		    			this.currentRows[i] = [];
+		    			this.currentRows[i] = new Array(this.rowCount).fill([]);
 		    		}
 		    		if (this.currentRows[i].length >= 0){
 		    			newDisplay[(i)-(diff + 1)] = this.currentRows[i]
@@ -767,8 +828,17 @@ export class Terminal {
 			var fullInput = this.inputRowPrev.concat(this.inputRow).concat(this.inputRowNext.reverse()).join("")
 			return fullInput
 		};
-		cache.getVisibleRow = function (index) { 
-			return this.currentRows[index].join("")
+		cache.getVisibleRow = function (index) {
+			var row = this.currentRows[index];
+			var returnString = "";
+			for (var i = 0; i < row.length; i++) {
+				if (row[i][0] && row[i][0].length > 0){
+					returnString += row[i][0];
+				} else {
+					continue;
+				}
+			}
+			return returnString;
 		};
 		cache.writeToInputRow = function (letter){
 			if (this.inputIndex === this.inputRow.length - 1){
@@ -978,7 +1048,8 @@ export class Terminal {
 		};
 		cache.smellLog = function () {
 			alert('smell a log')
-		}
+		};
+
 		cache.moveInputToDisplay = function (){
 			var inputSignifier = ['>']
 			if (this.inputLength < this.inputRow.length - 1){
@@ -1030,7 +1101,7 @@ export class Terminal {
 				console.warn("cant write non-strings using this function (cache.writeToVisible)")
 				return;
 			}
-			var row = new Array(this.inputRow.length).fill("");
+			var row = this.assembleNewRow();
 			var newIndex = 0;
 			var deletedChars = 0;
 			var addedChars = 0;
@@ -1040,7 +1111,7 @@ export class Terminal {
 					return;
 				}
 				newIndex = index + addedChars - deletedChars;
-				row[newIndex] = letter;
+				row[newIndex][0] = letter;
 			})
 			this.autoVScroll();
 			this.pushLine(row);
@@ -1049,7 +1120,8 @@ export class Terminal {
 			this.previousRows.shift();
 			this.previousRows.push(this.currentRows.splice(this.reservedRows, 1)[0]);
 		};
-		cache.pushLine = function (row) {
+		cache.pushLine = function (string) {
+			var row = this.assembleRowFromString(string);
 			this.currentRows.push(row)
 		}
 		cache.writeEmptyRow = function () {
@@ -1096,7 +1168,16 @@ export class Terminal {
 				return;
 			}
 			//console.log(`trying to write "${letter}" to row_${rowNum} col_${colNum}`)
-			this.currentRows[rowNum][colNum] = letter;
+			if (this.currentRows[rowNum][colNum] === undefined){
+				console.log(`row = ${rowNum} col = ${colNum} ... cannot find cell at row, col...`)
+				console.log(this.currentRows)
+				return;
+			} else if (this.currentRows[rowNum][colNum] === ""){
+				console.log(`row = ${rowNum} col = ${colNum} ... cell not instantiated at row, col...`);
+				console.log(this.currentRows);
+				return
+			}
+			this.currentRows[rowNum][colNum][0] = letter;
 		}
 
 		cache.writeToGivenRow = function (string, rowNum) {
@@ -1104,10 +1185,13 @@ export class Terminal {
 				console.log(string)
 				return;
 			}
-			var row = new Array(this.inputRow.length).fill("");
+			var row = this.assembleNewRow();
 			string.split("").forEach(function(letter, index){
-				
-				row[index] = letter;
+				if (row[index] === undefined){
+					console.log(`index ${index} === undefined`)
+					return;
+				}
+				row[index][0] = letter;
 			})
 			this.currentRows[rowNum] = row;
 			
@@ -1116,13 +1200,13 @@ export class Terminal {
 		};
 		cache.clearUnreservedRows = function (){
 			for (var i = this.reservedRows; i < (this.inputRow.length);i++){
-				var row = new Array(this.inputRow.length).fill("")
+				var row = this.assembleNewRow();
 				this.currentRows[i] = row;
 			}
 		}
 		cache.clearReservedRows = function (){
 			for (var i = 0; i < (this.reservedRows); i++){
-				 var row = new Array(this.inputRow.length).fill("")
+				 var row = this.assembleNewRow();
 				//var row = this.inputRowPrev.pop();
 				this.currentRows[i] = row;
 			}
@@ -1133,7 +1217,7 @@ export class Terminal {
 				endRow = this.currentRows.length;
 			}
 			for (var i = startRow; i < endRow; i ++){
-				var row = new Array(this.inputRow.length).fill("");
+				var row = this.assembleNewRow();
 				this.currentRows[i] = row;
 			}
 		}
@@ -1153,10 +1237,17 @@ export class Terminal {
 		cache.reserveRows = function (numberOfRows){
 			if (numberOfRows < this.reservedRows){
 				for (var i = this.reservedRows - 2; i >= numberOfRows; i--){
-					 var row = new Array(this.inputRow.length).fill("")
+					 var row = this.assembleNewRow();
 					this.previousRows.unshift(row)
 					var lastOnStack = this.previousRows.pop();
-					this.writeToGivenRow(lastOnStack.join(""), i + 1)
+					var lastLine = lastOnStack.map(function(cell){
+						if (cell[0] &&cell[0].length > 0){
+							return cell[0];
+						} else {
+							return "";
+						}
+					},this).join("");
+					this.writeToGivenRow(lastLine, i + 1)
 				}
 			} else {
 				for (var  i = 0; i < numberOfRows ; i++ ){
@@ -1172,39 +1263,39 @@ export class Terminal {
 			this.reservedRows = 0;
 			return;
 		}
-
+		cache.asyncAddHighlights = function () {
+			for (var i = this.highlightsQueue.length-1 ; i >= 0; i--) {
+				var coordinate = this.highlightsQueue.pop();
+				this.addHighlight(coordinate[0], coordinate[1])
+			}
+		};
 		cache.addHighlight = function (rowIndex, colIndex){
-			if (Object.keys(this.highlights).includes(rowIndex.toString())){
-				var hRow = this.highlights[rowIndex.toString()]
-				if (hRow[hRow.length -1] === colIndex){
-					debugger;
-					return;
+			if (this.clearHighlightsTrigger){
+				this.highlightsQueue.push([rowIndex, colIndex])
+				return;
+			}
+			if (this.currentRows[rowIndex][colIndex].length > 0){
+				if (this.currentRows[rowIndex][colIndex].length === 1){
+					
+						this.currentRows[rowIndex][colIndex].push(true)
+					
+				} else if (this.currentRows[rowIndex][colIndex].length === 2){
+					
+						this.currentRows[rowIndex][colIndex][1] = true;
+					
 				}
-				this.highlights[rowIndex].push(colIndex);
 			} else {
-				this.highlights[rowIndex.toString()] = [];
-				this.highlights[rowIndex.toString()].push(colIndex);
+				console.log('addHighlight errorOut: no row/col ')
+				return;
 			}
 		}
 
 		cache.removeHighlight = function (rowIndex, colIndex){
-			var  rowName = rowIndex.toString();
-			if (Object.keys(this.highlights).includes(rowName)){
-
-				var rowInitIndex = this.highlights[rowName][0];
-				var colIndexLoc = Math.abs(colIndex - rowInitIndex);
-
-				console.log(`looking for ${colIndex} in ${this.highlights[rowName]} at ${colIndexLoc}`)
-/*
-				if (this.highlights[rowName].indexOf(colIndex) === colIndexLoc){
-					debugger;
-				} else {
-					console.log(`calced index = ${colIndexLoc} actualIndex = ${this.highlights[rowName].indexOf(colIndex)}`)
-				}*/
-
-				this.highlights[rowName].splice(colIndexLoc, 1);
-				if (this.highlights[rowName].length === 0){
-					delete this.highlights[rowIndex]
+			if (this.currentRows[rowIndex][colIndex].length > 0){
+				if (this.currentRows[rowIndex][colIndex].length === 1){
+					this.currentRows[rowIndex][colIndex].push(false)
+				} else if (this.currentRows[rowIndex][colIndex].length === 2){
+					this.currentRows[rowIndex][colIndex][1] = false;
 				}
 			} else {
 				return;
@@ -1212,11 +1303,9 @@ export class Terminal {
 		}
 
 		cache.clearHighlights = function () {
-			Object.keys(this.highlights).forEach(function(key){
-				delete this.highlights[key];
-			}, this)
+			this.clearHighlightsTrigger = true;
 		}
-		
+		init(parent);
 		return cache;
 	}
 
