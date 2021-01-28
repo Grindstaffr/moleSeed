@@ -254,6 +254,23 @@ export class Node {
 		this.assembleVisibleAdjacencies();
 		
 	}
+	changeReferenceName (newName) {
+		var currentName = this.name;
+		Object.keys(this.adjacencies).forEach(function(nodeName){
+			console.log(JSON.stringify(Object.keys(this.adjacencies[nodeName].adjacencies)))
+			if (this.adjacencies[nodeName].adjacencies[currentName] !== undefined){
+				console.log(nodeName + "has this as an adjacency")
+				delete this.adjacencies[nodeName].adjacencies[currentName];
+				if (this.adjacencies[nodeName].adjacencies[newName] !== undefined){
+					return;
+				}
+				this.adjacencies[nodeName].adjacencies[newName] = this;
+				this.adjacencies[nodeName].assembleVisibleAdjacencies();
+			}
+		}, this)
+		this.name = newName;
+	}
+
 	attach(obj){
 		this.adjacencies[obj.name] = obj;
 		obj.adjacencies[this.name] = this;
@@ -276,6 +293,7 @@ export class Node {
 	}
 
 	assembleVisibleAdjacencies(){
+		this.visibleAdjacencies = {};
 		for (var nodeName in this.adjacencies){
 			if (this.adjacencies[nodeName].isInvisible){
 				for (var detachedNodeName in this.adjacencies[nodeName].adjacencies){
@@ -1408,6 +1426,7 @@ export class LibraryFile extends TextDoc {
 		} else {
 			this.trueAddress = truAddress;
 		}
+		//Needs to add l## address to nodeVerse to container with auto-reference for possible early ret on nodeVerse.getNode
 	}
 	static lastAddress = -1;
 	setTrueAddress () {
@@ -1430,6 +1449,84 @@ export class LibraryFile extends TextDoc {
 			console.log(`set ${lf.name} truaddress to ${address}`)
 		})
 	} 
+}
+
+export class Writable extends Readable {
+	constructor(container, name, address, url){
+		super(container, name, address);
+		this.location = url;
+		this.writable = true;
+		this.name = Writable.defineName(name);
+		this.isNodelet = true;
+
+		
+	}
+	static defineName (name) {
+		var outputName = "";
+		if (name.includes('.rdbl')){
+			outputName = name.split('.rdbl')[0].substring(0,16);
+			outputName += '.rdbl'
+		} else {
+			outputName = name.substring(0,16);
+			outputName += '.rdbl'
+		}
+		return outputName;
+	}
+	read(callback){
+		var textDoc = this;
+		if (this.hasBeenImported) {
+			callback(textDoc.text, textDoc);
+		} else {
+			import(this.location).then(function(module){
+				if (!module.text){
+					textDoc.text = module.doc.text;
+					callback(module.doc.text, textDoc);
+					textDoc.hasBeenImported = true;
+					return;
+				}
+				textDoc.text = module.text;
+				callback(module.text, textDoc);
+				textDoc.hasBeenImported = true;
+			})
+		}
+	}
+	replace (userWritableNode) {
+		if (typeof userWritableNode !== "object"){
+			return;
+		}
+		if (userWritableNode.hiddenType !== 'userData'){
+			return;
+		}
+		Object.keys(this.adjacencies).forEach(function(nodeName){
+			//detachall, attach userWritableNode
+		},this)
+	}
+}
+
+export class UserWritable extends Writable {
+	constructor(container, name, address, text, storageIndex){
+		super(container, name, address);
+		this.hiddenType = 'userData';
+		this.text = text;
+		this.writable = true;
+		this.name = Writable.defineName(name);
+
+		if (storageIndex || (storageIndex === 0 && storageIndex !== undefined)){
+			this.trueAddress = 'w' + storageIndex;
+			container[this.trueAddress] = this;
+		} else {
+			//does there exist a case when this'll be instantiated without storageindex?
+			throw new Error('when this was written, Old_rat could not think of a use case for instantiating UserWritable without a storageindex')
+		}
+		
+	}
+	static lastAddress = -1;
+	read(callback){
+		var userDoc = this;
+		if (callback){
+			callback(userDoc.text, userDoc)
+		}
+	}
 }
 
 export class InvisibleNode extends Node {

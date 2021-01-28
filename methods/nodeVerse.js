@@ -1,4 +1,4 @@
-import { Directory, LibraryFile, Library, Hardware, QRig, Malware, Recruiter, Worm, initializerAlpha, Node, Pdf, Asset, Readable, TerminalStoryPiece, TextDoc, Mole, Program, UniqueNode, Databank, NodeNet } from './fileSystemDefinitions.js'
+import { Writable, UserWritable, Directory, LibraryFile, Library, Hardware, QRig, Malware, Recruiter, Worm, initializerAlpha, Node, Pdf, Asset, Readable, TerminalStoryPiece, TextDoc, Mole, Program, UniqueNode, Databank, NodeNet } from './fileSystemDefinitions.js'
 import { constructGraphStringParser } from './stringToGraphConverter.js'
 
 export const bigBang = function () {
@@ -12,6 +12,63 @@ export const bigBang = function () {
 	nodeVerse.graphCompiler = constructGraphStringParser(nodeVerse);
 
 	nodeVerse.router = {};
+
+	/*
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		These update functions need to be plugged into the SAVE UI
+		in editor.js.... somehow...
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		Also, I've been mega lazy and have yet to actually tie any 
+		node functions to persistent graphDiff changes
+	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		I have so much goddamn work to do
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	*/
+	nodeVerse.getKernelAccess = function () {
+		return this.nodeAttachmentHandler;
+	}
+	nodeVerse.updateUserWritableNode = function(name,text,trueAddress){
+		if (trueAddress[0] !== 'w'){
+			console.warn(`old RAT left you a message:`)
+			console.log(`wrong function... I think... this is for updating writables, as such true addresses should be formatted as 'w###'`)
+			return;
+		}
+		if (this.allNodes[trueAddress]){
+			if (this.allNodes[trueAddress].name !== name){
+				this.allNodes[trueAddress].text = text;
+				this.allNodes[trueAddress].changeReferenceName(name);
+			}
+		} else {
+			console.log(`....uh.... I thought this wasn't ever going to happen`)
+		}
+		var index = trueAddress.slice(1);
+		this.saveFileManager.storeUserWritable(name, text, index);
+	}
+
+	nodeVerse.createUserWritableNode = function (name, text) {
+		this.saveFileManager.storeUserWritable(name,text);
+		var count = this.saveFileManager.getKeyValue('user_rdbl_count');
+		var index = parseInt(count) - 1;
+		if (Number.isNaN(index)){
+			throw new Error(`cannot instantiate a new userNode while this shit is broken`)
+		}
+		var node = new UserWritable(nodeVerse.allNodes, name, false, text, index);
+		return node;
+	}
+
+	nodeVerse.createUserWormTongueNode = function (name, text) {
+		this.saveFileManager.storeUserWormTongue(name, text);
+		var count = this.saveFileManager.getKeyValue('user_wmt_count');
+
+		var index = parseInt(count) - 1;
+		if (Number.isNaN(index)){
+			throw new Error(`cannot instantiate a new userNode while this shit is broken`)
+		};
+		var node = new UserWormTongue(nodeVerse.allNodes, name, false, text, index);
+		return node;
+	}
+
+	//also needs an update func
 
 	nodeVerse.testGraphStringParser = function () {
 		console.log(this)
@@ -52,6 +109,7 @@ export const bigBang = function () {
 		if (this.allNodes[trueAddress]){
 			return this.allNodes[trueAddress];
 		} else if (trueAddress[0] === 'l') {
+
 			var reqHeaders = new Headers();
 			reqHeaders.append('library-address',  trueAddress);
 			var init = {
@@ -83,6 +141,24 @@ export const bigBang = function () {
 			}).catch(function (err){
 				throw new Error(err)
 			})
+		} else if (trueAddress[0] === 'w'){
+			var userWritableTrueAddress = trueAddress.substring(1);
+			var values = this.saveFileManager.retrieveUserWritable(userWritableTrueAddress);
+			var name = values.name;
+			var text = values.text;
+
+			var newNode = new UserWritable(nv.allNodes, name, false, text, userWritableTrueAddress)
+			return newNode;
+
+		} else if (trueAddress[0] === 'x') {
+			var userWritableTrueAddress = trueAddress.substring(1);
+			var values = this.saveFileManager.retrieveUserWormTongue(userWritableTrueAddress);
+			var name = values.name;
+			var text = values.text;
+
+			var newNode = new UserWritable(nv.allNodes, name, false, text, index)
+			return newNode;
+
 		} else {
 			console.log(`No node found with trueAddress = ${tAdd}`);
 			return undefined;

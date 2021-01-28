@@ -5,6 +5,7 @@ export const saveFileManagerConstructor = function (activator) {
 		saveFileManager.activator = activator;
 		saveFileManager.api = activator.api;
 		saveFileManager.nodeVerse = activator.nodeVerse;
+		saveFileManager.nodeVerse.saveFileManager = saveFileManager
 		saveFileManager.stringToGraphConverter = constructGraphStringParser(saveFileManager.nodeVerse);
 		saveFileManager.convertToGraph = saveFileManager.stringToGraphConverter.convertToGraph
 		saveFileManager.parser = {};
@@ -12,6 +13,8 @@ export const saveFileManagerConstructor = function (activator) {
 			graphDiffString : "$0#0[()()]%",
 			p_ac_count : 0,
 			help_count : 0,
+			user_rdbl_count : 0,
+			user_wmt_count : 0,
 			terminals : [{},{},{},{}],
 		};
 		saveFileManager.data.terminals.forEach(function(vacantTerminalDataObj, index){
@@ -75,8 +78,12 @@ export const saveFileManagerConstructor = function (activator) {
 		var graphDiff = this.data.graphDiffString;
 		var p_ac_count = this.data.p_ac_count;
 		var help_count = this.data.help_count;
+		var user_wmt_count = this.data.user_wmt_count;
+		var user_rdbl_count =this.data.user_rdbl_count;
 		try {
 			localStorage.setItem('tony', 'tony is a word I often type');
+			localStorage.setItem('user_rdbl_count', user_rdbl_count);
+			localStorage.setItem('user_wmt_count', user_wmt_count);
 			localStorage.setItem('graphDiffString', graphDiff);
 			localStorage.setItem('p_ac_count', p_ac_count);
 			localStorage.setItem('help_count', help_count);
@@ -255,8 +262,6 @@ export const saveFileManagerConstructor = function (activator) {
 		}
 	}
 
-
-
 	saveFileManager.loadFromStorage = function () {
 		try {
 			if (localStorage.getItem('graphDiffString') !== null){
@@ -266,6 +271,8 @@ export const saveFileManagerConstructor = function (activator) {
 			} else {
 				this.data.graphDiffString = "";
 			}
+			this.data.user_wmt_count = localStorage.getItem('user_wmt_count');
+			this.data.user_rdbl_count = localStorage.getItem('user_rdbl_count');
 			this.data.p_ac_count = localStorage.getItem('p_ac_count');
 			this.data.help_count = localStorage.getItem('help_count');
 
@@ -294,6 +301,18 @@ export const saveFileManagerConstructor = function (activator) {
 
 	};
 
+	saveFileManager.getKeyValue = function (key){
+		var output = "no such key in localStorage"
+		try {
+			var output = localStorage.getItem(key);
+			console.log(output)
+		} catch (error){
+			throw new Error(error)
+			return output
+		}
+		
+		return output;
+	}
 	saveFileManager.getUniversalValue = function (key) {
 		if (!Object.keys(this.data).includes(key)){
 			console.log(`(saveFileManager.getUniversalValue):: no such value: ${key}`)
@@ -402,6 +421,8 @@ export const saveFileManagerConstructor = function (activator) {
 				message += line;
 			} else if (key === 'graphDiffString'){
 				console.log('graphDiffString' + 'NOT YET IMPLEMEMNTED IN HARVEST FUNC')
+			} else if (key === 'user_rdbl_count' || key === 'user_wmt_count'){
+				console.log('dunnot yet, but I think user_rdbl_count and user_wmt_count dont need harvesting')
 			}
 		}, this)
 
@@ -431,7 +452,7 @@ export const saveFileManagerConstructor = function (activator) {
 						message += line;
 					}, this)
 				}, this)
-			} else if (key === 'help_count' || key === 'p_ac_count'){
+			} else if (key === 'help_count' || key === 'p_ac_count' || key === 'user_wmt_count' || key === 'user_rdbl_count'){
 				var memVal = this.data[key];
 				var stoVal = localStorage.getItem(key);
 				var line = `${key}... \n      mem_val: ${memVal}\n      stor_val: ${stoVal}\n`
@@ -455,6 +476,8 @@ export const saveFileManagerConstructor = function (activator) {
 		this.data.graphDiffString = "";
 		this.data.help_count = 0;
 		this.data.p_ac_count = 0;
+		this.data.user_wmt_count = 0;
+		this.data.user_rdbl_count = 0;
 		this.data.terminals.forEach(function(vacantTerminalDataObj){
 			vacantTerminalDataObj.exists = false;
 			vacantTerminalDataObj.prgmList = "";
@@ -497,7 +520,7 @@ export const saveFileManagerConstructor = function (activator) {
 
 		})
 	};
-	saveFileManager.appendEdge = function (truAddressA, truAddressB, nnTruAddress, dbTruAddress, directionalBool) {
+	saveFileManager.appendEdge = function (truAddressA, truAddressB, nnTruAddress, dbTruAddress, deletionBool, directionalBool) {
 		var diffString = this.data.graphDiffString;
 		console.log(diffString)
 
@@ -540,7 +563,7 @@ export const saveFileManagerConstructor = function (activator) {
 			var returnString = preprendString + `#${nodeNetTrueAddress}[()()]` + postpendString;
 			return returnString;
 		};
-		const appendEdge = function (diffString, nodeTrueAddress, targetTrueAddress, nodeNetTrueAddress, dbTruAddress, isDirectionalEdge){
+		const appendEdge = function (diffString, nodeTrueAddress, targetTrueAddress, nodeNetTrueAddress, dbTruAddress, isDeletion, isDirectionalEdge){
 			var dbTruAddressString = dbTruAddress.toString();
 			var dbTruAddressLength = dbTruAddressString.length;
 			var dbSubstringIndex = diffString.indexOf(`$${dbTruAddressString}`) + (1 + dbTruAddressLength);
@@ -562,27 +585,38 @@ export const saveFileManagerConstructor = function (activator) {
 			var nodeTrueAddressString = nodeTrueAddress.toString();
 			var nodeTrueAddressLength = nodeTrueAddressString.length;
 
+			var nodeEdgeToken = `a${nodeTrueAddress}=`;
+			var nodeEdgeListToken = `a${nodeTrueAddress}={`;
+			var nodeDEdgeToken = `a${nodeTrueAddress}>`;
+			var nodeDEdgeListToken = `a${nodeTrueAddress}>{`;
+			if (isDeletion){
+				nodeEdgeToken = `d${nodeTrueAddress}=`;
+				nodeEdgeListToken = `d${nodeTrueAddress}={`;
+				nodeDEdgeToken = `d${nodeTrueAddress}>`;
+				nodeDEdgeListToken = `d${nodeTrueAddress}>{`;
+			}
+
 			if (!isDirectionalEdge){
-				if (edgeListSubstring.includes(`a${nodeTrueAddress}=`)){
-					if (edgeListSubstring.includes(`a${nodeTrueAddress}={`)){
-						var targetListStartIndex = edgeListSubstring.indexOf(`a${nodeTrueAddress}={`) + 3 + nodeTrueAddressLength;
+				if (edgeListSubstring.includes(nodeEdgeToken)){
+					if (edgeListSubstring.includes(nodeEdgeListToken)){
+						var targetListStartIndex = edgeListSubstring.indexOf(nodeEdgeListToken) + 3 + nodeTrueAddressLength;
 						var targetListSubstring = edgeListSubstring.substring(targetListStartIndex)
 						var targetListEndIndex = targetListSubstring.indexOf('}')
 						targetListSubstring = targetListSubstring.substring(0, targetListEndIndex);
 						if (targetListSubstring.includes(targetTrueAddress)){
 							return;
 						} else {
-							var insertIndex = dbSubstringIndex + nodeNetSubstringIndex + edgeListStartIndex + + targetListStartIndex + targetListEndIndex;
+							var insertIndex = dbSubstringIndex + nodeNetSubstringIndex + edgeListStartIndex + targetListStartIndex + targetListEndIndex;
 							var prependString = diffString.substring(0,insertIndex);
 							var postpendString = diffString.substring(insertIndex);
 							var appendThis = `,${targetTrueAddress}`
 							return prependString + appendThis + postpendString;
 						}
 					} else {
-						var targetListStartIndex = (edgeListSubstring.indexOf(`a${nodeTrueAddress}=`) + 2 + nodeTrueAddressLength);
+						var targetListStartIndex = (edgeListSubstring.indexOf(nodeEdgeToken) + 2 + nodeTrueAddressLength);
 						var prevTarget = "";
 						for (var i = targetListStartIndex; i < edgeListSubstring.length ; i++){
-							var addressLetters = ['0','1','2','3','4','5','6','7','8','9']
+							var addressLetters = ['l','w','u','0','1','2','3','4','5','6','7','8','9'];
 							if (addressLetters.includes(edgeListSubstring[i])){
 								prevTarget += edgeListSubstring[i];
 							} else {
@@ -598,15 +632,15 @@ export const saveFileManagerConstructor = function (activator) {
 					}
 				} else {
 					var insertIndex = dbSubstringIndex + nodeNetSubstringIndex + edgeListEndIndex;
-					var appendThis = `a${nodeTrueAddress}=${targetTrueAddress}`;
+					var appendThis = nodeEdgeToken + `${targetTrueAddress}`;
 					var prependString = diffString.substring(0,insertIndex);
 					var postpendString = diffString.substring(insertIndex);
 					return prependString + appendThis + postpendString;
 				}
 			} else {
-				if (edgeListSubstring.includes(`a${nodeTrueAddress}>`)){
-					if (edgeListSubstring.includes(`a${nodeTrueAddress}>{`)){
-						var targetListStartIndex = edgeListSubstring.indexOf(`a${nodeTrueAddress}>{`) + 3 + nodeTrueAddressLength;
+				if (edgeListSubstring.includes(nodeDEdgeToken)){
+					if (edgeListSubstring.includes(nodeDEdgeListToken)){
+						var targetListStartIndex = edgeListSubstring.indexOf(nodeDEdgeListToken) + 3 + nodeTrueAddressLength;
 						var targetListSubstring = edgeListSubstring.substring(targetListStartIndex)
 						var targetListEndIndex = targetListSubstring.indexOf('}')
 						targetListSubstring = targetListSubstring.substring(0, targetListEndIndex);
@@ -620,10 +654,11 @@ export const saveFileManagerConstructor = function (activator) {
 							return prependString + appendThis + postpendString;
 						}
 					} else {
-							var targetListStartIndex = edgeListSubstring.indexOf(`a${nodeTrueAddress}>`) + 2 + nodeTrueAddressLength;
+							var targetListStartIndex = edgeListSubstring.indexOf(nodeEdgeToken) + 2 + nodeTrueAddressLength;
 						var prevTarget = "";
 						for (var i = targetListStartIndex; i < (edgeListSubstring.length) ; i++){
-							if (['0','1','2','3','4','5','6','7','8','9'].includes(edgeListSubstring[i])){
+							var addressLetters = ['l','w','u','0','1','2','3','4','5','6','7','8','9'];
+							if (addressLetters.includes(edgeListSubstring[i])){
 								prevTarget += edgeListSubstring[i];
 							} else {
 								break;
@@ -637,7 +672,7 @@ export const saveFileManagerConstructor = function (activator) {
 					}
 				} else {
 					var insertIndex = dbSubstringIndex + nodeNetSubstringIndex + edgeListEndIndex;
-					var appendThis = `a${nodeTrueAddress}>${targetTrueAddress}`;
+					var appendThis = nodeDEdgeToken + `${targetTrueAddress}`;
 					var prependString = diffString.substring(0,insertIndex);
 					var postpendString = diffString.substring(insertIndex);
 					return prependString + appendThis + postpendString;
@@ -655,14 +690,85 @@ export const saveFileManagerConstructor = function (activator) {
 			
 			diffString = appendNNDiff(diffString, nnTruAddress, dbTruAddress);
 		};
-		diffString = appendEdge(diffString, truAddressA, truAddressB, nnTruAddress, dbTruAddress, directionalBool)
+		diffString = appendEdge(diffString, truAddressA, truAddressB, nnTruAddress, dbTruAddress, deletionBool, directionalBool)
 		console.log(diffString)
 		this.data.graphDiffString = diffString
 		localStorage.setItem('graphDiffString', diffString);
 		return diffString;
 	};
 
+	saveFileManager.storeUserWritable = function (name, text, specifiedIndex) {
+		var index = ''
+		if ((!specifiedIndex || specifiedIndex === undefined) && specifiedIndex !== 0){
+			index = localStorage.getItem('user_rdbl_count');
+			console.log(index)
+		} else {
+			index = specifiedIndex;
+		}
+		var newCount = (parseInt(index) + 1).toString();
 
+		var key = `user_rdbl_${index}`
+		var value = `${name}@&^%@_fuckyou_^^@%#${text}`
+
+		localStorage.setItem(key, value);
+
+		localStorage.setItem('user_rdbl_count', newCount);
+	};
+
+	saveFileManager.retrieveUserWritable = function (index) {
+		if (index === undefined){
+			return;
+		}
+		var returnObject = {
+			name : "",
+			text : ""
+		}
+		var key = `user_rdbl_${index}`;
+
+		var value = localStorage.getItem(key);
+		var fields = value.split(`@&^%@_fuckyou_^^@%#`);
+
+		returnObject.name = fields[0];
+		returnObject.text = fields[1];
+
+		return returnObject;
+	};
+
+	saveFileManager.storeUserWormTongue = function (name, text) {
+		var index = ''
+		if ((!specifiedIndex || specifiedIndex === undefined) && specifiedIndex !== 0){
+			index = localStorage.getItem('user_wmt_count');
+		} else {
+			index = specifiedIndex;
+		}
+		var newCount = (parseInt(index) + 1).toString();
+
+		var key = `user_wmt_${index}`
+		var value = `${name}@&^%@_fuckyou_^^@%#${text}`
+
+		localStorage.setItem(key, value);
+
+		localStorage.setItem('user_wmt_count', newCount);
+	};
+
+	saveFileManager.retrieveUserWormTongue = function (index) {
+		if (index === undefined){
+			return;
+		}
+		var returnObject = {
+			name : "",
+			text : ""
+		}
+		var key = `user_wmt_${index}`;
+
+		var value = localStorage.getItem(key);
+		var fields = value.split(`@&^%@_fuckyou_^^@%#`);
+
+		returnObject.name = fields[0];
+		returnObject.text = fields[1];
+
+		return returnObject;
+	};
 
 	saveFileManager.deleteEdge = function () {
 

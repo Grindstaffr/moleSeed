@@ -433,7 +433,7 @@ export const compilerBuilder = function (parent) {
 									}
 								}
 								if (isTruncwithTypos){
-									return [term, 5]
+									return [term, 3]
 								}
 							}
 							if (deltaLength >= 0) {
@@ -504,6 +504,8 @@ export const compilerBuilder = function (parent) {
 								return 0
 							}
 						})
+
+						//console.log(termRankings)
 					
 						var newTerm = "";
 						var perf = false;
@@ -1597,6 +1599,7 @@ export const compilerBuilder = function (parent) {
 				}
 			} else {
 				var validNodes = Object.keys(this.parent.accessibleNodes)
+				//console.log(this.parent)
 				if (!validNodes.includes(string)){
 					var messageExt = `type "lk" for a list of adjacent nodes`;
 					if (Object.keys(this.parent.programs).includes("rucksack.ext") && (Object.keys(this.parent.programs.runningPrograms).indexOf("rucksack.ext") === -1)){

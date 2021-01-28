@@ -1,7 +1,7 @@
 import { Terminal } from './terminalClass.js'
 import { buildAnimations } from './fullScreenAnimations.js'
 import { saveFileManagerConstructor } from './saveFileManager.js'
-import {nodeAttachmentHandlerConstructor } from './nodeAttachmentHandler.js'
+import { nodeAttachmentHandlerConstructor } from './nodeAttachmentHandler.js'
 
 export class TerminalActivator {
 	constructor (canvas, globalProps, nodeVerse) {

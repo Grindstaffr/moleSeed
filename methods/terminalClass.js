@@ -1437,6 +1437,7 @@ export class Terminal {
 				cmd.cache.writeToVisibleRow(`      NAME: ${trmnl.activeNode.name}      TYPE: ${trmnl.activeNode.type}`)
 				cmd.cache.writeEmptyRow();
 				cmd.cache.writeToVisibleRow(` --- Adjacent Nodes ---`)
+				console.log(trmnl.activeNode.visibleAdjacencies)
 				for (var property in trmnl.activeNode.visibleAdjacencies){
 					if (property !== trmnl.activeNode.name ){
 						cmd.cache.writeEmptyRow();
@@ -3634,12 +3635,13 @@ export class Terminal {
 						}
 						this.callbacks.verify = function () {};
 						var command = this.retrieveBufferedInput();
-						this.command.log.ex(`submitting ${command}`)
 						this.messages.verify = this.messages.default_verify;
 						this.toggleFilterOff('verify');
 						this.filtersPassed.verify = true;
 						if (!toggle.toggle){
 							this.filtersPassed.verify = false;
+						} else {
+							this.command.log.ex(` submitting ${command}`)
 						}
 						//this.shouldReRouteInput = false;
 						return command;

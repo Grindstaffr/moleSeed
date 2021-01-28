@@ -12,7 +12,9 @@ export const program = {
 			char_count : 0,
 			word_count : 0,
 			est_mem_use : 0,
+			writable : false,
 		},
+		activeDocTrueAddress : "",
 		cursorLocation : [0,0,0],
 		inserting : false,
 		shiftDown : false,
@@ -63,7 +65,248 @@ export const program = {
 	},
 	methods: {
 		commands : {
+			save : {
+				name : "save",
+				desc : "modify existing writable node/instantiate new nodelet",
+				syntax : "save",
+				kernelAccessVer : false,
+				kernelAccess : false,
+				isAvail : true,
+				ex : function () {
+					const saveCmd = this.methods.commands.save
+					const prgm = this;
+					if (!this.data.activeDocTrueAddress || this.data.activeDocTrueAddress.length === 0){
+						this.api.throwError(` (editor.ext) no document to save; aborting...`);
+						return;
+					}
+					if (!saveCmd.kernelAccessVer){
+						this.api.warn(` Do not grant seed access to untrusted programs`)
+						this.api.verifyCommand(` editor.ext is requesting seed access to modify an existing document, grant access?`, function(bool, toggle){
+							toggle.toggle = true;
+							if (!bool){
+								saveCmd.kernelAccessVer = true;
+							} else {
+								saveCmd.kernelAccessVer = true;
+								saveCmd.kernelAccess = true;
+							}
+						})
+						return;
+					}
+					if (saveCmd.kernelAccess) {
+						saveCmd.kernelAccessVer = false;
+						saveCmd.kernelAccess = false;
 
+						var attacher = this.api.getActiveNode();
+						var kernel = attacher._meta._meta._meta.getKernelAccess();
+
+						if (this.data.activeDocTrueAddress[0] !== 'x' && this.data.activeDocTrueAddress[0] !== 'w'){
+							/*Somehow call nodeVerse.createUser#####Node
+							where #### is determined by
+								this.data.activeDoc.type
+							*/
+							if (this.data.activeDoc.type === '.rdbl'){
+								kernel.replaceWritableWithUserWritable();
+								console.log(this.data.activeNodeTrueAddress)
+							} else if (this.data.activeDoc.type === '.wmt'){
+								kernel.replaceWormtongueWithUserWormTongue();
+							}
+
+						} else if (this.data.activeDocTrueAddress[0] === 'w'){
+
+							var name = this.data.activeDoc.name
+							var text = this.data.text;
+							var wIndex = this.data.activeDocTrueAddress
+
+							kernel.updateUserWritable(name, text, wIndex);
+							/*Somehow call nodeVerse.updateUser######Node
+							where #### is determined by
+								this.data.activeDoc.type
+							*/
+						} else if (this.data.activeDocTrueAddress[0] === 'x'){
+
+							var name = this.data.activeDoc.name
+							var text = this.data.text;
+							var xIndex = this.data.activeDocTrueAddress
+
+							kernel.updateUserWormTongue(name, text, xIndex);
+
+						}
+						//make newNode, attach it... or...
+						//modify existing writable's data
+					} else {
+						saveCmd.kernelAccessVer = false;
+						return;
+					}
+					this.api.assembleAccessibleNodes();
+				},
+
+			},
+			open : {
+				name : "open",
+				desc : "open an accessible document",
+				syntax : "open [readable]",
+				isAvail : true,
+				ex : function () {
+					
+				}
+			},
+			new_rdbl : {
+				name : "new_rdbl",
+				desc : "create a new .rdbl nodelet",
+				syntax : "new_rdbl (text/readable)",
+				kernelAccessVer : false,
+				kernelAccess : false,
+				docName : "",
+				docBody : "",
+				isAvail : true,
+				ex : function (text) {
+					const newRdblCmd = this.methods.commands.new_rdbl
+					const prgm = this;
+					var isNewName = true;
+					var docBody = "";
+					var accessibleNodes = this.api.getAccessibleNodes()
+					var accessibleNodesList = Object.keys(accessibleNodes);
+					if (accessibleNodesList.includes(text)){
+						isNewName = false;
+						newRdblCmd.docName = text.split('.rdbl')[0] + '_copy' + '.rdbl';
+						if (newRdblCmd.docBody.length === 0){
+							accessibleNodes[text].read(function(textBody, docNode){
+								newRdblCmd.docBody = textBody;
+								console.log(newRdblCmd);
+								prgm.api.runCommand(`new_rdbl ${text}`)
+							})
+							return;
+						}
+					}
+					if (text !== undefined && text.length >= 1 && isNewName){
+						text = text.split(" ");
+						text = text.join("_").substring(0,12);
+						newRdblCmd.docName = text;
+					}
+					if (newRdblCmd.docName.length === 0){
+						this.api.requestInput(function(commandFull){
+							var inputTerms = commandFull.split(" ")
+							var fullInput = inputTerms.join("_").substring(0,12);
+							if (fullInput === 'stop'){
+								return;
+							}
+							prgm.api.runCommand(`new_rdbl ${fullInput}`)
+						}, " Enter name for new .rdbl file:")
+						return;
+					};
+					if (!newRdblCmd.kernelAccessVer){
+						this.api.warn(` Do not grant seed access to untrusted programs`)
+						this.api.verifyCommand(` editor.ext is requesting seed access to instantiate a new nodelet, grant access?`, function(bool, toggle){
+							toggle.toggle = true;
+							if (!bool){
+								newRdblCmd.kernelAccessVer = true;
+							} else {
+								newRdblCmd.kernelAccessVer = true;
+								newRdblCmd.kernelAccess = true;
+							}
+						})
+						return;
+					}
+					if (newRdblCmd.kernelAccess) {
+						newRdblCmd.kernelAccessVer = false;
+						newRdblCmd.kernelAccess = false;
+						var activeNode = this.api.getActiveNode();
+						var activeNodeTrueAddress = activeNode.getTrueAddress();
+						var kernel = activeNode._meta._meta._meta.getKernelAccess();
+						this.api.log('creating node...')
+						try {
+							kernel.appendUserWritable(activeNodeTrueAddress, newRdblCmd.docName, newRdblCmd.docBody);
+						} catch (error) {
+							this.api.throwError(`seed_failure: errorCode #1F44B2`);
+							throw new Error(error)
+							return;
+						}
+						this.api.assembleAccessibleNodes();
+						var finalDocName = newRdblCmd.docName.substring(0,16) + ".rdbl";
+						var newAccessibleNodes = this.api.getAccessibleNodes();
+						var newAccessibleNodesList = Object.keys(this.api.getAccessibleNodes())
+						newAccessibleNodesList = newAccessibleNodesList.filter(function(nodeName){
+							if (accessibleNodesList.includes(nodeName)){
+								return false;
+							} else {
+								return true;
+							}
+						})
+						if (newAccessibleNodesList.length === 1){
+							finalDocName = newAccessibleNodesList[0];
+						} else {
+							debugger;
+						}
+						this.api.log(`${finalDocName} sprouted at ${activeNode.address}`);
+
+						newAccessibleNodes[finalDocName].text = newRdblCmd.docBody
+						newRdblCmd.docBody = "";
+						newRdblCmd.docName = "";
+						this.installData.edit.ex(finalDocName);
+
+					} else {
+						this.api.log(`seed access required to instantiate new nodes. Aborting "new_rdbl"...`);
+						return;
+					}
+				},
+
+			},
+			new_wmt : {
+				name : "new_wmt",
+				desc : "create a new .wmt nodelet",
+				syntax : "new_wmt",
+				kernelAccessVer : false,
+				kernelAccess : false,
+				isAvail : true,
+				ex : function () {
+					const newWmtCmd = this.methods.commands.new_wmt;
+					const prgm = this;
+					if (!newWmtCmd.kernelAccessVer){
+						this.api.warn(` Do not grant seed access to untrusted programs`)
+						this.api.verifyCommand(` editor.ext is requesting seed access to instantiate a new nodelet, grant access?`, function(bool, toggle){
+							toggle.toggle = true;
+							if (!bool){
+								newWmtCmd.kernelAccessVer = true;
+							} else {
+								newWmtCmd.kernelAccessVer = true;
+								newWmtCmd.kernelAccess = true;
+							}
+						})
+						return;
+					}
+					if (newWmtCmd.kernelAccess) {
+						newWmtCmd.kernelAccessVer = false;
+						newWmtCmd.kernelAccess = false;
+					} else {
+						this.api.log(`seed access required to instantiate new nodes. Aborting "new_wmt"...`);
+						return;
+					}
+				},
+
+			},
+			rename : {
+				name : "rename",
+				desc : "rename the active doc",
+				syntax : "rename [text]",
+				isAvail : true,
+				ex : function (newName) {
+					var existingName = this.data.activeDoc.name;
+					if (newName.length < 1){
+						this.api.throwError(` (editor.ext) cannot rename "${existingName}" to "${newName}"... nameLength must be >= 1`);
+						return;
+					}
+					var accessibleNodesList = Object.keys(this.api.getAccessibleNodes());
+					if (accessibleNodesList.includes(newName)){
+						this.api.throwError(`(editor.ext) cannot rename "${existingName}" to "${newName}"... ${newName} is already a pointer`);
+						return;
+					}
+					this.data.activeDoc.name = newName;
+					this.api.log(` (editor.ext) changed ${existingName} to ${newName}`)
+					this.api.warn(` (editor.ext) name changes are not persistent without calling "save"`);
+
+				},
+
+			},
 		},
 		usingKeyUpHandling : function () {
 			return true;
@@ -96,16 +339,16 @@ export const program = {
 			},
 			'16' : function (e) {
 				//shift
-				this.data.shiftDown = true;
+				
 			},
 			'17' : function (e) {
 				//ctrl
-				this.data.ctrlDown = true;
+				
 			},
 			'18' : function (e) {
 				//alt
-				this.data.altDown = true;
-				console.log(`altdown`)
+				
+				
 			},
 			'37' : function (e) {
 				if (!this.settings.fast_mode){
@@ -236,10 +479,19 @@ export const program = {
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		*/
 		toggleEditMode : function () {
+			var docName = this.data.activeDoc.name;
+			var docText = this.data.text;
+			var prgm = this;
 			if (this.settings.edit_mode == true){
 				this.settings.edit_mode = false;
 				this.api.restoreDefaultCursorPosition();
 			} else if (this.settings.edit_mode == false){
+				if (!this.data.activeDoc.writable){
+					this.methods.createNewRdbl(docName, docText);
+					return;
+				} else {
+					this.api.log(`I read you... sir...`)
+				}
 				this.settings.edit_mode = true;
 				if (!this.settings.displaySidebar){
 					this.methods.toggleSideBar();
@@ -303,6 +555,80 @@ export const program = {
 			}
 			this.settings.side_disp = options[currentIndex];
 			return;
+		},
+		/*
+		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+			DOC CREATION FUNCTIONS
+		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		*/
+		createNewRdbl : function (name, text, verBool) {
+			const prgm = this;
+			var newNodeName = name;
+			var newNodeText = text;
+			var isNewName = true;
+			if (!verBool){
+				const verifyFunc = function (bool, toggle) {
+					toggle.toggle = false;
+					if (bool){
+						this.methods.createNewRdbl(newNodeName, newNodeText, true)
+						return;
+					} else {
+						return;
+					}
+				}.bind(prgm)
+				prgm.api.verifyCommand(` Document:${newNodeName} has property read_only=true; Would you like to create a writable copy?`, verifyFunc)
+				return;
+			}
+
+			var accessibleNodes = this.api.getAccessibleNodes();
+			var accessibleNodesList = Object.keys(accessibleNodes);
+			if (accessibleNodesList.includes(name)){
+				isNewName = false;
+				newNodeName = name.split('.rdbl')[0] + '_copy' + '.rdbl';
+			}
+	
+			this.api.requestInput(function(commandFull){
+				if (commandFull === 'y'){
+					var activeNode = prgm.api.getActiveNode();
+					var activeNodeTrueAddress = activeNode.getTrueAddress();
+					var kernel = activeNode._meta._meta._meta.getKernelAccess();
+					prgm.api.log(' creating node...')
+					try {
+						kernel.appendUserWritable(activeNodeTrueAddress, newNodeName, newNodeText);
+					} catch (error) {
+						prgm.api.throwError(`seed_failure: errorCode #1F44B2`);
+						throw new Error(error)
+						return;
+					}
+					prgm.api.assembleAccessibleNodes();
+
+					var finalDocName = newNodeName.substring(0,16) + ".rdbl";
+					var newAccessibleNodesList = Object.keys(prgm.api.getAccessibleNodes())
+					newAccessibleNodesList = newAccessibleNodesList.filter(function(nodeName){
+						if (accessibleNodesList.includes(nodeName)){
+							return false;
+						} else {
+							return true;
+						}
+					})
+					if (newAccessibleNodesList.length === 1){
+						finalDocName = newAccessibleNodesList[0];
+					} else {
+						debugger;
+					}
+					if (isNewName){
+						prgm.api.log(` ${finalDocName} sprouted at ${activeNode.address}`);
+					} else {
+						prgm.api.log(` ${finalDocName} sprouted at ${activeNode.address}`);
+					}
+					this.api.getAccessibleNodes()[finalDocName].text = newNodeText;	
+					prgm.installData.edit.ex(finalDocName);
+				} else if (commandFull = 'n'){
+					shouldContinue = false;
+				} else {
+					shouldContinue = false;
+				}
+			},' editor.ext is requesting seed access to instantiate a new nodelet, grant access?(y/n)')
 		},
 
 		/*
@@ -394,13 +720,23 @@ export const program = {
 		
 		},
 		multiDelete : function () {
+			console.log('multiDelete')
 			var deleteStartIndex = this.data.highlight[0];
 			var deleteEndIndex = this.data.highlight[1];
-
-			var prepend = this.data.text.substring(0, deleteStartIndex);
-			var postpend = this.data.text.substring(deleteEndIndex + 1);
+			console.log(this.data.text)
+			var prepend = this.data.text.substring(0, Math.min(deleteStartIndex,deleteEndIndex));
+			var postpend = this.data.text.substring(Math.max(deleteEndIndex, deleteStartIndex) + 1);
 
 			this.data.text = prepend + postpend;
+			console.log(this.data.text);
+			if (deleteEndIndex >= deleteStartIndex){
+				for (var i = 0; i < Math.abs(this.data.highlight[0] - this.data.highlight[1]); i++){
+					this.methods.decrementCursorLocation();
+				}
+			}
+			this.methods.toggleSelectMode();
+			this.methods.recomposeText();
+			this.methods.positionTerminalCursor();
 			this.methods.updateActiveDoc();
 		},
 		copy : function () {
@@ -767,67 +1103,6 @@ export const program = {
 				initialColumn = coordinatesB[1];
 				terminalColumn = coordinatesA[1];
 			}
-
-			/*
-
-			for (var i = 0; i < this.data.characterMatrix.length; i++) {
-				var firstCell = this.data.characterMatrix[i][0];
-				if (firstCell.length === 0){
-					firstCell = this.data.characterMatrix[i][1];
-				}
-				if (firstCell[0] > Math.min(pointA, pointB)){
-					if (initialRow === -1){
-						initialRow = i-1;
-					}
-				}
-				if (firstCell[0] > Math.max(pointA, pointB)){
-					if (terminalRow === -1){
-						terminalRow = i-1;
-						break;
-					}
-				}
-			}
-			if (initialRow === -1 || terminalRow === -1){
-				return;
-			}
-
-	
-			var initialColumn = this.data.characterMatrix[initialRow].findIndex(function(cell, index){
-				if (cell[0] === Math.min(pointA, pointB)){
-					return true;
-				} else {
-					if (cell[0] === Math.min(pointA, pointB) + 1){
-						return true;
-					}
-					return false;
-				}
-			}, this)
-
-			var terminalColumn = this.data.characterMatrix[terminalRow].findIndex(function(cell){
-				if (cell[0] === Math.max(pointA, pointB)){
-					return true;
-				} else {
-					if (cell[0] === Math.max(pointA, pointB) + 1){
-						return true;
-					}
-					return false;
-				}
-			}, this)
-
-			if (initialColumn === -1 || terminalColumn === -1){
-				if (initialColumn === -1){
-					console.log(`seeking ${Math.min(pointA, pointB)} in ${this.data.characterMatrix[initialRow]}`)
-					console.log(this.data.characterMatrix)
-				} else {
-					console.log(`seeking ${Math.max(pointA, pointB)} in ${this.data.characterMatrix[terminalRow]}`)
-				}
-				console.log()
-				return;
-			}
-			if (situtation === 'C'){
-				console.log(`pACol = ${initialColumn} pointBcol = ${terminalColumn}`)
-			}
-			*/
 
 			initialRow -= this.data.vRowOffset;
 			terminalRow -= this.data.vRowOffset;
@@ -1626,10 +1901,19 @@ export const program = {
 
 		/*
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-		END CURSOR SHIT
+				ADMIN FUNCTIONS
+		
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		*/
+		resetActiveDoc : function (){
+			this.data.activeDoc.name = "";
+			this.data.activeDoc.type = "";
+			this.data.activeDoc.line_count = 0;
+			this.data.activeDoc.char_count = 0;
+			this.data.activeDoc.word_count = 0;
+			this.data.activeDoc.est_mem_use = 0;
+			this.data.activeDoc.writable = false;
+		},
 		updateActiveDoc : function (text, doc) {
 			if (!text || text === undefined){
 				text = this.data.text;
@@ -1648,8 +1932,15 @@ export const program = {
 					this.data.activeDoc.type = '.rdbl'
 				}
 				if (doc.writable === true){
+					console.log(doc)
 					this.data.activeDoc.writable = true;
 				}
+				this.data.activeDocTrueAddress = doc.getTrueAddress();
+				if (doc.writable && doc.getTrueAddress()[0] !== 'w'){
+					debugger;
+				}
+				console.log(this.data.activeDocTrueAddress);
+
 			}
 		},
 		startEditext : function (text, doc) {
@@ -1665,12 +1956,24 @@ export const program = {
 				return true;
 			}, 'usingKeyUpHandling');
 
+			Object.keys(this.methods.commands).forEach(function(commandName){
+				this.api.addCommand(this.methods.commands[commandName])
+			}, this)
+
+			var haveAddedCommandNarrowing = false;
+			if (!haveAddedCommandNarrowing){
+				console.warn('YOU NEED TO DO SOME COMMAND NARROWING HERE...')
+				console.log(`DO NOT SHIP THIS WITHOUT COMMAND NARROWING`)
+			}
+
+
 			if (text !== undefined){
 				this.data.text = text;
 				this.methods.filterText();
 			} else {
 				this.data.text = "";
 			}
+			this.methods.resetActiveDoc();
 			this.methods.updateActiveDoc(text, doc);
 
 			this.methods.composeText();
@@ -1702,7 +2005,7 @@ export const program = {
 			openNoDoc : false,
 			docToOpen : "",
 			ex : function (target) {
-				if (this.api.commandAvailCheck('stop')){
+				if (this.api.commandAvailCheck('stop') && !this.settings.isRunning){
 					this.api.runCommand('stop');
 				}
 				this.api.readyCommand('stop')
@@ -1846,6 +2149,11 @@ export const program = {
 
 		this.api.addCommand(this.installData.edit);
 
+		Object.keys(this.methods.commands).forEach(function(commandName){
+				this.methods.commands[commandName].ex = this.methods.commands[commandName].ex.bind(this);
+				
+		}, this)
+
 		Object.keys(this.methods.keyStrokeRouter).forEach(function(funcName){
 			this.methods.keyStrokeRouter[funcName] = this.methods.keyStrokeRouter[funcName].bind(this);
 		}, this);
@@ -1896,6 +2204,12 @@ export const program = {
 		this.api.patchInterfaceFunction(function(){
 			return false;
 		}, 'usingKeyUpHandling');
+
+		Object.keys(this.methods.commands).forEach(function(commandName){
+			this.api.deleteCommand(commandName);
+		},this);
+
+
 		this.api.clearReservedRows();
 		this.api.reserveRows(0);
 
@@ -1907,5 +2221,5 @@ export const program = {
 	},
 	ex : function (target) {
 		this.installData.edit.ex(target)
-	}
+	},
 }
