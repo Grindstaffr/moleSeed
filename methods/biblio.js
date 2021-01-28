@@ -308,6 +308,9 @@ export const program = {
 				if (arguments.length === 0){
 					if (!biblio.cmdExtVer){
 						this.api.verifyCommand(`Would you like to run a ${this.name}-specific command?`, function(bool, toggle){
+							if (arguments.length === 0){
+								return;
+							}
 								toggle.toggle = true;
 								if (!bool){
 									biblio.cmdExtVer = true
@@ -321,7 +324,6 @@ export const program = {
 						return;
 					}
 					if (!biblio.wantsMoreCommands){
-				
 						biblio.cmdExtVer = false;
 						biblio.errorState = false;
 						return;
@@ -335,9 +337,8 @@ export const program = {
 							}
 							var command = inputTerms[indexStart];
 							if (!prgm.methods.commands[command]){
-								prgm.api.throwError(`input command is not recognized by ${this.name} parser, try "biblio help"`)
+								prgm.api.throwError(`input command is not recognized by ${prgm.name} parser, try "biblio help"`)
 								biblio.errorState = true;
-								return;
 							}
 							biblio.cmd = command;
 							biblio.arg1 = inputTerms[indexStart + 1] || "";

@@ -146,8 +146,8 @@ export const program = {
 				desc : "open an accessible document",
 				syntax : "open [readable]",
 				isAvail : true,
-				ex : function () {
-					
+				ex : function (target) {
+					this.installData.edit.ex(target);
 				}
 			},
 			new_rdbl : {
@@ -172,17 +172,30 @@ export const program = {
 						if (newRdblCmd.docBody.length === 0){
 							accessibleNodes[text].read(function(textBody, docNode){
 								newRdblCmd.docBody = textBody;
-								console.log(newRdblCmd);
 								prgm.api.runCommand(`new_rdbl ${text}`)
 							})
 							return;
 						}
 					}
 					if (text !== undefined && text.length >= 1 && isNewName){
+						text = text.split('.')[0]
 						text = text.split(" ");
 						text = text.join("_").substring(0,12);
 						newRdblCmd.docName = text;
 					}
+					var nameMatches = accessibleNodesList.filter(function(nodeName){
+						var nodeNameNoFileExt = nodeName.split('.')[0]
+						if (nodeNameNoFileExt === newRdblCmd.docName.split('.')[0]){
+							return true;
+						} else {
+							return false;
+						}
+					})
+					console.log
+					if (nameMatches.length >= 1){
+						prgm.api.warn(`An accessible node already exists with name = ${nameMatches[0]}... try another name.`);
+						newRdblCmd.docName = "";
+					} 
 					if (newRdblCmd.docName.length === 0){
 						this.api.requestInput(function(commandFull){
 							var inputTerms = commandFull.split(" ")
@@ -196,7 +209,9 @@ export const program = {
 					};
 					if (!newRdblCmd.kernelAccessVer){
 						this.api.warn(` Do not grant seed access to untrusted programs`)
-						this.api.verifyCommand(` editor.ext is requesting seed access to instantiate a new nodelet, grant access?`, function(bool, toggle){
+						this.api.bufferCommand(`new_rdbl ${newRdblCmd.docName}`)
+						this.api.verifyCommand(` editor.ext is requesting seed access to instantiate a new nodelet, grant access?`, function(bool, toggle, avoidPop){
+							avoidPop.avoidPop = false;
 							toggle.toggle = true;
 							if (!bool){
 								newRdblCmd.kernelAccessVer = true;
@@ -204,10 +219,11 @@ export const program = {
 								newRdblCmd.kernelAccessVer = true;
 								newRdblCmd.kernelAccess = true;
 							}
+							
 						})
 						return;
 					}
-					if (newRdblCmd.kernelAccess) {
+					if (newRdblCmd.kernelAccessVer && newRdblCmd.kernelAccess) {
 						newRdblCmd.kernelAccessVer = false;
 						newRdblCmd.kernelAccess = false;
 						var activeNode = this.api.getActiveNode();
@@ -235,7 +251,7 @@ export const program = {
 						if (newAccessibleNodesList.length === 1){
 							finalDocName = newAccessibleNodesList[0];
 						} else {
-							debugger;
+							;
 						}
 						this.api.log(`${finalDocName} sprouted at ${activeNode.address}`);
 
@@ -245,6 +261,10 @@ export const program = {
 						this.installData.edit.ex(finalDocName);
 
 					} else {
+						newRdblCmd.kernelAccessVer = false;
+						newRdblCmd.kernelAccess = false;
+						newRdblCmd.docBody = "";
+						newRdblCmd.docName = "";
 						this.api.log(`seed access required to instantiate new nodes. Aborting "new_rdbl"...`);
 						return;
 					}
@@ -263,8 +283,9 @@ export const program = {
 					const prgm = this;
 					if (!newWmtCmd.kernelAccessVer){
 						this.api.warn(` Do not grant seed access to untrusted programs`)
-						this.api.verifyCommand(` editor.ext is requesting seed access to instantiate a new nodelet, grant access?`, function(bool, toggle){
+						this.api.verifyCommand(` editor.ext is requesting seed access to instantiate a new nodelet, grant access?`, function(bool, toggle, avoidPop){
 							toggle.toggle = true;
+							avoidPop.avoidPop = true;
 							if (!bool){
 								newWmtCmd.kernelAccessVer = true;
 							} else {
@@ -487,11 +508,13 @@ export const program = {
 				this.api.restoreDefaultCursorPosition();
 			} else if (this.settings.edit_mode == false){
 				if (!this.data.activeDoc.writable){
-					this.methods.createNewRdbl(docName, docText);
+					if (this.data.activeDoc.name === "null" && this.data.activeDoc.type === "undefined"){
+						this.api.runCommand('new_rdbl');
+						return;
+					}
+					this.methods.cloneReadOnly(docName);
 					return;
-				} else {
-					this.api.log(`I read you... sir...`)
-				}
+				} 
 				this.settings.edit_mode = true;
 				if (!this.settings.displaySidebar){
 					this.methods.toggleSideBar();
@@ -525,7 +548,7 @@ export const program = {
 			if (this.settings.displaySidebar){
 				this.settings.displaySidebar = false;
 				this.methods.clearDisplayBar();
-				this.methods.inititalizeDimensions();
+				this.methods.initializeDimensions();
 				this.methods.repositionCursor();
 				if (this.settings.slct_mode){
 					this.api.clearHighlights();
@@ -533,7 +556,7 @@ export const program = {
 				}
 			} else if (!this.settings.displaySidebar){
 				this.settings.displaySidebar = true;
-				this.methods.inititalizeDimensions();
+				this.methods.initializeDimensions();
 				this.methods.repositionCursor();
 				if (this.settings.slct_mode){
 					this.api.clearHighlights();
@@ -561,13 +584,32 @@ export const program = {
 			DOC CREATION FUNCTIONS
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		*/
-		createNewRdbl : function (name, text, verBool) {
+		cloneReadOnly : function (name){
+			const prgm = this;
+			var message = ` Document:${name} has property read_only=true; Would you like to create a writable copy?`
+			const verifyFunc = function (bool, toggle, avoidPop){
+				if (bool) {
+					prgm.api.bufferCommand(`new_rdbl ${name}`);
+					toggle.toggle = true;
+				} else {
+					prgm.api.bufferCommand("");
+					toggle.toggle = true;
+				}
+			}
+			this.api.verifyCommand(message, verifyFunc);
+		},
+		createNewRdbl : function (name, text, verBool, altMessage) {
 			const prgm = this;
 			var newNodeName = name;
 			var newNodeText = text;
 			var isNewName = true;
 			if (!verBool){
-				const verifyFunc = function (bool, toggle) {
+				var message = ` Document:${newNodeName} has property read_only=true; Would you like to create a writable copy?`
+				if (altMessage && (typeof altMessage === 'string')){
+					message = altMessage;
+				}
+				const verifyFunc = function (bool, toggle, avoidPop) {
+					avoidPop.avoidPop = true;
 					toggle.toggle = false;
 					if (bool){
 						this.methods.createNewRdbl(newNodeName, newNodeText, true)
@@ -576,7 +618,8 @@ export const program = {
 						return;
 					}
 				}.bind(prgm)
-				prgm.api.verifyCommand(` Document:${newNodeName} has property read_only=true; Would you like to create a writable copy?`, verifyFunc)
+				prgm.api.bufferCommand(`new_rdbl ${newNodeName}`);
+				prgm.api.verifyCommand(message, verifyFunc)
 				return;
 			}
 
@@ -588,6 +631,8 @@ export const program = {
 			}
 	
 			this.api.requestInput(function(commandFull){
+				;
+				console.log(commandFull)
 				if (commandFull === 'y'){
 					var activeNode = prgm.api.getActiveNode();
 					var activeNodeTrueAddress = activeNode.getTrueAddress();
@@ -613,22 +658,26 @@ export const program = {
 					})
 					if (newAccessibleNodesList.length === 1){
 						finalDocName = newAccessibleNodesList[0];
+						console.log(finalDocName)
 					} else {
-						debugger;
+						;
 					}
 					if (isNewName){
 						prgm.api.log(` ${finalDocName} sprouted at ${activeNode.address}`);
 					} else {
 						prgm.api.log(` ${finalDocName} sprouted at ${activeNode.address}`);
 					}
-					this.api.getAccessibleNodes()[finalDocName].text = newNodeText;	
+					prgm.api.getAccessibleNodes()[finalDocName].text = newNodeText;	
 					prgm.installData.edit.ex(finalDocName);
 				} else if (commandFull = 'n'){
-					shouldContinue = false;
+					prgm.api.log(`seed access required to instantiate new nodes. Aborting "new_rdbl"...`);
+					return;
 				} else {
-					shouldContinue = false;
+					prgm.api.log(`seed access required to instantiate new nodes. Aborting "new_rdbl"...`);
+					return;
 				}
 			},' editor.ext is requesting seed access to instantiate a new nodelet, grant access?(y/n)')
+			return;
 		},
 
 		/*
@@ -673,9 +722,13 @@ export const program = {
 		
 		},
 		deleteLetter : function () {
-	
+			var currentIndex = this.data.cursorLocation[2];
 			this.methods.decrementCursorLocation();
 			var deleteLocation = this.data.cursorLocation[2];
+			if(currentIndex === deleteLocation){
+				//case: could not Decrement -> early return;
+				return;
+			}
 			var currentRow = this.data.cursorLocation[0];
 			var currentCol = this.data.cursorLocation[1]
 			var cell = this.data.characterMatrix[currentRow][currentCol];
@@ -933,10 +986,10 @@ export const program = {
 						this.api.writeToCoordinate("", rowTranslate, colTranslate)
 						return;
 					} else if (character === "\\"){
-						prevCharBackslash = true;
+						//prevCharBackslash = true;
 						this.api.writeToCoordinate("", rowTranslate, colTranslate)
 						return;
-					} else if (prevCharBackslash){
+					} /*else if (prevCharBackslash){
 						if (character === "n"){
 							prevCharBackslash = false;
 							this.api.writeToCoordinate("", rowTranslate, colTranslate)
@@ -955,7 +1008,7 @@ export const program = {
 							return;
 						}
 						prevCharBackslash = false;
-					}
+					}*/
 
 					this.api.writeToCoordinate(character, rowTranslate, colTranslate)
 				},this)
@@ -972,6 +1025,7 @@ export const program = {
 			if (this.settings.displaySidebar){
 				this.data.textWidth -= (this.data.displayBarWidth);
 			};
+			console.log(this.data.textWidth)
 			return;
 		},
 		setDisplayHeight : function () {
@@ -980,13 +1034,14 @@ export const program = {
 		},
 		reserveRows : function () {
 			this.api.reserveRows(this.data.displayHeight);
+			this.api.clearReservedRows();
 		},
-		inititalizeDimensions : function () {
+		initializeDimensions : function () {
 			this.methods.setTextWidth();
-			this.methods.clearTextZone();
 			this.methods.setDisplayHeight();
-			this.methods.recomposeText();
 			this.methods.reserveRows();
+			this.methods.clearTextZone();
+			this.methods.recomposeText();
 		},
 		/*
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1084,7 +1139,7 @@ export const program = {
 			var terminalRow = -1;
 
 			if (pointA === 719 || pointB === 719){
-				debugger;
+				;
 			}
 
 			var coordinatesA = this.methods.getCoordinatesFromStringIndex(pointA);
@@ -1322,7 +1377,7 @@ export const program = {
 		drawWindow : function () {
 
 			var width = this.api.getRowCount();
-			var title = 'editor.ext'
+			var title = 'editor.ext';
 			title = title.split('').reverse().join('');
 			var toggle = false;
 			var j = 0;
@@ -1389,7 +1444,7 @@ export const program = {
 			//var unDisplayedBot = (this.data.characterMatrix.length - (this.data.vRowOffset + this.barHeight));
 			
 			if (barIndexes < 0){
-				debugger
+				
 			}
 		
 			prependCount = Math.round(k * this.data.vRowOffset);
@@ -1442,6 +1497,7 @@ export const program = {
 			this.methods.positionTerminalCursor();
 		},
 		reacquireStringIndex : function () {
+
 			var presentRow = this.data.cursorLocation[0];
 			var presentColumn = this.data.cursorLocation[1];
 			this.data.cursorLocation[2] = this.data.characterMatrix[presentRow][presentColumn][0];
@@ -1536,7 +1592,7 @@ export const program = {
 					}
 					if (col === -1){
 						if (targetValue === 1282){
-							debugger;
+							;
 						}
 						guessCell = this.data.characterMatrix[searchRowIndex][searchColIndex]
 						if (guessCell === undefined || guessCell.length === 0){
@@ -1590,12 +1646,16 @@ export const program = {
 			return [row, col, targetValue]			
 		},
 		decrementCursorLocation : function () {
+			//this and increment may end up being faster with the stringIndex func...
+			//on second thought... since this is an incrementor... it may look like n time...
+			//but most case it runs in constant.. eg...  1 row iteration 1 to 5 col...
+			//only worst case when trying to 
 			var newLoc = [0,0,-1]
 			var presentRow = this.data.cursorLocation[0];
 			var presentColumn = this.data.cursorLocation[1];
 			if (this.data.cursorLocation[2] === 0){
 				return;
-			}
+			} 
 			for (var j = presentColumn - 1; j >= 0; j--){
 				if (this.data.characterMatrix[presentRow][j][0] === " "){
 					continue;
@@ -1681,7 +1741,7 @@ export const program = {
 			var newLoc = [0,0,-1]
 			var presentRow = this.data.cursorLocation[0];
 			var presentColumn = this.data.cursorLocation[1];
-			if (this.data.cursorLocation[2] === this.data.text.length){
+			if (this.data.cursorLocation[2] === this.data.text.length - 1){
 				return;
 			}
 			for (var j = presentColumn + 1; j < this.data.characterMatrix[presentRow].length; j++) {
@@ -1914,9 +1974,19 @@ export const program = {
 			this.data.activeDoc.est_mem_use = 0;
 			this.data.activeDoc.writable = false;
 		},
-		updateActiveDoc : function (text, doc) {
+		updateActiveDoc : function (text, doc, isNull) {
 			if (!text || text === undefined){
 				text = this.data.text;
+			}
+			if (isNull){
+				this.data.activeDoc.name = "null";
+				this.data.activeDoc.type = "undefined";
+				this.data.activeDoc.line_count = NaN;
+				this.data.activeDoc.char_count = NaN;
+				this.data.activeDoc.word_count = NaN;
+				this.data.activeDoc.est_mem_use = NaN;
+				this.data.activeDoc.writable = false;
+				return;
 			}
 			this.data.activeDoc.word_count = text.split("\\n").join(" ").split('\\t').join(" ").split(" ").filter(function(x){
 				return x !== ""
@@ -1935,19 +2005,24 @@ export const program = {
 					console.log(doc)
 					this.data.activeDoc.writable = true;
 				}
+				console.log(doc)
 				this.data.activeDocTrueAddress = doc.getTrueAddress();
 				if (doc.writable && doc.getTrueAddress()[0] !== 'w'){
-					debugger;
+					;
 				}
 				console.log(this.data.activeDocTrueAddress);
 
 			}
 		},
-		startEditext : function (text, doc) {
+		startEditext : function (text, doc, isNull) {
+			console.log(doc)
 			this.settings.isRunning = true;
+			if (!this.api.checkIfRunning(`${this.name}`)){
+				this.api.appendToRunningPrograms(`${this.name}`, false)
+			}
+			this.api.readyCommand('stop')
 
-			this.methods.inititalizeDimensions();
-			this.api.clearReservedRows();
+			this.methods.initializeDimensions();
 
 			this.api.patchInterfaceFunction(function(){
 				return true;
@@ -1965,7 +2040,7 @@ export const program = {
 				console.warn('YOU NEED TO DO SOME COMMAND NARROWING HERE...')
 				console.log(`DO NOT SHIP THIS WITHOUT COMMAND NARROWING`)
 			}
-
+			;
 
 			if (text !== undefined){
 				this.data.text = text;
@@ -1974,10 +2049,9 @@ export const program = {
 				this.data.text = "";
 			}
 			this.methods.resetActiveDoc();
-			this.methods.updateActiveDoc(text, doc);
+			this.methods.updateActiveDoc(text, doc, isNull);
 
-			this.methods.composeText();
-			this.methods.composeFromCharMatrix();
+			this.methods.initializeDimensions();
 			this.methods.scaleAndPositionScrollBar();
 
 			if (this.settings.displaySidebar){
@@ -1997,6 +2071,7 @@ export const program = {
 			syntax : 'edit (readable)', // still need .wt files and compiler
 			hasHelp : false, //still need longHelp
 			longHelp : ' --- Operation Guide for "edit" syntax ---',
+			errorState : false,
 			createNewDoc : false,
 			cndVer : false,
 			wantsExistingDoc : false,
@@ -2006,27 +2081,23 @@ export const program = {
 			docToOpen : "",
 			ex : function (target) {
 				if (this.api.commandAvailCheck('stop') && !this.settings.isRunning){
-					this.api.runCommand('stop');
-				}
-				this.api.readyCommand('stop')
-				if (!this.api.checkIfRunning(`${this.name}`)){
-					this.api.appendToRunningPrograms(`${this.name}`, false)
+					var runningProgramsList = Object.keys(this.api.getRunningPrograms());
+					runningProgramsList.forEach(function(programName){
+						if (programName !== 'editor.ext')
+						this.api.runCommand(`stop ${programName}`)
+					})
 				}
 				var edit = this.installData.edit;
 				var prgm = this;
 				if (edit.errorState){
-					edit.createNewDoc = false;
-					edit.cndVer = false;
-					edit.wantsExistingDoc = false;
-					edit.wedVer = false;
-					edit.noDocVer = false;
-					edit.openNoDoc = false;
-					edit.docToOpen = "";
+					edit.resetAllFields();
 					return;
 				}
 				if (!target && !edit.cndVer) {
-					prgm.api.verifyCommand(` Would you like to create a new document?`, function (bool, toggle){
+					prgm.api.verifyCommand(` Would you like to create a new document?`, function (bool, toggle, avoidPop){
+					
 						toggle.toggle = true;
+						avoidPop.avoidPop = true;
 						if (bool){
 							edit.cndVer = true;
 							edit.createNewDoc = true;
@@ -2040,8 +2111,10 @@ export const program = {
 				}
 				if (!target && edit.cndVer){
 					if (!edit.createNewDoc && !edit.wedVer){
-						prgm.api.verifyCommand( `Would you like to open an accessible document?`, function(bool, toggle){
+						prgm.api.verifyCommand( `Would you like to open an accessible document?`, function(bool, toggle, avoidPop){
+
 							toggle.toggle = true;
+							avoidPop.avoidPop = true;
 							if (!bool){
 								edit.wedVer = true;
 								return;
@@ -2053,7 +2126,7 @@ export const program = {
 						})
 						return;
 					} else if (!edit.createNewDoc && edit.wedVer){
-						if (edit.wantsExistingDoc){
+						if (edit.wantsExistingDoc && edit.docToOpen.length === 0){
 							prgm.api.requestInput(function(commandFull){
 								var inputTerms = commandFull.split(" ");
 								var indexStart = 0;
@@ -2064,10 +2137,12 @@ export const program = {
 								if (!Object.keys(prgm.api.getAccessibleNodes()).includes(nodeName)){
 									prgm.api.throwError('(edit.ext) no such document recognized');
 									edit.errorState = true;
+									prgm.api.runCommand(`edit`);
 									return;
 								} else if (!prgm.api.getAccessibleNodes()[nodeName].canBeRead) {
 									prgm.api.throwError(`(edit.ext) ${nodeName} has no readable data`);
 									edit.errorState = true;
+									prgm.api.runCommand(`edit`);
 									return;
 								} else {
 									edit.docToOpen = nodeName;
@@ -2076,11 +2151,14 @@ export const program = {
 								return;
 							}, `Enter accessible document name: `)
 							return;
+						} else if (edit.wantsExistingDoc && edit.docToOpen.length >= 1){
+
 						} else if (!edit.wantsExistingDoc){
 							if (!edit.noDocVer) {
 
-							prgm.api.verifyCommand(' Open edit.ext without any doc to edit?', function (bool, toggle) {
+							prgm.api.verifyCommand(' Open edit.ext without any doc to edit?', function (bool, toggle, avoidPop) {
 								toggle.toggle = true;
+								avoidPop.avoidPop = true;
 								if (bool){
 									edit.noDocVer = true;
 									edit.openNoDoc = true;
@@ -2093,31 +2171,44 @@ export const program = {
 							return;
 							} else if (edit.noDocVer && edit.openNoDoc) {
 								//start program with command that handles row res, MUST define string with newDoc command or openDoc
-
+								this.methods.startEditext("","",true)
 							} else if (edit.noDocVer && !edit.openNoDoc) {
-								//reroute to beginning or exit out;
+								edit.resetAllFields();
+								this.api.log(` (editor.ext) aborting execution procedure...`)
 							}
 						}
-					} else if (edit.createNewDoc) {
+					} else if (edit.createNewDoc && edit.docToOpen.length === 0) {
 						//start program with command that handles row reservation and shit;
-						edit.createNewDoc = false;
-						edit.cndVer = false;
-						edit.wantsExistingDoc = false;
-						edit.wedVer = false;
-						edit.noDocVer = false;
-						edit.openNoDoc = false;
-						edit.docToOpen = "";
-						this.methods.startEditext();
+						prgm.api.requestInput(function(commandFull){
+							var accessibleNodesList = Object.keys(prgm.api.getAccessibleNodes())
+							var potentialName = commandFull.split(".rdbl").join("").split(".wmt").join("").split(" ").join("_").substring(0,16);
+							var nameMatches = accessibleNodesList.filter(function(nodeName){
+								var nodeNameNoFileExt = nodeName.split('.')[0]
+								if (nodeNameNoFileExt === potentialName){
+									return true;
+								} else {
+									return false;
+								}
+							})
+							if (nameMatches.length >= 1){
+								prgm.api.warn(`An accessible node already exists with name = ${nameMatches[0]}... try another name.`)
+							} else {
+								edit.docToOpen = potentialName;
+							}
+							prgm.api.runCommand(`edit`);
+							return;
+						}, 'Enter name for new document:')
+						return;
+						
+					} else if (edit.createNewDoc && edit.docToOpen.length >= 1){
+						console.log(edit.docToOpen)
+						this.methods.createNewRdbl(edit.docToOpen, "", true);
+						edit.resetAllFields();
+						return;
 					}
 				}
 				if (edit.errorState){
-					edit.createNewDoc = false;
-					edit.cndVer = false;
-					edit.wantsExistingDoc = false;
-					edit.wedVer = false;
-					edit.noDocVer = false;
-					edit.openNoDoc = false;
-					edit.docToOpen = "";
+					edit.resetAllFields();
 					if (this.api.checkIfRunning('editor.ext')){
 						this.api.runCommand('stop');
 					}
@@ -2127,16 +2218,35 @@ export const program = {
 					var accessibleNodes = prgm.api.getAccessibleNodes();
 					if (!Object.keys(accessibleNodes).includes(target)){
 						prgm.api.throwError('(editor.ext) no such document recognized');
+						edit.resetAllFields();
+						if (this.api.checkIfRunning('editor.ext')){
+							this.api.runCommand('stop');
+						}
 						return;
 					} else if (!accessibleNodes[target].canBeRead){
 						prgm.api.throwError(`(editor.ext) ${target} has no readable data`);
+						edit.resetAllFields();
+						if (this.api.checkIfRunning('editor.ext')){
+							this.api.runCommand('stop');
+						}
 						return;
 					} else {
+						edit.resetAllFields();
 						var node = accessibleNodes[target];
 						node.read(this.methods.startEditext);
 					}
 
 				}
+			},
+			resetAllFields : function () {
+				this.errorState = false;
+				this.createNewDoc = false;
+				this.cndVer = false;
+				this.wantsExistingDoc = false;
+				this.wedVer = false;
+				this.noDocVer = false;
+				this.openNoDoc = false;
+				this.docToOpen = "";
 			},
 		},
 
@@ -2169,7 +2279,7 @@ export const program = {
 		this.api.addInterfaceFunction(this.methods.routeKeyUp, 'useKeyUpRouter');
 		this.api.addInterfaceFunction(this.methods.routeKeyStroke, 'useAltKeyRouter'); 
 
-		window.addEventListener("resize", this.methods.inititalizeDimensions);
+		window.addEventListener("resize", this.methods.initializeDimensions);
 
 		if (callback){
 			callback(this.installData)
@@ -2192,7 +2302,7 @@ export const program = {
 		this.api.deleteInterfaceFunction('useKeyUpRouter', 'editor.ext');
 		this.api.deleteInterfaceFunction('useAltKeyRouter', 'editor.ext');
 
-		window.removeEventListener("resize", this.methods.inititalizeDimensions);
+		window.removeEventListener("resize", this.methods.initializeDimensions);
 
 
 	},
@@ -2214,10 +2324,10 @@ export const program = {
 		this.api.reserveRows(0);
 
 		var program = this;
-		setTimeout(function(){
+		/*setTimeout(function(){
 			program.api.clearReservedRows();
 			program.api.reserveRows(0);
-		}, 12)
+		}, 12)*/
 	},
 	ex : function (target) {
 		this.installData.edit.ex(target)

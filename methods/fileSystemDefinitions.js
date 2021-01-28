@@ -1370,6 +1370,7 @@ export class Directory extends Readable {
 	}
 
 	read(callback){
+		var dir = this;
 		var text =  ` --- ${this.name} is adjacent to the following nodes --- \\n`;
 		this.assembleVisibleAdjacencies();
 		Object.keys(this.visibleAdjacencies).forEach(function(nodeName){
@@ -1381,7 +1382,7 @@ export class Directory extends Readable {
 			text = text + ` NAME: ${abbr}` + (" ").repeat(10-abbrLength) + `TYPE: ${this.visibleAdjacencies[nodeName].type} \\n` ;
 		}, this)
 		if(callback){
-			callback(text, true, true, 0);
+			callback(text, dir, true, true, 0);
 		}
 	}
 }

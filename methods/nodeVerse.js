@@ -35,8 +35,10 @@ export const bigBang = function () {
 		}
 		if (this.allNodes[trueAddress]){
 			if (this.allNodes[trueAddress].name !== name){
-				this.allNodes[trueAddress].text = text;
 				this.allNodes[trueAddress].changeReferenceName(name);
+			}
+			if (this.allNodes[trueAddress].text !== text){
+				this.allNodes[trueAddress].text = text;
 			}
 		} else {
 			console.log(`....uh.... I thought this wasn't ever going to happen`)

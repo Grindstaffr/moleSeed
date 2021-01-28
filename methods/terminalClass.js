@@ -1250,7 +1250,7 @@ export class Terminal {
 					this.writeToGivenRow(lastLine, i + 1)
 				}
 			} else {
-				for (var  i = 0; i < numberOfRows ; i++ ){
+				for (var  i = this.reservedRows; i < numberOfRows ; i++ ){
 					this.previousRows.shift();
 					this.previousRows.push(this.currentRows[i]);
 				}
@@ -1804,7 +1804,10 @@ export class Terminal {
 					}
 				}
 				var text = ""
-				node.read(function(text, shouldUnSpace, shouldTab, tabSize){
+				node.read(function(text, doc, shouldUnSpace, shouldTab, tabSize){
+					if (shouldUnSpace === undefined){
+						shouldUnSpace = true;
+					}
 					var textToPrint = text
 					if (startIndex){
 						if (endIndex){
@@ -2149,6 +2152,9 @@ export class Terminal {
 			ex: function (text) {
 				var cmd = this.parent;
 				//cmd.cache.writeEmptyRow();
+				if (text[0] !== " "){
+					text = " " + text;
+				}
 				cmd.cache.composeText(`${text}`, true);
 				//cmd.cache.writeEmptyRow();
 			},
@@ -2158,7 +2164,7 @@ export class Terminal {
 			ex : function (text) {
 				var cmd = this.parent;
 				//cmd.cache.writeEmptyRow();
-				cmd.cache.composeText(`!_Warning_!: ${text}`, true);
+				cmd.cache.composeText(` !_Warning_!: ${text}`, true);
 				//cmd.cache.writeEmptyRow();
 			}
 		};
@@ -2168,7 +2174,7 @@ export class Terminal {
 			syntax: '',
 			ex : function (text) {
 				var cmd = this.parent;
-				cmd.cache.composeText(`ERROR: ${text}`, true);
+				cmd.cache.composeText(` ERROR: ${text}`, true);
 				//cmd.cache.writeEmptyRow();
 			},
 		};
@@ -2224,7 +2230,6 @@ export class Terminal {
 					return;
 				}
 				if (!cmd[command]){
-					console.log(command);
 					return;
 				}
 				cmd[command].isAvail = false;
@@ -2806,7 +2811,13 @@ export class Terminal {
 			this.command.log.ex(this.input.messages.input);
 
 		};
-
+		terminalInterface.bufferCommand = function (string) {
+			if (string === undefined){
+				console.log(string);
+				return;
+			}
+			this.input.bufferInput(string)
+		};
 		terminalInterface.reserveRows = function (numberOfRows){
 			var rowCount = Math.min(numberOfRows)//, (this.cache.inputRow.length/2))
 			this.cache.reserveRows(rowCount);
@@ -2879,7 +2890,8 @@ export class Terminal {
 			return this.command.log.ex(string);
 		};
 		terminalInterface.runCommand = function (string){
-			return this.compiler.parseInput(string);
+			return this.parent.input.backDoorCommand(string);
+			//return this.compiler.parseInput(string);
 		};
 		terminalInterface.setActiveNode = function (node) {
 			if (node.Type !== node) {
@@ -3560,19 +3572,32 @@ export class Terminal {
 			}
 			var commandFull = this.cache.getInputRow();
 			this.cache.submitInput();
+			this.api.writeLine("")
 			this.trmnl.blinkyCursor.position.leadTheText();
 			if (this.shouldReRouteInput()) {
 				this.bufferInput(commandFull);
 				this.reRouteInput(commandFull);
 				return;
 			} else {
-				this.api.writeLine("")
 				this.sendToCompiler(commandFull);
 			}
 			if (this.api.submitTriggerFunction){
 				this.api.submitTriggerFunction();
 			}
 		};
+		input.backDoorCommand = function (string) {
+			var commandFull = string;
+			if (this.shouldReRouteInput()) {
+				this.bufferInput(commandFull);
+				this.reRouteInput(commandFull);
+				return;
+			} else {
+				this.sendToCompiler(commandFull);
+			}
+			if (this.api.submitTriggerFunction){
+				this.api.submitTriggerFunction();
+			}
+		}
 
 		input.sendToCompiler = function (commandFull){
 			this.bufferInput(commandFull)
@@ -3585,6 +3610,9 @@ export class Terminal {
 		};
 
 		input.bufferInput= function (commandFull){
+			if (commandFull === undefined){
+				return;
+			}
 			this.buffer.push(commandFull);
 			return this.buffer.length;
 		};
@@ -3625,50 +3653,98 @@ export class Terminal {
 		const init = function (trmnl) {
 			input.routes = {
 				verify : function (commandFull) {
+					console.log(this.buffer)
 					//this.command.log.ex(this.verifyMessage);
 					var response = this.buffer.pop()[0]
 					var toggle = { toggle : false };
+					var avoidPop = { avoidPop : false };
+
+					/*
+					!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+						Ok...
+						implementation is a lil goofy
+						but every verify callback gets 3 args...
+						1) bool  representing
+						   True : case that user typed "y",
+						   False : else
+						2) a toggle to determine if the 
+							verify function itself was passed
+						3) a 2nd toggle to stop buffer 
+							manipulation (preserve buffer)
+					!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+					*/
 					if (response === 'y'){
 						toggle.toggle = true;
 						if (this.callbacks.verify){
-							this.callbacks.verify(true, toggle);
+							this.callbacks.verify(true, toggle, avoidPop);
 						}
 						this.callbacks.verify = function () {};
-						var command = this.retrieveBufferedInput();
 						this.messages.verify = this.messages.default_verify;
 						this.toggleFilterOff('verify');
 						this.filtersPassed.verify = true;
+
+						var command = "";
+						if (avoidPop.avoidPop){
+							command = this.peekBufferedInput();
+						} else {
+							command = this.retrieveBufferedInput();
+						}
 						if (!toggle.toggle){
 							this.filtersPassed.verify = false;
+							return;
 						} else {
-							this.command.log.ex(` submitting ${command}`)
+						
+							//this.command.log.ex(` submitting ${command}`)
+								console.log(`submitting ${command}`)
 						}
 						//this.shouldReRouteInput = false;
 						return command;
 					}
 					if (response === 'n'){
 						if (this.callbacks.verify){
-							this.callbacks.verify(false, toggle);
+							this.callbacks.verify(false, toggle, avoidPop);
 						}
 						this.callbacks.verify = function () {};
-						var command = this.retrieveBufferedInput()
 						this.messages.verify = this.messages.default_verify;
 						this.toggleFilterOff('verify');
+
+						var command = "";
+						if (avoidPop.avoidPop){
+							command = this.peekBufferedInput();
+						} else {
+							command = this.retrieveBufferedInput()
+						}
+
 						if (toggle.toggle){
 							this.filtersPassed.verify = true;
+							
+							//this.command.log.ex(` submitting ${command}`)
+							console.log(`submitting ${command}`)
 							return command;
 						}
-						this.command.log.ex(`  aborted command : "${command}" `);
+						this.command.log.ex(` aborted command : "${command}" `);
 						return this.retrieveBufferedInput();
+					} 
+					this.command.error.ex(`User_cannot_answer_a_simple_yes_or_no_question`)
+					this.command.log.ex(`  aborted command : "${this.retrieveBufferedInput()}" `);
+					this.messages.verify = this.messages.default_verify;
+					this.toggleFilterOff('verify');
+					if (this.callbacks.verify){
+						/*
+						1/28/21
+						I fiddled around with this some 
+						I wasn't having luck with the callback getting called 
+						when randomBullshit went in...
+
+						e.g. (y/n)? [UserResponse = "Fartcopter1726%^!@&@"]
+
+						I can't currently think of a use case for the callback firing here
+						but... just in case... I put a warn...
+						*/
+						//this.callbacks.verify();
+						console.warn(`callback will not trigger when userResponse !in A={'y','n'}`)
+						this.callbacks.verify = function () {};
 					}
-						this.command.error.ex(`User_cannot_answer_a_simple_yes_or_no_question`)
-						this.command.log.ex(`  aborted command : "${this.retrieveBufferedInput()}" `);
-						this.messages.verify = this.messages.default_verify;
-						this.toggleFilterOff('verify');
-						if (this.callbacks.verify){
-							this.callbacks.verify(false, toggle);
-							this.callbacks.verify = function () {};
-						}
 					return `User_cannot_answer_a_simple_yes_or_no_question`
 
 				},
@@ -3678,12 +3754,15 @@ export class Terminal {
 
 				},
 				input : function (commandFull) {
+					//var response = this.retrieveBufferedInput();
 					if (this.callbacks.input){
-						this.callbacks.input(commandFull);
-						this.callbacks.input = function () {};
-						this.messages.input = this.messages.default_input;
 						this.toggleFilterOff(`input`)
 						this.filtersPassed.input = true;
+						var callback = this.callbacks.input
+						this.callbacks.input = function () {};
+						this.messages.input = this.messages.default_input;
+						this.retrieveBufferedInput();
+						callback(commandFull);
 						return;
 					}
 					return;
@@ -3767,6 +3846,7 @@ export class Terminal {
 			input.messages.default_input = "command requires response:  "
 			input.messages.default_null = "null"
 			input.narrowWhitelist = [];
+			input.shouldNotSubmitCatch = false;
 			input.trmnl = trmnl
 			input.api = trmnl.api
 			input.command = trmnl.command;

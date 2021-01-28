@@ -348,7 +348,7 @@ export const compilerBuilder = function (parent) {
 
 				},
 				writeMessage : function (text) {
-					var header = "(parser_addON autoCorrect) - "
+					var header = " (parser_addON autoCorrect) - "
 					var body = header + text;
 					return this.api.composeText(body, true, true, 37)
 				}.bind(compiler),
@@ -1073,6 +1073,10 @@ export const compilerBuilder = function (parent) {
 	}.bind(compiler)
 
 	compiler.prepUserBuffer = function (userInput) {
+		if (!userInput || userInput.length === 0){
+			this.setEarlyReturn();
+			return;
+		}
 		this.buffer.userInput.arguments = [];
 		this.buffer.userInput.raw = userInput;
 		var terms = userInput.split(" ");
