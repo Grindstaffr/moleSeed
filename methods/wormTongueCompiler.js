@@ -12,6 +12,7 @@ export const program = {
 	},
 	methods: {
 
+
 	},
 	installData : {
 		compile : {
@@ -20,9 +21,14 @@ export const program = {
 			syntax : "compile [.wmt]",
 			ex : function (wormTongueFileName) {
 
+
 			}
 		}
 	},
+	install : function () {
+		//testing new HTTPS key for github
+	},
+
 
 
 }
