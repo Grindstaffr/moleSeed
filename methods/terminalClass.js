@@ -1508,6 +1508,10 @@ export class Terminal {
 				trmnl.activeNode = nodeToMoveto;
 				this.addToPrevNodes(lastNode);
 
+				Object.keys(cmd.mv.moveTriggeredFunctions).forEach(function(funcName){
+					cmd.mv.moveTriggeredFunctions[funcName].func();
+				}, this)
+
 				var lastNode = this.retrieveLastPrevNode();
 
 				trmnl.activeNode.triggerOnMove(trmnl, lastNode);
@@ -1518,9 +1522,6 @@ export class Terminal {
 				cmd.assembleAccessibleNodes.ex();
 				cmd.assembleValidNodes.ex();
 				//console.log(Object.keys(trmnl.accessibleNodes))
-				Object.keys(cmd.mv.moveTriggeredFunctions).forEach(function(funcName){
-					cmd.mv.moveTriggeredFunctions[funcName].func();
-				}, this)
 				//console.log(Object.keys(trmnl.accessibleNodes))
 				//cmd.compiler.assembleValidNodes();
 			},
@@ -2889,8 +2890,8 @@ export class Terminal {
 		terminalInterface.log = function (string){
 			return this.command.log.ex(string);
 		};
-		terminalInterface.runCommand = function (string){
-			return this.parent.input.backDoorCommand(string);
+		terminalInterface.runCommand = function (string, skipFilters){
+			return this.parent.input.backDoorCommand(string, skipFilters);
 			//return this.compiler.parseInput(string);
 		};
 		terminalInterface.setActiveNode = function (node) {
@@ -3259,6 +3260,49 @@ export class Terminal {
 		terminalInterface.clearHighlights = function () {
 			this.cache.clearHighlights();
 		};
+		terminalInterface.requestKernelAccess = function (message, successCallback, rejectCallback) {
+			var returnObj = {};
+			const api = this;
+			const activeNode = this.getActiveNode();
+			const refuseKernelAccess = function () {
+				if (rejectCallback){
+					rejectCallback(undefined);
+				}
+			};
+			const grantKernelAccess = function () {
+				var kernel = activeNode._meta._meta._meta.getKernelAccess();
+				if (successCallback){
+					successCallback(kernel)
+				}
+			};
+			const handleAccessRequest = function (commandFull) {
+				if (commandFull[0] === 'y'){
+					grantKernelAccess();
+					return;
+				} else if (commandFull[0] === 'n'){
+					refuseKernelAccess();
+					return;
+				} else {
+					return;
+				}
+			};
+			const requestApproval = function () {
+				api.requestInput(handleAccessRequest, message)
+			};
+			if (activeNode.hasEncryptedKernel){
+				if (activeNode.kernelCredentialCheck(this.parent)){
+					this.warn(` (terminal_remote_${api.parent.index}) Do not grant seed access to untrusted programs`);
+					requestApproval();
+				} else {
+					return;
+				}
+			} else {
+				requestApproval();
+			}
+		};
+		terminalInterface.getCredentials = function () {
+			return this.parent.credentials.getCredentials();
+		};
 		const init = function (trmnl) {
 			terminalInterface.parent = trmnl;
 			terminalInterface.cache = trmnl.cache;
@@ -3585,9 +3629,10 @@ export class Terminal {
 				this.api.submitTriggerFunction();
 			}
 		};
-		input.backDoorCommand = function (string) {
+		input.backDoorCommand = function (string, skipFilters) {
 			var commandFull = string;
-			if (this.shouldReRouteInput()) {
+			if (this.shouldReRouteInput() && !skipFilters) {
+				console.log(skipFilters)
 				this.bufferInput(commandFull);
 				this.reRouteInput(commandFull);
 				return;
@@ -3595,6 +3640,7 @@ export class Terminal {
 				this.sendToCompiler(commandFull);
 			}
 			if (this.api.submitTriggerFunction){
+				console.log('firing trigger func')
 				this.api.submitTriggerFunction();
 			}
 		}
@@ -3610,6 +3656,7 @@ export class Terminal {
 		};
 
 		input.bufferInput= function (commandFull){
+			console.log(commandFull)
 			if (commandFull === undefined){
 				return;
 			}
@@ -3655,7 +3702,8 @@ export class Terminal {
 				verify : function (commandFull) {
 					console.log(this.buffer)
 					//this.command.log.ex(this.verifyMessage);
-					var response = this.buffer.pop()[0]
+					var bufferPop = this.buffer.pop();
+					var response = bufferPop[0]
 					var toggle = { toggle : false };
 					var avoidPop = { avoidPop : false };
 
@@ -3724,7 +3772,9 @@ export class Terminal {
 						}
 						this.command.log.ex(` aborted command : "${command}" `);
 						return this.retrieveBufferedInput();
-					} 
+					}  else {
+						console.log(this.buffer)
+					}
 					this.command.error.ex(`User_cannot_answer_a_simple_yes_or_no_question`)
 					this.command.log.ex(`  aborted command : "${this.retrieveBufferedInput()}" `);
 					this.messages.verify = this.messages.default_verify;
@@ -3755,6 +3805,7 @@ export class Terminal {
 				},
 				input : function (commandFull) {
 					//var response = this.retrieveBufferedInput();
+					
 					if (this.callbacks.input){
 						this.toggleFilterOff(`input`)
 						this.filtersPassed.input = true;

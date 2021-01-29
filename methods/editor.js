@@ -79,65 +79,47 @@ export const program = {
 						this.api.throwError(` (editor.ext) no document to save; aborting...`);
 						return;
 					}
-					if (!saveCmd.kernelAccessVer){
-						this.api.warn(` Do not grant seed access to untrusted programs`)
-						this.api.verifyCommand(` editor.ext is requesting seed access to modify an existing document, grant access?`, function(bool, toggle){
-							toggle.toggle = true;
-							if (!bool){
-								saveCmd.kernelAccessVer = true;
-							} else {
-								saveCmd.kernelAccessVer = true;
-								saveCmd.kernelAccess = true;
-							}
-						})
-						return;
-					}
-					if (saveCmd.kernelAccess) {
-						saveCmd.kernelAccessVer = false;
-						saveCmd.kernelAccess = false;
-
-						var attacher = this.api.getActiveNode();
-						var kernel = attacher._meta._meta._meta.getKernelAccess();
-
-						if (this.data.activeDocTrueAddress[0] !== 'x' && this.data.activeDocTrueAddress[0] !== 'w'){
-							/*Somehow call nodeVerse.createUser#####Node
-							where #### is determined by
-								this.data.activeDoc.type
-							*/
-							if (this.data.activeDoc.type === '.rdbl'){
-								kernel.replaceWritableWithUserWritable();
-								console.log(this.data.activeNodeTrueAddress)
-							} else if (this.data.activeDoc.type === '.wmt'){
+					this.api.requestKernelAccess(' (editor.ext) requesting Seed access to modify an existing document, grant access?(y/n)`', function(kernel){
+						var kernel = kernel;
+						if (!prgm.data.activeDocTrueAddress){
+							return;
+						}
+						prgm.api.log(` (_Seed) access granted... saving ${prgm.data.activeDoc.name}...`)
+						if (prgm.data.activeDocTrueAddress[0] !== 'x' && prgm.data.activeDocTrueAddress[0] !== 'w'){
+							if (prgm.data.activeDoc.type === '.rdbl'){
+							kernel.replaceWritableWithUserWritable();
+							} else if (prgm.data.activeDoc.type === '.wmt'){
 								kernel.replaceWormtongueWithUserWormTongue();
 							}
+						} else if (prgm.data.activeDocTrueAddress[0] === 'w'){
 
-						} else if (this.data.activeDocTrueAddress[0] === 'w'){
+						var name = prgm.data.activeDoc.name
+						var text = prgm.data.text;
+						var wIndex = prgm.data.activeDocTrueAddress
 
-							var name = this.data.activeDoc.name
-							var text = this.data.text;
-							var wIndex = this.data.activeDocTrueAddress
+						kernel.updateUserWritable(name, text, wIndex);
+						prgm.api.log( `${prgm.data.activeDoc.name} saved.`)
+						/*Somehow call nodeVerse.updateUser######Node
+						where #### is determined by
+							prgm.data.activeDoc.type
+						*/
+						} else if (prgm.data.activeDocTrueAddress[0] === 'x'){
 
-							kernel.updateUserWritable(name, text, wIndex);
-							/*Somehow call nodeVerse.updateUser######Node
-							where #### is determined by
-								this.data.activeDoc.type
-							*/
-						} else if (this.data.activeDocTrueAddress[0] === 'x'){
-
-							var name = this.data.activeDoc.name
-							var text = this.data.text;
-							var xIndex = this.data.activeDocTrueAddress
+							var name = prgm.data.activeDoc.name
+							var text = prgm.data.text;
+							var xIndex = prgm.data.activeDocTrueAddress
 
 							kernel.updateUserWormTongue(name, text, xIndex);
+							prgm.api.log( `${prgm.data.activeDoc.name} saved.`)
 
 						}
-						//make newNode, attach it... or...
-						//modify existing writable's data
-					} else {
-						saveCmd.kernelAccessVer = false;
+						prgm.api.assembleAccessibleNodes();
+					}, function(kernelReject){
+						prgm.api.log(` (_Seed) api_axs_rjct: #0000B4`);
+						prgm.api.log(`(editor.ext) seed access required to modify on-node data; aborting...`)
 						return;
-					}
-					this.api.assembleAccessibleNodes();
+					});
+					return;
 				},
 
 			},
@@ -191,7 +173,6 @@ export const program = {
 							return false;
 						}
 					})
-					console.log
 					if (nameMatches.length >= 1){
 						prgm.api.warn(`An accessible node already exists with name = ${nameMatches[0]}... try another name.`);
 						newRdblCmd.docName = "";
@@ -207,6 +188,50 @@ export const program = {
 						}, " Enter name for new .rdbl file:")
 						return;
 					};
+					this.api.requestKernelAccess(` (editor.ext) requests seed access to instantiate a new nodelet, grant access?(y/n)`, function(kernel){
+						var activeNode = prgm.api.getActiveNode();
+						var activeNodeTrueAddress = activeNode.getTrueAddress();
+						prgm.api.log (' (_Seed) access granted... creating node...');
+						try{
+							kernel.appendUserWritable(activeNodeTrueAddress, newRdblCmd.docName, newRdblCmd.docBody);
+						} catch (error) {
+							prgm.api.throwError( `(_Seed) cmd_rjct: #1F44B2`);
+							throw new Error(error);
+							return;
+						}
+						prgm.api.assembleAccessibleNodes();
+						var newAccessibleNodes = prgm.api.getAccessibleNodes();
+						var newAccessibleNodesList = Object.keys(newAccessibleNodes);
+						var finalDocName = newRdblCmd.docName.split(".rdbl")[0].substring(0,16) + ".rdbl";
+						newAccessibleNodesList = newAccessibleNodesList.filter(function(nodeName){
+							if (accessibleNodesList.includes(nodeName)){
+								return false;
+							} else {
+								return true;
+							}
+						})
+						if (newAccessibleNodesList.length === 1){
+							finalDocName = newAccessibleNodesList[0];
+						} else {
+							;
+						}
+						prgm.api.log(` (_Seed) ${finalDocName} sprouted at ${activeNode.address}`);
+						newAccessibleNodes[finalDocName].text = newRdblCmd.docBody
+						newRdblCmd.docBody = "";
+						newRdblCmd.docName = "";
+						prgm.installData.edit.ex(finalDocName);
+					}, function(kernelReject){
+						prgm.api.log(` (_Seed) api_axs_rjct: #0000B4`);
+						newRdblCmd.kernelAccessVer = false;
+						newRdblCmd.kernelAccess = false;
+						newRdblCmd.docBody = "";
+						newRdblCmd.docName = "";
+						prgm.api.log(` (editor.ext) seed access required to instantiate new nodes. Aborting "new_rdbl"...`);
+						return;
+					})
+					return;
+
+				/*
 					if (!newRdblCmd.kernelAccessVer){
 						this.api.warn(` Do not grant seed access to untrusted programs`)
 						this.api.bufferCommand(`new_rdbl ${newRdblCmd.docName}`)
@@ -267,7 +292,8 @@ export const program = {
 						newRdblCmd.docName = "";
 						this.api.log(`seed access required to instantiate new nodes. Aborting "new_rdbl"...`);
 						return;
-					}
+					}*/ 
+					//This is where the old non-callback variety of requestKernel was stored.
 				},
 
 			},
@@ -283,7 +309,7 @@ export const program = {
 					const prgm = this;
 					if (!newWmtCmd.kernelAccessVer){
 						this.api.warn(` Do not grant seed access to untrusted programs`)
-						this.api.verifyCommand(` editor.ext is requesting seed access to instantiate a new nodelet, grant access?`, function(bool, toggle, avoidPop){
+						this.api.verifyCommand(` (editor.ext) requests seed access to instantiate a new nodelet, grant access?`, function(bool, toggle, avoidPop){
 							toggle.toggle = true;
 							avoidPop.avoidPop = true;
 							if (!bool){
@@ -299,7 +325,7 @@ export const program = {
 						newWmtCmd.kernelAccessVer = false;
 						newWmtCmd.kernelAccess = false;
 					} else {
-						this.api.log(`seed access required to instantiate new nodes. Aborting "new_wmt"...`);
+						this.api.log(`(editor.ext) seed access required to instantiate new nodes. Aborting "new_wmt"...`);
 						return;
 					}
 				},
@@ -629,8 +655,44 @@ export const program = {
 				isNewName = false;
 				newNodeName = name.split('.rdbl')[0] + '_copy' + '.rdbl';
 			}
-	
-			this.api.requestInput(function(commandFull){
+
+			this.api.requestKernelAccess('(editor.ext) requests seed access to instantiate a new nodelet, grant access?(y/n)', function(kernel){
+				var activeNode = prgm.api.getActiveNode();
+				var activeNodeTrueAddress = activeNode.getTrueAddress();
+				prgm.api.log (' (_Seed) access granted... creating node...');
+				try{
+					kernel.appendUserWritable(activeNodeTrueAddress, newNodeName, newNodeText);
+				} catch (error) {
+					prgm.api.throwError( `(_Seed) cmd_rjct: #1F44B2`);
+					throw new Error(error);
+					return;
+				}
+				prgm.api.assembleAccessibleNodes();
+				var newAccessibleNodes = prgm.api.getAccessibleNodes();
+				var newAccessibleNodesList = Object.keys(newAccessibleNodes);
+				var finalDocName = newNodeName.split(".rdbl")[0].substring(0,16) + ".rdbl";
+				newAccessibleNodesList = newAccessibleNodesList.filter(function(nodeName){
+					if (accessibleNodesList.includes(nodeName)){
+						return false;
+					} else {
+						return true;
+					}
+				})
+				if (newAccessibleNodesList.length === 1){
+					finalDocName = newAccessibleNodesList[0];
+				} else {
+					;
+				}
+				prgm.api.log(` (_Seed) ${finalDocName} sprouted at ${activeNode.address}`);
+				newAccessibleNodes[finalDocName].text = newNodeText
+				prgm.installData.edit.ex(finalDocName);
+			}, function(kernelReject){
+				prgm.api.log(` (_Seed) api_axs_rjct: #0000B4`);
+				prgm.api.log(` (editor.ext) seed access required to instantiate new nodes. Aborting "new_rdbl"...`);
+			})
+			
+			//Herein Lies old form... 
+			/*this.api.requestInput(function(commandFull){
 				;
 				console.log(commandFull)
 				if (commandFull === 'y'){
@@ -676,7 +738,7 @@ export const program = {
 					prgm.api.log(`seed access required to instantiate new nodes. Aborting "new_rdbl"...`);
 					return;
 				}
-			},' editor.ext is requesting seed access to instantiate a new nodelet, grant access?(y/n)')
+			},' editor.ext is requesting seed access to instantiate a new nodelet, grant access?(y/n)')*/
 			return;
 		},
 

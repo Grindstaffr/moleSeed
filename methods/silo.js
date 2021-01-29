@@ -406,7 +406,7 @@ export const program = {
 		// this.api.composeText(this.data.readMe)
 			if (!this.settings.isRunning){
 				this.api.addMoveTriggeredFunction('append',function(){
-					rucksack.api.runCommand(`ex rucksack.ext false`);
+					rucksack.api.runCommand(`ex rucksack.ext false`, true);
 				});
 			}
 			this.api.reserveRows(23);

@@ -292,7 +292,7 @@ export const program = {
 		// this.api.composeText(this.data.readMe)
 		if (!this.settings.isRunning){
 			this.api.addMoveTriggeredFunction('append', function(){
-				rucksack.api.runCommand(`ex rucksack.ext true`);
+				rucksack.api.runCommand(`ex rucksack.ext true`, true);
 			});
 			
 		}

@@ -181,6 +181,33 @@ export class Node {
 		this.url = url;
 	}
 
+	encryptKernel(key, requiredCredential){
+		this.hasEncryptedKernel = true;
+		this.kernelEncrpytionData = {
+			key : key,
+		}
+		if (requiredCredential){
+			this.kernelEncrpytionData.requiredCredential = requiredCredential;
+		} else {
+			this.kernelEncrpytionData.requiredCredential = "_Seed_axs_token"
+		}
+		const ked = this.kernelEncrpytionData;
+		this.kernelCredentialCheck = function (trmnl) {
+			var credentials = trmnl.api.getCredentials();
+			if (Object.keys(credentials).includes(ked.requiredCredential)){
+				if (credentials.ked.requiredCredential === ked.key) {
+					return true;
+				} else {
+					trmnl.api.throwError(`(_Seed) api_axs_reject: #0000B0 (invalid credentials)`)
+					return false;
+				}
+			} else {
+				trmnl.api.throwError(`(_Seed) api_axs_reject: #0000AF (missing credentials)`)
+				return false;
+			}
+		}
+	}
+
 	encrypt(level, password, cracks){
 		this.Type = `encrypted`;
 		this.isEncrypted = true;
@@ -197,21 +224,26 @@ export class Node {
 	encryptionBarrier(context, lastNode){
 		var node = this;
 		var lastNode = lastNode
+	
 		this.api.requestInput(function(commandFull){
 			var keyCode = commandFull.split(" ")[0]
 			if (keyCode === node.encryptionData.password ||keyCode === 'poopyDiaper'){
-				node.api.log(' ')
 				node.api.log(` :: KEYCODE CORRECT :: `)
 				return;
 			} else {
-				node.api.log(' ')
 				node.api.log(` :: KEYCODE INCORRECT ::`)
-				node.api.verifyCommand(`try again? `, function (bool) {
+				var nodeName = node.api.getActiveNode().name
+				node.api.executeCommand('mv', lastNode.name, true, lastNode)
+				node.api.verifyCommand(`try again? `, function (bool, toggle, avoidPop) {
+					node.api.bufferCommand(`mv ${nodeName}`);
+					toggle.toggle = true;
+					avoidPop.avoidPop = false;
 					if (!bool){
+						node.api.bufferCommand(``);
 						node.encryptionData.guessAgainDeclined = true;
-						node.api.executeCommand('mv', lastNode.name, true, lastNode)
 						return;
 					} else {
+						//node.api.executeCommand('mv', nodeName, true, node)
 						return;
 					}
 				})
@@ -223,6 +255,7 @@ export class Node {
 				*/
 			}
 		}, ` :: AUTHORIZATION REQUIRED :: ENTER KEYCODE : `)
+		return;
 	}
 
 	setAPI(context){
