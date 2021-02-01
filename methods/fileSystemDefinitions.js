@@ -198,11 +198,11 @@ export class Node {
 				if (credentials.ked.requiredCredential === ked.key) {
 					return true;
 				} else {
-					trmnl.api.throwError(`(_Seed) api_axs_reject: #0000B0 (invalid credentials)`)
+					trmnl.api.throwError(`(_Seed) api_axs_rjct: #0000B0 (invalid credentials)`)
 					return false;
 				}
 			} else {
-				trmnl.api.throwError(`(_Seed) api_axs_reject: #0000AF (missing credentials)`)
+				trmnl.api.throwError(`(_Seed) api_axs_rjct: #0000AF (missing credentials)`)
 				return false;
 			}
 		}
@@ -1560,6 +1560,9 @@ export class UserWritable extends Writable {
 		if (callback){
 			callback(userDoc.text, userDoc)
 		}
+	}
+	getText(){
+		return this.text
 	}
 }
 
