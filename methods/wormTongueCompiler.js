@@ -32,6 +32,9 @@ export const program = {
 				parserText : "",
 				term: "",
 
+				expectedTerm: "",
+				expectedTermRequired : true,
+
 				stringIndex : 0,
 				currentRow : 0,
 				currentRowIndex : 0,
@@ -51,22 +54,105 @@ export const program = {
 			acquiredTerms : {},
 			lineIs : "initializing",
 			program : {
+				name : '',
 				errorState : false,
 				errorMessage: "",
-				currentLine : '00',
+				end : false,
+				loopCount : 0,
+				currentLine : 0,
+				nextLine : 0,
 				variables : {},
 				lines : {},
+				lastLine : 0, // needs to be updated with every parsed/compiled line;
 				ex : function () {
 					this.lines['00'](this.variables);
-				}
+					var prgm = this;
+					var api = this.api;
+					var executableLoop = function () {
+						if (prgm.end){
+							api.log(`${this.name} reached "END" on line ${this.currentLine}`);
+							api.deleteDrawTriggeredFunction(`${this.name}`);
+							return;
+						};
+						if (prgm.errorState){
+							api.throwError(this.errorMessage);
+							api.deleteDrawTriggeredFunction(`${this.name}`);
+							return;
+						};
+						if (prgm.loopCount >= 1000000){
+							prgm.errorState = true;
+							prgm.errorMessage = "loop iteration exceeded max buffer space. Cannot proceed."
+							return;
+						};
+						if (prgm.nextLine === prgm.currentLine){
+							prgm.executeNextLine(prgm.currentLine);
+							return;
+						} else {
+							prgm.executeLineAt(prgm.nextLine);
+						}
+					}
+					executableLoop = executableLoop.bind(this);
+					var setTicksPerDraw = function (number) {
+						var iterations = number;
+						var returner = function () {
+							for (var i = 0; i < iterations; i++){
+							executableLoop();
+							}
+						}
+						return returner;
+					}
+
+					this.api.addDrawTriggeredFunction(setTicksPerDraw(2), `${this.name}`);
+				},
+				executeNextLine: function (currentLine) {
+					var foundLine = false;
+					for (var i = currentLine; i <= this.lastLine; i++) {
+						if (this.lines[i]){
+							this.lines[i]();
+							break;
+						}
+					}
+					if (!foundLine){
+						this.errorState = true;
+						this.errorMessage = `default goto_nextLine on line ${this.currentLine} not a valid controlFlow... no lines after ${this.lastLine}`;
+					}
+					return;
+				},
+				executeLineAt : function (lineTarget) {
+					if (this.lines[lineTarget]){
+						this.lines[lineTarget]();
+					} else {
+						this.errorState = true;
+						this.errorMessage = `"goto ${lineTarget}" on line ${prgm.currentLine} not a valid controlFlow... no lines after ${prgm.lastLine}`;
+					}
+					return;
+				},
 			},
 		},
+		argumentRouter : {
+				bool_func : function () {
+
+				},
+				num_line : function (argString) {
+					
+				},
+				func : function (argString) {
+					
+				},
+				val : function (argString) {
+
+				},
+				str_val : function (argString) {
+
+				},
+
+			}
 		termRouter : {
 			controlFlow : {
 				if : function (){
 					this.state.expectedTerms["0"]= ['bool_func', "$if"];
-					this.state.expectedTerms["1"] = ['func', "then", true];
-					this.state.expectedTerms["2"]= ['func', "else", true];
+					this.state.expectedTerms["1"] = ['func', "then", false];
+					this.state.expectedTerms["2"]= ['func', "else", false];
 					this.state.lineFunction = this.componentFunctionGenerators.controlFlow.ifThen;
 				},
 				goto : function (){
@@ -76,7 +162,7 @@ export const program = {
 				for : function () {
 					this.state.expectedTerms["0"] = ["num_var", "$for"];
 					this.state.expectedTerms["1"] = ["num_val", "to"];
-					this.state.expectedTerms["2"] = ["num_line", "@next#+"];
+					//push a for constructor onto the for stack
 					this.state.lineFunction = this.componentFunctionGenerators.controlFlow.forToNext;
 				},
 				next : function () {
@@ -84,38 +170,28 @@ export const program = {
 					this.state.expectedTerms["1"] = ["num_var", '^for'];
 					this.state.lineFunction = this.componentFunctionGenerators.controlFlow.next;
 				},
-				then : function () {
-					this.state.expectedTerms["0"] = ["func", "$then"];
-					this.state.expectedTerms["1"] = ["num_line", "@else+"];
-					this.state.lineFunction = this.componentFunctionGenerators.controlFlow.then;
+				while : function () {
+
 				},
-				else : function () {
-					this.state.expectedTerms["0"] = ["func", "$else"];
-					this.state.lineFunction = this.componentFunctionGenerators.controlFlow.else;
+				wend : function () {
+
 				},
 			},
 			variableDeclarations : {
 				num : function () {
-					this.state.expectedTerms["0"] = ["str_val", "$num"];
-					this.state.expectedTerms["1"] = ["num_val", "="];
+					this.state.expectedTerms["0"] = ["str_val"];
 					this.state.lineFunction = this.componentFunctionGenerators.variableDeclarations.defineVarNumber;
 				},
 				str : function () {
-					this.state.expectedTerms["0"]= ["str_val", '$str'];
-					this.state.expectedTerms["1"] = ["str_val", '=""'];
+					this.state.expectedTerms["0"]= ["str_val"];
 					this.state.lineFunction = this.componentFunctionGenerators.variableDeclarations.defineVarString;
-
 				},
 				arr : function () {
-					this.state.expectedTerms["0"] = ["str_val", "$arr"];
-					this.state.expectedTerms["1"]= ["str_val", "="];
-					this.state.expectedTerms["2"] = ["num_val", "[]"];
+					this.state.expectedTerms["0"] = ["str_val"];
 					this.state.lineFunction = this.componentFunctionGenerators.variableDeclarations.defineVarArray;
-
 				},
 				bool : function () {
-					this.state.expectedTerms["0"] = ["str_val", "$bool"];
-					this.state.expectedTerms["1"] = ["bool_val", "="];
+					this.state.expectedTerms["0"] = ["str_val"];
 					this.state.lineFunction = this.componentFunctionGenerators.variableDeclarations.defineVarBoolean;
 				},
 			},
@@ -135,10 +211,27 @@ export const program = {
 				";" : function () {
 
 				},
+				':' : function () {
+					this.state.expectedTerms[this.state.expectedTerms.length] = ['num_line', 'goto']
+				},
 				'"' : function () {
 					
 				},
 				'=' : function () {
+					if (Object.keys(this.state.acquiredTerms).length === 0){
+						this.parser.throwParserError('invalid assignment... no left-hand side before "="')
+						return;
+					}
+					var acquiredType = this.state.acquiredTerms[0][1]
+					if (acquiredType.split("_")[1] === 'var'){
+						this.state.expectedTerms = [acquiredType.split("_")[0]+"_val"];
+						this.state.lineFunction = this.componentFunctionGenerators.variableReferences.updateVariableValue
+
+					}
+					if (acquiredType.split("_")[1] === 'val'){
+						this.parser.throwParserError(`invalid assignment... cannot assign an alternate value to a value primative`);
+					}
+					this.state.expectedTerms =
 					
 				},
 				'>' : function () {
@@ -153,11 +246,11 @@ export const program = {
 		componentFunctionGenerators : {
 			primitives : {
 				generateNumber : function (number) {
-				var retNum = function () {
-					return [number, 'num'];
-				}
-				return [retNum.bind(this.state.program), "num_val"];
-				},
+					var retNum = function () {
+						return [number, 'num'];
+					}
+					return [retNum.bind(this.state.program), "num_val"];
+					},
 				generatePrimString : function (string) {
 					var retStr = function () {
 						return [string, 'str'];
@@ -168,31 +261,43 @@ export const program = {
 					if (bool !== true && bool !== false){
 						return;
 					}
-					var retbol = function () {
+					var retBool = function () {
 						return [bool, 'bool'];
 					}
-					return [retStr.bind(this.state.program), "bool_val"];
+					return [retBool.bind(this.state.program), "bool_val"];
 				},
 			},
 			variableDeclarations : {
 				/*
 				I have a sneaking suspicion that we'll need a functionCall on all inputvalues...
 				*/
-				defineVarNumber : function (name, value) {
-				var numberDefineFunction = function () {
-					this.variables[name] = [value, 'num', name];
-					return this.variables[name]
-				}
-				return [numberDefineFunction.bind(this.state.program), "num_var"];
+				defineVarNumber : function (name) {
+					if (this.state.program.variables[name]){
+						this.parser.throwParserError(`Cannot declare new variable named ${name} when ${name} is an existing variable`);
+						return;
+					}
+					var numberDefineFunction = function () {
+						this.variables[name] = [value, 'num', name];
+						return this.variables[name]
+					}
+					return [numberDefineFunction.bind(this.state.program), "num_var"];
 				},
-				defineVarBoolean : function (name, value) {
+				defineVarBoolean : function (name) {
+					if (this.state.program.variables[name]){
+						this.parser.throwParserError(`Cannot declare new variable named ${name} when ${name} is an existing variable`);
+						return
+					}
 					var booleanDefineFunction = function () {
 						this.variables[name] = [value, 'bool', name];
 						return this.variables[name]
 					}
 					return [booleanDefineFunction.bind(this.state.program), 'bool_var']
 				},
-				defineVarString : function (name, value) {
+				defineVarString : function (name) {
+					if (this.state.program.variables[name]){
+						this.parser.throwParserError(`Cannot declare new variable named ${name} when ${name} is an existing variable`);
+						return;
+					}
 					var stringDefineFunction = function () {
 						this.variables[name] = [ value,'str', name];
 						return this.variables[name]
@@ -200,6 +305,17 @@ export const program = {
 					return [stringDefineFunction.bind(this.state.program), `str_var`];
 				},
 				defineVarArray : function (name, type, indexes) {
+					/*
+						!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+						We will have to deal with arrays at a later point...
+						Due to defn refactor... this is for sure busted;
+						!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+					*/
+
+					if (this.state.program.variables[name]){
+						this.parser.throwParserError(`Cannot declare new variable named ${name} when ${name} is an existing variable`);
+						return;
+					}
 					var arrayDefineFunction = function () {
 						var array = {};
 						for (var i = 0; i < indexes; i++) {
@@ -212,34 +328,37 @@ export const program = {
 				},
 			},
 			variableReferences : {		
-				getVar: function (name) {
-					var type = "";
+				getVar: function (variable) {
+					var x = variable();
+					var type = x[1]
 					var getVarFunction = function (name) {
-						type = this.variables[name][1]
-						return this.variables[name]
+						return x;
 					};
 					return [getVarFunction.bind(this.state.program), `${type}_var`];
 				},
-				getVarVal : function (varName) {
-					var type = "";
+				getVarVal : function (variable) {
+					var x = variable();
+					var type = x[1];
 					var getVarValFunction = function () {
-						type = this.variable[name][1];
-						return this.variables[name][0];
+						var type = x[1];
+						return x[0];
 					};
 					return [getVarValFunction.bind(this.state.program), `${type}_val`]
 				},
-				getArrVal : function (name, index){
+				getArrVal : function (variable, index){
+					var x = variable();
+					var type = x[1];
 					var getArrValFunction = function () {
 						return this.variables[name][index]
 					}
 					return [getArrValFunction.bind(this.state.program), `${type}_var`];
 				},
-				updateVariableValue : function (name, value){
-					var type = ""
+				updateVariableValue : function (variable, value){
+					var x = variable();
+					var type = x[1];
 					var updateVariableValueFunction  = function () {
-						type = this.variables[name][1]
-						this.variables[name] = value;
-						return this.variables[name]
+						this.variables[x[2]][0] = value;
+						return this.variables[x[2]];
 					}
 					return [updateVariableValueFunction.bind(this.state.program), `${type}_var`];
 				},
@@ -364,40 +483,19 @@ export const program = {
 				},
 			},
 			controlFlow : {
-				executeNextLine : function (currentLine) {
+				executeNextLine : function () {
 					var returnFunc = function () {		
-						var allLines = this.lines
-						var findNextLargestIndex = function (currentLine) {
-							var numVal = parseInt(currentLine);
-							var lineNums = Object.keys(allLines).map(function(lineNum){
-								return parseInt(lineNum);
-							}).sort(function(a,b){
-								return a - b
-							});
-							var nextLineNum = lineNums.find(function(number){
-								return number > currentLine;
-							})
-							if (nextLineNum === undefined){
-								return -10;
-							} else {
-								return nextLineNum;
-							}
-						}
-						if (this.errorState){
-							this.api.throwError(this.errorMessage)
-							return;
-						}
-						this.currentLine = findNextLargestIndex(currentLine);
-						this.lines[this.currentLine]();
+						this.nextLine = this.currentLine;
+						return;
 					}
-					return [returnFunc.bind(this.state.program), 'func']
+					return [returnFunc.bind(this.state.program), 'goto_func']
 				},
 				executeLineAt : function (lineIndex) {
 					var lineExecuteFunction = function () {
-						this.currentLine = lineIndex();
-						this.lines[this.currentLine]();
+						this.nextLine = lineIndex;
+						return;
 					}
-					return [lineExecuteFunction.bind(this.state.program), 'func'];
+					return [lineExecuteFunction.bind(this.state.program), 'goto_func'];
 				},
 				ifThen : function (testProposition, thenFunc, elseFunc){
 					//may need to check if these values are functions... or at least constructThem to always be
@@ -466,40 +564,133 @@ export const program = {
 			},
 		},
 		parser : {
-			argumentRouter : {
-				bool_func : function () {
+			route : function (type, index, wrapper) {
 
-				},
-				num_line : function (token) {
-					var dir = "next";
-					var direction = "subsequent";
-					if (token[0] === '@'){
-						
-					} else if (token[0] === '^'){
-						dir = "prev";
-						direction = "preceding";
-					}
-				},
-				func : function (token) {
-					var searchPrev = false
 
-					if (token[0] === '@'){
-						//Should I do something here? Or just set above values...
-						var dir = "next";
-						var direction = "subsequent";
-					} else if (token[0] === '^'){
-						dir = "prev";
-						direction = "preceding";
-						searchPrev = true;
-					} else if (token[0] ==="$"){
-						//In this case, the term should be on the row,
-					}
-				},
-				val : function () {
-
-				},
-
+				this.parser.router[type](index);
 			}
+			router : {
+				//router contains parserFunctions for each type?
+				str_val : function (index, wrapper) {
+					this.state.parser.task = 'defining str_val'
+					var valToBe = this.parser.parseString();
+					if (valToBe[0] === '"'){
+						if ( valToBe[valToBe.length - 1] === '"'){
+							var valFunc = this.componentFunctionGenerators.primatives.generatePrimString(valToBe);
+							this.state.acquiredTerms[index] = valFunc;
+							return;
+						} else {
+							this.parser.throwParserError(`expected " to terminate string`)
+						}
+					} else {
+						if (Object.keys(this.state.program.variables))
+					}
+				},
+				num_val : function (index, wrapper) {
+					this.state.parser.task = 'defining num_val'
+					var valToBe = this.parser.parseNextTerm(wrapper);
+					var number =  parseInt(valToBe);
+					if (Number.isNaN(number)){
+						if (Object.keys(this.state.program.variables).includes(valueToBe)){
+							if (this.state.program.variables[valToBe][1] === 'num_var'){
+								var  valFunc = this.componentFunctionGenerators.variableReferences.getVariableValue;
+							} else {
+								this.parser.throwParserError(`typeError... expected type == 'num', got ${this.state.program.variables[valToBe][1]} `);
+								return;
+							}
+						} else {
+							this.parser.throwParserError(`expected number... but got ${valToBe}`);
+							return;
+						}
+					}
+					var valFunc = this.componentFunctionGenerators.primatives.generateNumber(number);
+					this.state.acquiredTerms[index] = valFunc;
+				},
+				bool_val : function (index, wrapper) {
+					this.state.parser.task = 'defining bool_val';
+					var valToBe = this.parser.parseNextTerm(wrapper);
+					var bool = true;
+					if (valToBe === 'false' || valToBe === '0' || valToBe === 'null' || valToBe === 'undefined' || valToBe === ''){
+						bool = false; 
+					}
+					var valFunc = this.componentFunctionGenerators.primatives.generatePrimBool(bool);
+					this.state.acquiredTerms[index] = valFunc;
+				},
+				prim_type : function (index, wrapper) {
+					this.state.parser.task = 'setting variable type';
+					var valToBe = this.parser.parseNextTerm(wrapper);
+					const acceptableTypes = ['str', 'num', 'bool', 'arr']
+					if (!acceptableTypes.includes(valToBe)){
+						this.parser.throwParserError(`expected variable type (str, num, bool, arr), but got ${valToBe}`);
+						return;
+					}
+					var valFunc = this.componentFunctionGenerators.primatives.generatePrimString(valToBe);
+					this.state.acquiredTerms[index] = valFunc;
+				},
+
+
+
+			},
+
+			parseString : function (string) {
+				var parsingStringLiteral = false;
+				if (string[0] === '"'){
+					parsingStringLiteral = true;
+				}
+				var parseStringLiteral = function (string, accumulator) {
+					
+				}
+
+				var parseStringVarName = function (string, accumulator) {
+
+				}
+
+
+				if (parsingStringLiteral){
+					parseStringLiteral(string);
+				} else {
+					parseStringVarName(string);
+				}
+			}
+
+			parseNextTerm : function (tokenWrapper, string, accumulator) {
+				var tokens = this.tokensList
+				if (!string){
+					string = this.state.parser.parserText
+				}
+				if (!accumulator){
+					if (tokenWrapper){
+						if (tokenWrapper[0] !== string[0]){
+							this.parser.throwParserError(`expected token ${tokenWrapper[0]}... but got ${string[0]}`);
+							return;
+						}
+						accumulator = string[0];
+						return this.parser.parseNextTerm(tokenWrapper, this.parser.incrementParserIndex(), accumulator);
+					}
+				};
+				if (tokens.includes(string[0])){
+					if (tokenWrapper){
+						if (tokenWrapper.length === 2){
+							if (string[0] === tokenWrapper[1]){
+								return accumulator.slice(1);
+							} else {
+								this.parser.throwParserError(`expected token ${tokenWrapper[1]}... but got token ${string[0]}`);
+								return;
+							}
+						}
+						if (tokenWrapper.length === 1){
+							return accumulator.slice(1);
+						}
+					}
+					if (!accumulator || accumulator.length === 0){
+						accumulator = string[0];
+					}
+					return accumulator;
+				};
+				accumulator += string[0];
+				return this.parser.parseNextTerm(tokenWrapper, this.parser.incrementParserIndex(), accumulator);
+			},
+			
 			incrementParserIndex : function () {
 				this.state.parser.currentRowIndex += 1;
 				this.state.parser.stringIndex += 1;
@@ -686,7 +877,9 @@ export const program = {
 				var functionToCall = this.state.lineFunctionName;
 				var expectedType = nextArgSpecs[0];
 				var expectedLocation = nextArgSpecs[1];
-			
+
+				this.parser.route(expectedType, acquiredTermsCount);
+				
 				
 
 			},
@@ -744,6 +937,10 @@ export const program = {
 				this.state.parser.fullText = string;
 				this.state.parser.parserText = string;
 
+				this.parser.router.forEach(function(funcName){
+					this.parser.router[funcName] = this.parser.router[funcName].bind(this);
+				}, this)
+
 				this.parser.constructLineTermDirectory(string);
 
 			},
@@ -763,7 +960,7 @@ export const program = {
 					this.parser.setLineTerm(this.parser.getLineTerm(string));
 					return this.parser.parse(this.state.parser.parserText);
 				}
-				if (!lineHasEnoughTermsCheck){
+				if (!this.parser.lineHasEnoughTermsCheck()){
 					this.parser.getNextArg(string);
 					return this.parser.parse(this.state.parser.parserText);
 				}
