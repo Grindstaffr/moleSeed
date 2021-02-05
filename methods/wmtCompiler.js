@@ -3,6 +3,8 @@ export const program = {
 	isInstalled : false,
 	target: {},
 	state : {},
+	size : 64,
+	memory: 128,
 	dataTables : {
 		numChars : ["0","1","2","3","4","5","6","7","8","9"],
 		strictRuleTerminators : [" ", ";", ":"],
@@ -14,12 +16,12 @@ export const program = {
 		varNameTerminators : [" ","="],
 		tokenInitials : ['!',"=","+","-","/","*","<",">","(",")",";","&","|"],
 		tokenNonInitials : ['=', '&', '|'],
-		tokenTerminators : ["0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"],
+		tokenTerminators : [" ","0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"],
 		stringTerminator : ['"'],
 		stringInitial : ['"'],
 		stringChars : ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","0","1","2","3","4","5","6","7","8","9","!","@","#","$","%","^","&","*","(",")","_","-","+","=","{","}","[","]","\\","|",";",":","'","<",",",">",".","/","?","~","`"," "],
 
-	}
+	},
 	errorMessages : {
 		'000' : function () {
 			return `syntaxError: unexpected character... "${this.state.currentCharacter}" not a recognized initial character for parseType = ${this.state.parseType}`;
@@ -68,10 +70,10 @@ export const program = {
 		},
 		'998' : function () {
 			return `internalError: parseNamedTerm should have parsed ${this.state.term} as a varName, but instead spat out some horseShit, and failed to match it to a reservedTerm.`
-		}
+		},
 		'999' : function () {
 			return `internalError: parseGenericTerm fucked up... somehow... didn't think it was possible... damn.. sorry`
-		}
+		},
 
 	},
 	compiler : {
@@ -82,16 +84,28 @@ export const program = {
 				with a mismatched-type... but hey... backups don't necessarily hurt;
 
 			*/
+			print : function (str_val){
+				/*Should be extensible.... take additional args within a closure? Dunno... maybe if we instantiate it like print(?*/
+				this.state.task = "assembling function print"
+			
+				var x = str_val;
+				const print = function () {
+					var string = x[0]();
+					this.api.log(string);
+					return;
+				};
+				return [print.bind(this.target), 'undefined'];
+			},
 			assign : function (var_name, val){
 				this.state.task = "assembling operator assign"
 				var varName = var_name[0]();
 				this.compiler.verifyVariableAssignee(varName);
 				if (this.state.errorState){
-					return this.parser.parse();
+					return
 				}
 				this.compiler.typeCheckAssignmentValue(varName, val);
 				if (this.state.errorState){
-					return this.parser.parse();
+					return;
 				}
 				var x = var_name;
 				var y = val
@@ -99,7 +113,7 @@ export const program = {
 					var assignTo
 					if (y[1] === 'var_name'){
 						assignTo = this.getVariableValue(y);
-					} else () {
+					} else {
 						assignTo = y[0](); 
 					}
 					var xName = x[0]();
@@ -113,7 +127,7 @@ export const program = {
 				var v = num_val;
 				this.compiler.verifyType(num_val, "num_val");
 				if (this.state.errorState){
-					return this.parser.parse();
+					return;
 				}
 				const unaryAdd = function () {
 					return v[0]();
@@ -128,7 +142,7 @@ export const program = {
 				}
 				this.compiler.verifyType(num_valB,"num_val");
 				if (this.state.errorState){
-					return this.parser.parse();
+					return;
 				}
 				var vfA = num_valA[0];
 				var vfB = num_valB[0];
@@ -148,7 +162,7 @@ export const program = {
 				}
 				this.compiler.verifyType(str_valB,'str_val');
 				if (this.state.errorState){
-					return this.parser.parse();
+					return;
 				}
 				var a = str_valA[0];
 				var b = str_valB[0];
@@ -163,7 +177,7 @@ export const program = {
 				this.state.task = "assembling variable declaration num"
 				this.compiler.verifyType(var_name, 'var_name');
 				if (this.state.errorState){
-					return this.parser.parse();
+					return;
 				}
 				var varName = var_name[0]();
 				this.target.variables[varName] = [undefined, 'num', varName];
@@ -179,7 +193,7 @@ export const program = {
 				this.state.task = "assembling variable declaration str"
 				this.compiler.verifyType(var_name, 'var_name');
 				if (this.state.errorState){
-					return this.parser.parse();
+					return;
 				}
 				var varName = var_name[0]();
 				this.target.variables = [undefined, 'str', varName];
@@ -201,13 +215,14 @@ export const program = {
 				return [varName.bind(this.target), 'var_name'];
 			},
 			str_val : function (str) {
+			
 				this.state.task = "assembling primative str_val"
 				var string = str;
 				if (string[0] === '"'){
 					string = string.substring(1);
 				};
 				if (string[string.length - 1] === '"'){
-					string = string.substring(string.length - 1);
+					string = string.substring(0,string.length - 1);
 				};
 				const defineStr_val = function () {
 					return string;
@@ -224,7 +239,7 @@ export const program = {
 					return number;
 				}
 				return [defineNum_val.bind(this.target), 'num_val'];
-			}
+			},
 			/*
 			!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 					GONNA NEED TO REWORK THESE
@@ -233,7 +248,7 @@ export const program = {
 			varName_val : function (var_name) {
 				this.compiler.verifyType(var_name, "var_name");
 				if (this.state.errorState){
-					return this.parser.parse();
+					return;
 				}
 				var varName = var_name[0];
 				var type = this.target.variables[varName()][1];
@@ -267,7 +282,7 @@ export const program = {
 				return;
 			} else {
 				this.methods.makeError('101');
-				return this.parser.parse();
+				return;
 			}
 		},
 		typeCheckAssignmentValue : function (varName, assignment){
@@ -277,7 +292,7 @@ export const program = {
 				return;
 			} else {
 				this.methods.makeError('099');
-				return this.parser.parse();
+				return;
 			}
 		},
 		verifyType : function (input, expectedType){
@@ -287,7 +302,7 @@ export const program = {
 				this.state.expectedType = expectedType;
 				this.state.acquiredType = input[1];
 				this.methods.makeError('100');
-				return this.parser.parse();
+				return;
 			}
 		},
 		captureLastArg : function () {
@@ -299,6 +314,17 @@ export const program = {
 			*/
 			var topFunc = this.state.constructorFunctions[this.state.constructorFunctions.length - 1]
 			topFunc[3].push(this.state.acquiredTerms.pop());
+		},
+		compileLine : function () {
+			var functionQueue = [];
+			for (var i = this.state.acquiredTerms.length - 1; i >= 0; i--) {
+				functionQueue.push(this.state.acquiredTerms[i][0]);
+			};
+			this.target.lines[this.state.currentLine] = function () {
+				functionQueue.forEach(function(func){
+					func();
+				});
+			};
 		},
 		composeStack : function () {
 			/*
@@ -332,7 +358,7 @@ export const program = {
 				}
 				for (var i = requiredArgTypes.length - 1; i >= 0; i--) {
 					if (this.state.errorState){
-						return this.parser.parse();
+						return;
 					}
 					var testArg = this.parser.peekAcquiredTerm();
 					if (requiredArgTypes[i] !== testArg[1]){
@@ -343,7 +369,7 @@ export const program = {
 								this.state.expectedType = requiredArgTypes[i];
 								this.state.acquiredType = testArg[1];
 								this.methods.makeError('100');
-								return this.parser.parse();
+								return;
 							} else {
 								collectedArgs.push(this.parser.popAcquiredTerm());
 							}
@@ -352,7 +378,7 @@ export const program = {
 						this.state.expectedType = requiredArgTypes[i];
 						this.state.acquiredType = testArg[1];
 						this.methods.makeError('100');
-						return this.parser.parse();
+						return;
 					} else {
 						collectedArgs.push(this.parser.popAcquiredTerm());
 					}
@@ -360,14 +386,12 @@ export const program = {
 				collectedArgs = collectedArgs.reverse()
 				collectedArgs = cachedArgs.concat(collectedArgs);
 
-				//THIS IS REDUNDANT--- IT's an early return above.
-				if (closureDepth < minimumClosureDepth){
-					var newTerm = constructor.apply(this, collectedArgs);
-					this.state.acquiredTerms.push(newTerm);
-				} else {
-					stopCompose = true;
+				if (stopCompose === true){
 					return;
 				}
+			
+				var newTerm = func.apply(this, collectedArgs);
+				this.state.acquiredTerms.push(newTerm);
 			}
 			
 		},
@@ -375,7 +399,7 @@ export const program = {
 			var var_name = this.state.acquiredTerms.pop();
 			this.compiler.verifyType(var_name, 'var_name');
 			if (this.compiler.errorState){
-				return this.parser.parse();
+				return;
 			}
 			var varName = var_name[0]
 			var variable = this.target.variables[varName()];
@@ -389,14 +413,15 @@ export const program = {
 		},
 		composeTopConstructor : function () {
 			var constructorArray = this.state.constructorFunctions.pop();
-			this.state.task = `composing function stack`
+			this.state.task = `composing function stack`;
+			console.log(this.state.acquiredTerms)
 			var constructorFunc = constructorArray[0];
 			var expectedArgTypes = constructorArray[1];
 
-			var applyArgs = constructorArray[2];
+			var applyArgs = constructorArray[3];
 			for (var i = expectedArgTypes.length - 1; i >= 0; i--) {
 				if (this.state.errorState){
-					return this.parser.parse();
+					return;
 				}
 				this.state.expectedType = expectedArgTypes[i]
 				var arg = this.parser.peekAcquiredTerm();
@@ -420,7 +445,7 @@ export const program = {
 
 				if (expectedArgTypes[i] !== arg[1]){
 					this.methods.makeError('100');
-					return this.parser.parse();
+					return;
 				} else {
 					applyArgs.push(arg);
 				} 
@@ -433,7 +458,9 @@ export const program = {
 			*/
 
 			var newTerm = constructorFunc.apply(this, applyArgs);
-			this.state.acquiredTerms.push(newTerm);
+			console.log(newTerm);
+			this.state.acquiredTerms = this.state.acquiredTerms.concat([newTerm])
+			console.log(this.state);
 		},
 
 	},
@@ -446,37 +473,47 @@ export const program = {
 		variableRouter : {
 			var : function (term) {
 				this.state.acquiredTerms.push(this.compiler.constructors.var_var(term));
-				return this.parser.parse();
+				return;
 			},
 			val : function (term) {
 				this.state.acquiredTerms.push(this.compiler.constructors.var_val(term));
-				return this.parser.parse();
+				return;
 			},
 		},
 		tokenRouter : {
 			" ": function () {
-				return this.parser.parse();
+				return;
 			},
 			";" : function () {
-				//endLine, close openLine;
+				this.state.task = "verifying line end state";
+				var topOfClosureStack = this.state.closures.pop();
+				var foundClosure = topOfClosureStack[0]
+				if (foundClosure !== ';'){
+					this.state.missingClosure = foundClosure;
+					this.state.missingClosureLocation = topOfClosureStack[1];
+					this.methods.makeError('50');
+				};
+				this.state.newLineNeeded = true;
+				this.compiler.composeStack();
+				this.compiler.compileLine();
 			},
 			'=' : function () {
 				var assignee = this.parser.peekAcquiredTerm();
 				var assType = assignee[1];
 				if (assType !== 'var_name'){
 					this.methods.makeError('104');
-					return this.parser.parse();
+					return;
 				};
-				var varType = assType.split("_")[0];
+				var varType = this.parser.getTypeFromVarName(assignee);
 				this.parser.pushConstructorFunction('assign', [`${varType}_val`], 0 );
 				this.compiler.captureLastArg();
 				//this.parser.expectedArgs.push(`${varType}_val`);
-				return this.parser.parse();
+				return;
 			},
 			'+' : function () {
 				if (!this.parser.checkForAcqTerms()){
 					this.parser.pushConstructorFunction(`unary_add`, ['num_val'])
-					return this.parser.parse();
+					return;
 				}
 				var assignee = this.parser.peekAcquiredTerm();
 				var assType = assignee[1];
@@ -487,13 +524,13 @@ export const program = {
 				};
 				if (assType !== 'num_val' && assType !== 'str_val'){
 					this.methods.makeError('098');
-					return this.parser.parse();
+					return;
 				};
 				var expectedType = assType;
 				this.parser.pushConstructorFunction(`${assType.split("_")[0]}_add`, [expectedType])
 				/* I don't think we should be parsing specific here.... but... */
 				//this.parser.expectedArgs.push(expectedType);
-				return this.parser.parse();
+				return;
 			},
 			"-" : function () {
 
@@ -541,30 +578,26 @@ export const program = {
 				this.parser.pushConstructorFunction('num_var', ['var_name'])
 				//here I think we do need to parse as VAR_nAME
 				this.state.expectedArgs.push("var_name");
-				return this.parser.parse();
+				return;
 			},
 			str : function () {
 				this.parser.pushConstructorFunction('str_var', ['var_name'])
 				this.state.expectedArgs.push("var_name");
-				return this.parser.parse();
+				return;
+			},
+			print : function () {
+				this.parser.pushConstructorFunction('print', ['str_val'])
+				this.state.expectedArgs.push('str_val');
+				return;
 			},
 
 		},
 		genericRouter : {
 			" " : function () {
-				return this.parser.parse();
+				return;
 			},
 			";" : function () {
-				this.state.task = "verifying line end state"
-				var topOfClosureStack = this.state.closures.pop();
-				var foundClosure = topOfClosureStack[0]
-				if (foundClosure !== ';'){
-					this.state.missingClosure = foundClosure;
-					this.state.missingClosureLocation = topOfClosureStack[1];
-					this.methods.makeError('50');
-				};
-				this.state.newLineNeeded = true;
-				this.compiler.composeStack();
+				
 			},
 			
 			'(' : function () {
@@ -591,63 +624,65 @@ export const program = {
 				} else {
 					this.state.currentLine = lineNum;
 				}
-				return this.parser.parse();
+				return;
 			},
 			var_name : function () {
 				this.state.task = "parsing variable name";
 				this.state.parseType = "var_name";
 				this.state.initialChars = this.dataTables.varNameInitials;
-				this.state.acceptibleChars = this.dataTables.varNameChars;
+				this.state.acceptableChars = this.dataTables.varNameChars;
 				this.state.terminalChars = this.dataTables.varNameTerminators;
 
 				this.parser.parseSpecific();
 
 				this.parser.pushAcquiredTerm();
-				return this.parser.parse();
+				return;
 			},
 			str_val : function () {
 				this.state.task = "parsing string value"
 				this.state.parseType = "str_val";
 				this.state.initialChars = this.dataTables.stringInitial;
 				this.state.terminalChars = this.dataTables.stringTerminator;
-				this.state.acceptibleChars = this.dataTables.stringChars;
+				this.state.acceptableChars = this.dataTables.stringChars;
+				this.state.includeTerminator = true;
 				this.parser.parseSpecific();
 
 				this.parser.pushAcquiredTerm();
-				return this.parser.parse();
+				return;
 			},
 			num_val : function () {
 				this.state.task = "parsing numerical value";
 				this.state.parseType = "num_val";
 				this.state.initialChars = this.dataTables.numChars;
-				this.state.acceptibleChars = this.dataTables.numChars;
+				this.state.acceptableChars = this.dataTables.numChars;
 				this.state.terminalChars = this.dataTables.strictRuleTerminators;
 				this.parser.parseSpecific();
 
 				this.parser.pushAcquiredTerm();
-				return this.parser.parse();
+				return;
 			},
 			token : function () {
 				this.state.task = "parsing token";
 				this.state.parseType = "token";
 				this.state.initialChars = this.dataTables.tokenInitials;
-				this.state.acceptibleChars = this.dataTables.tokenNonInitials;
+				this.state.acceptableChars = this.dataTables.tokenNonInitials;
 				this.state.terminalChars = this.dataTables.tokenTerminators;
 				this.parser.parseSpecific();
 
+				console.log(`the token is....${this.state.term}`)
 				this.parser.tokenRouter[this.state.term]();
 			},
 			name_term : function () {
 				this.state.task = "parsing named term";
 				this.state.parseType = "name_term";
 				this.state.initialChars = this.dataTables.varNameInitials;
-				this.state.acceptibleChars = this.dataTables.varNameChars;
+				this.state.acceptableChars = this.dataTables.varNameChars;
 				this.state.terminalChars = this.dataTables.varNameTerminators;
 				this.parser.parseNamedTerm();
 
 				if (this.state.parseType === "var_name"){
 					this.parser.pushAcquiredTerm();
-					return this.parser.parse();
+					return;
 				} else if (this.state.parseType === "res_term"){
 					this.parser.reservedTermsRouter[this.state.term]();
 				}
@@ -655,7 +690,8 @@ export const program = {
 
 		},
 		parseGenericTerm : function () {
-
+			console.log(this.state);
+			this.state.term = "";
 			/*
 			!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 				THIS NEEDS A REWORK
@@ -664,9 +700,11 @@ export const program = {
 			*/
 			this.state.task = "parsing next term"
 			var prgm = this;
-			var acceptibleTerms = Object.keys(this.parser.genericRouter);
+			var acceptableTerms = Object.keys(this.parser.reservedTermsRouter);
 			var definedVariables = Object.keys(this.target.variables);
 			var terminators = this.dataTables.genericTerminators;
+			var routingSuccessful = false;
+			var prgmEnd = false;
 			var term = "";
 			const termBuilder = function (term, numCount) {
 				if (!numCount){
@@ -675,20 +713,31 @@ export const program = {
 				numCount += 1;
 				if (numCount >= 1024){
 					prgm.methods.makeError('900')
-					return this.parser.parse();
+					return;
 				}
 				if (term.length === 0){
 					var nextChar = prgm.parser.peekNextChar();
+					if (nextChar === undefined){
+						prgmEnd = true;
+						return;
+					}
 					if (nextChar === " "){
 						prgm.parser.getNextChar();
-						return termBuilder(term, numCount);
+						return termBuilder(term, 0);
 					} else if (prgm.dataTables.stringInitial.includes(nextChar)) {
+						routingSuccessful = true;
 						prgm.parser.specificRouter['str_val']();
 						return;
-					} else if (prgm.data.numChars.includes(nextChar)) {
+					} else if (prgm.dataTables.numChars.includes(nextChar)) {
+						routingSuccessful = true;
 						prgm.parser.specificRouter['num_val']();
 						return;
+					} else if (prgm.dataTables.tokenInitials.includes(nextChar)){
+						routingSuccessful = true;
+						prgm.parser.specificRouter['token']();
+						return;
 					} else if (terminators.includes(nextChar)) {
+						routingSuccessful = true;
 						term += prgm.parser.getNextChar();
 						return term;
 					} else {
@@ -696,17 +745,19 @@ export const program = {
 						return termBuilder(term, numCount);
 					}
 				} else {
-					if (acceptibleTerms.includes(term)){
+					if (acceptableTerms.includes(term)){
+						console.log(term)
 						return term;
 					} else if (definedVariables.includes(term)){
+						console.log(term)
 						//institute state change
 						return term;
 					} else {
 						var nextChar = prgm.parser.peekNextChar();
-						if (terminators.includes(nextChar)){
+						if (terminators.includes(nextChar) || nextChar === undefined){
 							prgm.state.term = term;
 							prgm.methods.makeError('004')
-							return this.parser.parse();
+							return term;
 						} else {
 							term += prgm.parser.getNextChar();
 							return termBuilder(term, numCount)
@@ -715,17 +766,27 @@ export const program = {
 				}
 			}
 			term = termBuilder(term);
+			if (routingSuccessful){
+				return;
+			};
+			if (prgmEnd){
+				return;
+			}
 			this.state.term = term;
-			if (acceptibleTerms.includes(term)){
-				this.parser.genericRouter[term]()
+			if (acceptableTerms.includes(term)){
+				this.parser.reservedTermsRouter[term]()
 			} else if (definedVariables.includes(term)){
 				this.parser.variableRouter['var'](term);
 			} else {
+				console.log(term);
 				this.methods.makeError('999')
-				return this.parser.parse();
+				return;
 			}
 		},
 		parseNamedTerm : function () {
+			console.log(this.state);
+			this.state.term = "";
+			this.state.acceptableChars = this.dataTables.varNameChars;
 			var reservedTerms = Object.keys(this.parser.reservedTermsRouter);
 			var parseAsVarName = false;
 			var prgm = this;
@@ -737,7 +798,7 @@ export const program = {
 				numCount += 1;
 				if (numCount >= 1023){
 					prgm.methods.makeError('900')
-					return this.parser.parse();
+					return;
 				};
 				if (reservedTerms.length === 0 && parseAsVarName === false){
 					this.state.parseType = 'var_name'
@@ -748,7 +809,7 @@ export const program = {
 					if (!prgm.state.initialChars.includes(char)){
 						this.state.term = prgm.parser.getNextChar();
 						prgm.methods.makeError('005');
-						return this.parser.parse();
+						return;
 					} else {
 						term = term + prgm.parser.getNextChar();
 						reservedTerms = reservedTerms.filter(function(reservedTerm){
@@ -762,7 +823,7 @@ export const program = {
 					}
 				} else {
 					var char = prgm.parser.peekNextChar();
-					if (prgm.state.acceptibleChars.includes(char)){
+					if (prgm.state.acceptableChars.includes(char)){
 						if (prgm.dataTables.resTermChars.includes(char) && !parseAsVarName){
 							term = term + prgm.parser.getNextChar();
 							reservedTerms = reservedTerms.filter(function(reservedTerm){
@@ -783,11 +844,16 @@ export const program = {
 						return termBuilder(term, numCount);
 					} else {
 						if (prgm.state.terminalChars.includes(char)){
+							console.log(term)
+							return term;
+						} else if (prgm.state.parseString.length === 0) {
+							prgm.state.end = true;
+							console.log(term);
 							return term;
 						} else {
 							prgm.parser.getNextChar();
 							prgm.methods.makeError('001');
-							return this.parser.parse();
+							return;
 						}
 					}
 
@@ -811,6 +877,8 @@ export const program = {
 			/*
 				Prolly needs rewrite? or no... I mean the var stuff in here is either unnecessary, or broken, but likely both
 			*/
+			console.log(this.state);
+			this.state.term = ""
 			var term = "";
 			var prgm = this;
 			var parseAsVariable = false;
@@ -821,7 +889,7 @@ export const program = {
 				numCount += 1;
 				if (numCount >= 1023){
 					prgm.methods.makeError('900')
-					return this.parser.parse();
+					return;
 				}
 				if (term.length === 0){
 					var char = prgm.parser.peekNextChar();
@@ -831,11 +899,11 @@ export const program = {
 					} else if (prgm.state.initialChars.includes(char)){
 						term += prgm.parser.getNextChar();
 						return termBuilder(term, numCount);
-						return this.parser.parse();
+					
 					} else if (prgm.state.terminalChars.includes(char)){
 						prgm.parser.getNextChar();
 						prgm.methods.makeError('002');
-						return this.parser.parse();
+						return;
 					} else {
 						var variableList = Object.keys(prgm.target.variables).filter(function(varName){
 							if (char !== varName[0]){
@@ -846,7 +914,7 @@ export const program = {
 						})
 						if (variableList.length >= 1){
 							parseAsVariable = true;
-							prgm.state.acceptibleChars = prgm.dataTables.varNameChars;
+							prgm.state.acceptableChars = prgm.dataTables.varNameChars;
 							prgm.state.terminalChars = prgm.dataTables.varNameTerminators;
 							term += prgm.parser.getNextChar();
 							return termBuilder(term, numCount)
@@ -861,6 +929,15 @@ export const program = {
 						term += prgm.parser.getNextChar();
 						return termBuilder(term, numCount);
 					} else if (prgm.state.terminalChars.includes(char)){
+						if (prgm.state.includeTerminator){
+							term += prgm.parser.getNextChar();
+							prgm.state.includeTerminator = false;
+						}
+						console.log(term)
+						return term;
+					} else if (prgm.state.parseString.length === 0){
+						prgm.state.end = true;
+						console.log(term);
 						return term;
 					} else {
 						prgm.parser.getNextChar();
@@ -872,7 +949,7 @@ export const program = {
 
 			}
 			term = termBuilder(term);
-			this.state.currentTerm = term;
+			this.state.term = term;
 			if (parseAsVariable){
 				if (Object.keys(this.target.variables).includes(term)){
 					if (this.state.parseType.split("_")[1] === 'val'){
@@ -920,11 +997,18 @@ export const program = {
 			return this.state.acquiredTerms.pop();
 		},
 
+		getTypeFromVarName : function (var_name) {
+			var varName = var_name[0]();
+			var variable = this.target.variables[varName]
+			var type = variable[1];
+			return type;
+		},
+
 		convertAcqVarNameToVal : function () {
 			var variable = this.parser.popAcquiredTerm();
 			if (variable[1] !== 'var_name'){
 				this.methods.makeError('997');
-				return this.parser.parse();
+				return;
 			}
 			this.state.term = variable[0]();
 			this.state.parseType =`var_val`;
@@ -944,10 +1028,6 @@ export const program = {
 			return char
 		},
 
-
-		parseGenericTerm : function (term) {
-			this.parser.genericRouter[term]();
-		},
 		parseSpecificTerm : function (term){
 			this.parser.specificRouter[term]();
 		},
@@ -962,25 +1042,35 @@ export const program = {
 					return;
 				}
 			};
+			if (this.state.parseString.length === 0){
+				console.log(this.target);
+				return this.target;
+			}
 			if (this.state.currentLine < 0 /* || some bool representing need to parse next line... like... saw a ';'?*/){
 				this.parser.parseSpecificTerm('currentLineNum');
-				return;
+				this.state.closures.push([';', [this.state.currentLineNum, this.state.currentLineIndex, this.state.currentStringIndex]])
+				return this.parser.parse();
 			};
 			if (this.state.expectedArgs.length >= 1 && this.state.constructorFunctions.length >=1){
 				var argType = this.state.expectedArgs.pop();
 				this.parser.parseSpecificTerm(argType);
-				return;
+				return this.parser.parse();
 			};
 			if (this.state.expectedArgs.length === 0 && this.state.constructorFunctions.length >=1){
 				if (this.parser.peekConstStack()[2] < this.state.closures.length){
 					this.parser.parseGenericTerm();
+					return this.parser.parse();
 				} else if (this.parser.peekConstStack()[2] >= this.state.closures.length){
 					this.compiler.composeTopConstructor();
+					return this.parser.parse();
 				}
 
 			};
+	
+				this.parser.parseGenericTerm();
+				return this.parser.parse();
+		
 
-			this.parser.parseGenericTerm();
 		},
 
 	},
@@ -1006,19 +1096,21 @@ export const program = {
 					target.variables = {};
 					target.lines = {};
 				}
-				target.ex = function () {
-					this.lines['00'](this.variables);
-					var prgm = this;
-					var api = this.api;
+				target.ex = function (trmnl) {
+					var prgm = this
+					console.log(this);
+					prgm.api = trmnl.api;
+					var api = prgm.api
+					prgm.lines[0](); 
 					var executableLoop = function () {
 						if (prgm.end){
-							api.log(`${this.name} reached "END" on line ${this.currentLine}`);
-							api.deleteDrawTriggeredFunction(`${this.name}`);
+							api.log(`${prgm.name} reached "END" on line ${prgm.currentLine}`);
+							api.deleteDrawTriggeredFunctions(`${prgm.name}`);
 							return;
 						};
 						if (prgm.errorState){
-							api.throwError(this.errorMessage);
-							api.deleteDrawTriggeredFunction(`${this.name}`);
+							api.throwError(prgm.errorMessage);
+							api.deleteDrawTriggeredFunctions(`${prgm.name}`);
 							return;
 						};
 						if (prgm.loopCount >= 1000000){
@@ -1027,13 +1119,14 @@ export const program = {
 							return;
 						};
 						if (prgm.nextLine === prgm.currentLine){
+							//prolly need a better sieve here
 							prgm.executeNextLine(prgm.currentLine);
 							return;
 						} else {
 							prgm.executeLineAt(prgm.nextLine);
 						}
 					}
-					executableLoop = executableLoop.bind(this);
+					executableLoop = executableLoop.bind(prgm);
 					var setTicksPerDraw = function (number) {
 						var iterations = number;
 						var returner = function () {
@@ -1044,37 +1137,46 @@ export const program = {
 						return returner;
 					}
 
-				this.api.addDrawTriggeredFunction(setTicksPerDraw(2), `${this.name}`);
+				prgm.api.addDrawTriggeredFunction(setTicksPerDraw(2), `${prgm.name}`);
 				};
 				target.executeNextLine = function (currentLine) {
+					var prgm = this;
+					console.log(this);
+					debugger;
 					var foundLine = false;
-					for (var i = currentLine; i <= this.lastLine; i++) {
-						if (this.lines[i]){
-							this.lines[i]();
+					for (var i = currentLine; i <= prgm.lastLine; i++) {
+						if (prgm.lines[i] && i !== currentLine){
+							prgm.lines[i]();
+							foundLine = true;
 							break;
 						}
 					}
 					if (!foundLine){
-						this.errorState = true;
-						this.errorMessage = `default goto_nextLine on line ${this.currentLine} not a valid controlFlow... no lines after ${this.lastLine}`;
+						prgm.end = true;
+						/*
+						prgm.errorState = true;
+						prgm.errorMessage = `default goto_nextLine on line ${prgm.currentLine} not a valid controlFlow... no lines after ${prgm.lastLine}`;
+						*/
 					}
 					return;
 				};
 				target.executeLineAt =  function (lineTarget) {
-					if (this.lines[lineTarget]){
-						this.lines[lineTarget]();
+					var prgm = this;
+					if (prgm.lines[lineTarget]){
+						prgm.lines[lineTarget]();
 					} else {
-						this.errorState = true;
-						this.errorMessage = `"goto ${lineTarget}" on line ${prgm.currentLine} not a valid controlFlow... no lines after ${prgm.lastLine}`;
+						prgm.errorState = true;
+						prgm.errorMessage = `"goto ${lineTarget}" on line ${prgm.currentLine} not a valid controlFlow... no lines after ${prgm.lastLine}`;
 					}
 					return;
 				};
 				target.getVariableValue = function (var_name) {
+					var prgm = this;
 					var varName = var_name[0]();
-					return this.variables[varName][0];
+					return prgm.variables[varName][0];
 				};
 				target.setVariableValue = function (var_name, _val) {
-					/*NOt sure if we need this if the assignment function is written Correctly*/
+					/*NOt sure if we need prgm if the assignment function is written Correctly*/
 				};
 				init(name)
 				return target;
@@ -1104,6 +1206,7 @@ export const program = {
 					state.acquiredTerms = [];
 					state.parseType = "";
 					state.task = "";
+					state.end = false;
 					state.earlyReturn = false;
 					state.errorState = false;
 					state.errorCode = "";
@@ -1124,28 +1227,87 @@ export const program = {
 			if (accessibleNodes[nodeName].type !== 'wmt') {
 				//TYPE MAY CHANGE>>>> Hence console log
 				console.log(`NODE type-Checking in importWMT func is not complete...\n see wmtCompiler.methods.importWMT`);
-				return;
+				//return;
 			};
 			var textToCompile = accessibleNodes[nodeName].getText();
-			return textToCompile;
+			if (textToCompile === undefined){
+				accessibleNodes[nodeName].read(function(text){ console.log(text) ; textToCompile = text});
+			} else {
+				console.log(textToCompile)
+			}
+
+			return this.methods.filterText(textToCompile);
+		},
+		filterText : function (text){
+			text = text.split('\\n').join('').split('\\t').join('').split('\n').join('').split('\t').join('');
+			return text.trim();
 		},
 		makeError : function (errorCode) {
 			this.state.errorState = true;
 			this.state.errorCode = errorCode;
 			return;
-		}
+		},
 		throwError : function (){
-			var location = `at line ${this.state.currentLine} at index ${this.state.currentLineIndex} (${this.state.currentStringIndex})`;
-			var task = `while ${this.state.task}`
+			var location = ` at line ${this.state.currentLine} at index ${this.state.currentLineIndex} (${this.state.currentStringIndex})`;
+			var task = ` while ${this.state.task}`
 			var error = `wmtCompiler.MASM threw errorCode ${this.state.errorCode}: ${this.errorMessages[this.state.errorCode]()}`;
 			var message = error + task + location;
 			this.api.throwError(message);
 			return;
-		}
+		},
 		compile : function () {
+			return this.parser.parse();
+		},
 
-		}
+	},
+	installData : {
+		compile : {
+			name : 'compile',
+			desc: 'compile .wmt document to executable',
+			syntax : 'compile [readable]',
+			ex : function (wormTongueFileName){
+				var prgm = this;
+				this.methods.prepAll(wormTongueFileName);
+				var executable = this.methods.compile();
+				var newName = wormTongueFileName.split('.')[0] + '.ex';
+				var accessibleNodes = this.api.getAccessibleNodes()
+				var accessibleNodesList = Object.keys(accessibleNodes);
 
+				this.api.requestKernelAccess('(wmt_compiler.MASM) requests kernel access to instantiate new executable, grant access?(y/n)', function(kernel){
+					var activeNode = prgm.api.getActiveNode();
+					var activeNodeTrueAddress = activeNode.getTrueAddress();
+					prgm.api.log (' (_Seed) access granted... creating node...');
+					try {
+						kernel.appendUserExecutable(activeNodeTrueAddress, newName, prgm.state.fullInputString, executable);
+					} catch (error) {
+						prgm.api.throwError( `(_Seed) cmd_rjct: #1F44B2`);
+						throw new Error(error);
+						return;
+					}
+					var finalDocName = newName;
+					prgm.api.assembleAccessibleNodes();
+					var newAccessibleNodes = prgm.api.getAccessibleNodes();
+					var newAccessibleNodesList = Object.keys(newAccessibleNodes);
+					newAccessibleNodesList = newAccessibleNodesList.filter(function(nodeName){
+						if (accessibleNodesList.includes(nodeName)){
+							return false;
+						} else {
+							return true;
+						}
+					})
+					if (newAccessibleNodesList.length === 1){
+						finalDocName = newAccessibleNodesList[0];
+					} else {
+						;
+					}
+					prgm.api.log(` (_Seed) ${finalDocName} sprouted at ${activeNode.address}`);
+				}, function (kernelReject){
+					prgm.api.log(` (_Seed) api_axs_rjct: #0000B4`);
+					prgm.api.log(` (wmt_compiler.MASM) seed access required to instantiate new nodes. Aborting "compile"...`);
+				})
+			},
+
+		},
 	},
 	ex : function (nodeName) {
 
@@ -1171,21 +1333,38 @@ export const program = {
 				this.methods[methodName] = this.methods[methodName].bind(this)
 			}
 		}, this);
-		Object.keys(this.router).forEach(function(routerFunctionName){
-			if (typeof this.router[routerFunctionName] === 'function'){
-				this.router[routerFunctionName] = this.router[routerFunctionName].bind(this);
-			} else if (routerFunctionName === 'specificRouter' || routerFunctionName === 'genericRouter'){
-				Object.keys(this.router[routerFunctionName]).forEach(function(parserRouteName){
-					this.router[routerFunctionName][parserRouteName] = this.router[routerFunctionName][parserRouteName].bind(this);
+		Object.keys(this.parser).forEach(function(routerFunctionName){
+			if (typeof this.parser[routerFunctionName] === 'function'){
+				this.parser[routerFunctionName] = this.parser[routerFunctionName].bind(this);
+			} else if (routerFunctionName === 'specificRouter' || routerFunctionName === 'genericRouter' || routerFunctionName === 'tokenRouter' || routerFunctionName === 'reservedTermsRouter'){
+				Object.keys(this.parser[routerFunctionName]).forEach(function(parserRouteName){
+					this.parser[routerFunctionName][parserRouteName] = this.parser[routerFunctionName][parserRouteName].bind(this);
 				}, this)
 			}
 		}, this)
+
 		Object.keys(this.compiler).forEach(function(compilerFunctionName){
+			console.log(compilerFunctionName)
 			if (typeof this.compiler[compilerFunctionName] === 'function'){
 				this.compiler[compilerFunctionName] = this.compiler[compilerFunctionName].bind(this);
+			} else if (compilerFunctionName === 'constructors'){
+				Object.keys(this.compiler[compilerFunctionName]).forEach(function(constructorFunc){
+					this.compiler[compilerFunctionName][constructorFunc] = this.compiler[compilerFunctionName][constructorFunc].bind(this)
+				},this)
 			}
 		}, this);
+		Object.keys(this.errorMessages).forEach(function(errorCode){
+			this.errorMessages[errorCode] = this.errorMessages[errorCode].bind(this);
+		}, this);
 
+		this.installData.compile.ex = this.installData.compile.ex.bind(this);
+
+		this.api.addCommand(this.installData.compile)
+
+
+		if (callback){
+			callback(this.installData)
+		}
 
 		/*
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

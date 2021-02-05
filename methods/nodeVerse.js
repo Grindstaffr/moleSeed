@@ -1,4 +1,4 @@
-import { Writable, UserWritable, Directory, LibraryFile, Library, Hardware, QRig, Malware, Recruiter, Worm, initializerAlpha, Node, Pdf, Asset, Readable, TerminalStoryPiece, TextDoc, Mole, Program, UniqueNode, Databank, NodeNet } from './fileSystemDefinitions.js'
+import { UserExecutable, Writable, UserWritable, Directory, LibraryFile, Library, Hardware, QRig, Malware, Recruiter, Worm, initializerAlpha, Node, Pdf, Asset, Readable, TerminalStoryPiece, TextDoc, Mole, Program, UniqueNode, Databank, NodeNet } from './fileSystemDefinitions.js'
 import { constructGraphStringParser } from './stringToGraphConverter.js'
 
 export const bigBang = function () {
@@ -55,6 +55,14 @@ export const bigBang = function () {
 			throw new Error(`cannot instantiate a new userNode while this shit is broken`)
 		}
 		var node = new UserWritable(nodeVerse.allNodes, name, false, text, index);
+		return node;
+	}
+
+	nodeVerse.createUserExecutable = function (name, text, executable){
+		console.log('this is a test func... full persistence still needs to be implemented')
+		var index = 0;
+		var node = new UserExecutable(nodeVerse.allNodes, name, false, text, index, executable);
+		console.log(node);
 		return node;
 	}
 
@@ -347,7 +355,10 @@ export const bigBang = function () {
 		this.addNode(nomad_mole);
 
 		const editor_ext = new Program(nodeVerse.allNodes, 'editor.ext', false, './editor.js');
-		this.addNode(editor_ext)
+		this.addNode(editor_ext);
+
+		const compiler_ext = new Program(nodeVerse.allNodes, 'wmt_compiler.MASM', false, './wmtCompiler.js');
+		this.addNode(compiler_ext);
 
 
 
@@ -371,6 +382,7 @@ export const bigBang = function () {
 		seed.attach(silo_ext);
 		seed.attach(cordyceps)
 		seed.attach(editor_ext);
+		seed.attach(compiler_ext);
 		
 
 		this.seed.attachTo(moveHere);

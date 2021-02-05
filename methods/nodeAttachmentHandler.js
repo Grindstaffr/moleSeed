@@ -34,6 +34,38 @@ export const nodeAttachmentHandlerConstructor = function (nodeVerse, saveFileMan
 		this.nodeVerse.updateUserWormTongue(name, text, xIndex)
 	}
 
+	nodeAttachmentHandler.appendUserExecutable = function (activeNodeTrueAddress, name, text, executable){
+		var userNode = this.nodeVerse.createUserExecutable(name, text, executable);
+		if (!userNode || !userNode.name){
+			console.log('no userNOde')
+			return;
+		}
+		var activeNode = this.nodeVerse.getNode(activeNodeTrueAddress);
+		if (!activeNode || !activeNode.name){
+			console.log('no activeNode')
+			return;
+		}
+		var nodeNetTrueAddress = activeNode._meta.getTrueAddress();
+		if (!nodeNetTrueAddress && nodeNetTrueAddress !== 0){
+			console.log('no nodeNet')
+			console.log(activeNode)
+			return;
+		}
+		var dataBankTrueAddress = activeNode._meta._meta.getTrueAddress();
+		if (!dataBankTrueAddress && dataBankTrueAddress !== 0){
+			console.log('no databank')
+			return;
+		}
+		var userNodeTrueAddress = userNode.getTrueAddress();
+		if (!userNodeTrueAddress){
+			console.log(`no usernode address`)
+		} else {
+			console.log(userNodeTrueAddress)
+		}
+		console.log('appending');
+		activeNode.attach(userNode);
+	}
+
 	nodeAttachmentHandler.appendUserWritable = function (activeNodeTrueAddress, name, text) {
 		var userNode = this.nodeVerse.createUserWritableNode(name, text);
 		if (!userNode || !userNode.name){

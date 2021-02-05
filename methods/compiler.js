@@ -326,6 +326,9 @@ export const compilerBuilder = function (parent) {
 					readable : function () {
 						return this.addOns.autoCorrectArgs.acceptableTermListRouter.node('canBeRead','property');
 					}.bind(compiler),
+					executable : function () {
+						return this.addOns.autoCorrectArgs.acceptableTermListRouter.node('executable', 'type');
+					}.bind(compiler),
 					hardware : function () {
 						return this.addOns.autoCorrectArgs.acceptableTermListRouter.node('hardware', 'meta');
 					}.bind(compiler),
@@ -1664,6 +1667,9 @@ export const compilerBuilder = function (parent) {
 				return true;
 			}
 			return this.node(string, index, "program", "malware");
+		},
+		executable : function (string, index){
+			return this.node(string, index, "executable");
 		},
 		malware : function (string, index) {
 			return this.node(string, index, "malware");

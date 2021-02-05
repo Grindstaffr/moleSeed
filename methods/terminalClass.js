@@ -1677,7 +1677,7 @@ export class Terminal {
 		command.ex = {
 			name : 'ex',
 			desc: 'execute a program',
-			syntax: 'ex [program] ...',
+			syntax: 'ex [program/executable] ...',
 			hasHelp: true,
 			longHelp: ` ---execute help---
 			\\n "ex" takes a single required term. That term must be an installed program.
@@ -1689,8 +1689,10 @@ export class Terminal {
 				if (cmd.stop && cmd.stop.isAvail){
 					cmd.stop.ex();
 				}
+				console.log(trmnl.accessibleNodes)
 				if (trmnl.accessibleNodes[programName]){
-					if (trmnl.accessibleNodes[programName].Type === 'malware'){
+					console.log(trmnl.accessibleNodes[programName]);
+					if (trmnl.accessibleNodes[programName].Type === 'malware' || trmnl.accessibleNodes[programName].type === 'executable'){
 						trmnl.accessibleNodes[programName].ex(trmnl);
 						return;
 					}

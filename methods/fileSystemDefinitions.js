@@ -1537,6 +1537,22 @@ export class Writable extends Readable {
 	}
 }
 
+export class UserExecutable extends Node {
+	constructor(container, name, address, text, storageindex, executable){
+		super(container, name, address);
+		this.type = executable
+		this.hiddenType = 'userData';
+		this.type = 'executable';
+		this.prgmText = text;
+		this.trueAddress = 'e' + storageindex;
+		container[this.trueAddress] = this;
+		this.executable = executable
+	}
+	ex (trmnl) {
+		this.executable.ex(trmnl);
+	}
+}
+
 export class UserWritable extends Writable {
 	constructor(container, name, address, text, storageIndex){
 		super(container, name, address);
