@@ -41,14 +41,38 @@ export const program = {
 		'005' : function () {
 			return `syntaxError: unexpected character "${this.state.currentCharacter}"... no possible terms, tokens, variable names, or primatives begin with ${this.state.currentCharacter}`;
 		},
+		'030' : function () {
+			return `syntaxError: then without if... (missing "if" statement) cannot declare conditional response without specifying conditions`;
+		},
+		'031' : function () {
+			return `syntaxError: else without if... (missing "if" statement) cannot declare conditional response without specifying conditions`;
+		},
+		'032' : function () {
+			return `syntaxError: unexpected term "${this.state.term}"... an if statement can have at most one "${this.state.term}`;
+		},
+		'033' : function () {
+			return `syntaxError: unexpected term "${this.state.term}"... an if statement can have at most one "${this.state.term}`;
+		},
 		'050' : function () {
 			return `syntaxError: expected "${this.state.missingClosure}" before ";"... closure opened at line ${this.state.missingClosureLocation[0]}, index ${this.state.missingClosureLocation[1]}`
+		},
+		'051' : function () {
+			return `syntaxError: missing expression, expected ${this.state.expectedType} before "${this.state.term}"`;
+		},
+		'052' : function () {
+			return `syntaxError: unexpected token "${this.state.term}"... expected some value, but got "${this.state.term}"`;
+		},
+		'053' : function () {
+			return `syntaxError: unexpected use of reserved term... expected expression, but got ${this.state.term};`
 		},
 		'060' : function () {
 			return `incompleteErrorMessage: FORSTACK NOT EMPTY (but this is a bad message... needs line that for was opened on)`;
 		},
 		'061' : function () {
 			return `incompleteErrorMessage: WHILESTACK NOT EMPTY (but this is a bad message... needs line that "while" was opened on)`;
+		},
+		'097' : function () {
+			return `typeError: numerical operator "${this.state.operator}" only accepts numbers as operands... got ${this.state.acquiredType}`;
 		},
 		'098' : function () {
 			return `typeError: "+" operator only accepts numbers and strings as operands... got ${this.state.acquiredType}`;
@@ -60,10 +84,10 @@ export const program = {
 			return `typeError: expected type = ${this.state.expectedType} but got type = ${this.state.acquiredType}`;
 		},
 		'101' : function () {
-			return `syntaxError: invalid assignment to undeclared variable`
+			return `syntaxError: invalid assignment to undeclared variable`;
 		},
 		'104' : function () {
-			return `syntaxError: invalid assingment left-hand side, ("=" operator is for assignment only, to test equality, use "==")`;
+			return `syntaxError: invalid assignment left-hand side, ("=" operator is for assignment only, to test equality, use "==")`;
 		},
 		'900' : function () {
 			return `internalError: term length exceeds buffer size... ensure all terms are less than 1024 bytes`;
@@ -90,14 +114,6 @@ export const program = {
 				with a mismatched-type... but hey... backups don't necessarily hurt;
 
 			*/
-			goto : function (num_val){
-				var x = num_val;
-				const goto = function () {
-					var lineNum = x[0]();
-					this.nextLine = lineNum;
-				};
-				return [goto.bind(this.target), 'undefined'];
-			},
 			printN : function (num_val){
 				this.state.task = "assembling function printN";
 				var x = num_val;
@@ -120,6 +136,112 @@ export const program = {
 					return;
 				};
 				return [print.bind(this.target), 'undefined'];
+			},
+			printB : function (bool_val){
+				this.state.task = "assembling function print"
+
+				var x = bool_val;
+				const print = function () {
+					var string = x[0]();
+					if (string === "false" || !string){
+						this.api.log("false");
+					} else {
+						this.api.log("true")
+					}
+					return;
+				};
+				return [print.bind(this.target), 'undefined'];
+			},
+			end : function () {
+				const end = function () {
+					this.end = true;
+				}
+				return [end.bind(this.target), 'undefined'];
+			},
+			goto : function (num_val){
+				var x = num_val;
+				const goto = function () {
+					var lineNum = x[0]();
+					this.nextLine = lineNum;
+				};
+				return [goto.bind(this.target), 'undefined'];
+			},
+			if : function (bool_val, then_func, else_func){
+				var boolVal = bool_val;
+				var thenFunc 
+				const ifFunc = function () {
+					const boolProp = boolVal[0]();
+					if (boolProp){
+						//do thenFunc
+					} else {
+						//do elseFunc
+					}
+				};
+				return [ifFunc.bind(this.target), 'undefined'];
+			},
+			equivalence : function (valA, valB){
+				/*
+					at present no difference between strict equivalence
+					 and loose equivalence... eg  (1 == true) is false;
+				*/
+				var x = valA;
+				var y = valB;
+				const equivalence = function () {
+					if (x[1] !== y[1]){
+						return false;
+					};
+					var a = x[0]();
+					var b = y[0]();
+					if (a === undefined && b === undefined){
+						return true;
+					};
+					if (a === null && b === null){
+						return true;
+					};
+					if (a === NaN || b === NaN){
+						return false;
+					};
+					return (a == b);
+				}
+				return [equivalence.bind(this.target), 'bool_val'];
+			},
+			or : function (bool_valA, bool_valB) {
+				this.state.task = "assembling boolean operator ||";
+				this.compiler.verifyType(bool_valA, 'bool_val');
+				if (this.state.errorState){
+					return;
+				}
+				this.compiler.verifyType(bool_valB, 'bool_val');
+				if (this.state.errorState){
+					return;
+				}
+				var x = bool_valA;
+				var y = bool_valB;
+				const orFunc = function () {
+					var a = x[0]();
+					var b = y[0]();
+					return a || b;
+				}
+				return [orFunc.bind(this.target), 'bool_val'];
+			},
+			and : function (bool_valA, bool_valB) {
+				this.state.task = "assembling boolean operator &&";
+				this.compiler.verifyType(bool_valA, 'bool_val');
+				if (this.state.errorState){
+					return;
+				}
+				this.compiler.verifyType(bool_valB, 'bool_val');
+				if (this.state.errorState){
+					return;
+				}
+				var x = bool_valA;
+				var y = bool_valB;
+				const andFunc = function () {
+					var a = x[0]();
+					var b = y[0]();
+					return a && b;
+				}
+				return [andFunc.bind(this.target), 'bool_val'];
 			},
 			assign : function (var_name, val){
 				this.state.task = "assembling operator assign"
@@ -159,6 +281,15 @@ export const program = {
 				}
 				return [unaryAdd.bind(this.target), `num_val`];
 			},
+			negate : function (num_val){
+				this.state.task = "assembling operator negate";
+				var v = num_val;
+				this.compiler.verifyType(num_val, "num_val");
+				if (this.state.errorState){
+					return -v[0]();
+				}
+				return [negate.bind(this.target), 'num_val'];
+			},
 			num_add : function (num_valA, num_valB){
 
 				this.state.task = "assembling operator num_add";
@@ -179,6 +310,88 @@ export const program = {
 					return a + b;
 				};
 				return [numAdd.bind(this.target), 'num_val'];
+			},
+			num_sub : function (num_valA, num_valB){
+				this.state.task = "assembling operator num_sub";
+				this.compiler.verifyType(num_valA,"num_val");
+				if (this.state.errorState){
+					return;
+				}
+				this.compiler.verifyType(num_valB,"num_val");
+				if (this.state.errorState){
+					return;
+				}
+				var vfA = num_valA[0];
+				var vfB = num_valB[0];
+
+				const numSub = function () {
+					var a = vfA();
+					var b = vfB();
+					return a - b;
+				};
+				return [numSub.bind(this.target), "num_val"];
+			},
+			num_mul :  function (num_valA, num_valB){
+				this.state.task = "assembling operator num_mul";
+				this.compiler.verifyType(num_valA,"num_val");
+				if (this.state.errorState){
+					return;
+				}
+				this.compiler.verifyType(num_valB,"num_val");
+				if (this.state.errorState){
+					return;
+				}
+				var vfA = num_valA[0];
+				var vfB = num_valB[0];
+
+				const numMul = function () {
+					var a = vfA();
+					var b = vfB();
+					return a * b;
+				};
+				return [numMul.bind(this.target), "num_val"];
+			},
+			num_div : function (num_valA, num_valB){
+				this.state.task = "assembling operator num_div";
+				this.compiler.verifyType(num_valA,"num_val");
+				if (this.state.errorState){
+					return;
+				}
+				this.compiler.verifyType(num_valB,"num_val");
+				if (this.state.errorState){
+					return;
+				}
+				var vfA = num_valA[0];
+				var vfB = num_valB[0];
+
+				const numDiv = function () {
+					var a = vfA();
+					var b = vfB();
+					return a / b;
+				};
+				return [numDiv.bind(this.target), "num_val"];
+
+			},
+			num_rem : function (num_valA, num_valB){
+				this.state.task = "assembling operator num_rem";
+				this.compiler.verifyType(num_valA,"num_val");
+				if (this.state.errorState){
+					return;
+				}
+				this.compiler.verifyType(num_valB,"num_val");
+				if (this.state.errorState){
+					return;
+				}
+				var vfA = num_valA[0];
+				var vfB = num_valB[0];
+
+				const numRem = function () {
+					var a = vfA();
+					var b = vfB();
+					return a % b;
+				};
+				return [numRem.bind(this.target), "num_val"];
+
 			},
 			str_add : function (str_valA, str_valB){
 				this.state.task = "assembling operator str_add";
@@ -206,7 +419,7 @@ export const program = {
 					return;
 				}
 				var varName = var_name[0]();
-				this.target.variables[varName] = [undefined, 'num', varName];
+				//this.target.variables[varName] = [undefined, 'num', varName];
 				// ^^^^^^this may be redundant?
 
 				const defineNum = function () {
@@ -222,7 +435,7 @@ export const program = {
 					return;
 				}
 				var varName = var_name[0]();
-				this.target.variables = [undefined, 'str', varName];
+				//this.target.variables = [undefined, 'str', varName];
 				// ^^^^^^this may be redundant?
 
 
@@ -231,6 +444,21 @@ export const program = {
 					return varName;
 				}
 				return [defineStr.bind(this.target), 'var_name'];
+			},
+			bool_var : function (var_name) {
+				this.state.task = "assembling variable declaration bool";
+				this.compiler.verifyType(var_name, 'var_name');
+				if (this.state.errorState){
+					return;
+				}
+				var varName = var_name[0]();
+				//this.target.variables = [undefined, 'bool', varName];
+
+				const defineBool = function () {
+					this.variables[varName] = [undefined, 'bool', varName];
+					return varName;
+				}
+				return [defineBool.bind(this.target), "var_name"];
 			},
 			var_name : function (str) {
 				this.state.task = "assembling primative var_name"
@@ -256,15 +484,85 @@ export const program = {
 				return [defineStr_val.bind(this.target), 'str_val'];
 			},
 			num_val : function (num) {
-				this.state.task = "assembling primative  num_val"
+				this.state.task = "assembling primative num_val"
 				var number = parseInt(num);
 				if (Number.isNaN(number)){
 					this.methods.makeError('950');
+					return;
 				}
 				const defineNum_val = function (){
 					return number;
 				}
 				return [defineNum_val.bind(this.target), 'num_val'];
+			},
+			bool_val : function (bool) {
+				this.state.task = "assembling primative bool_val";
+				var boolean;
+				var nonInt = false;
+				if (bool === "true"){
+					boolean = true;
+				} else if (bool === "false"){
+					boolean = false;
+				};
+				if (boolean === undefined){
+					var num = parseInt(bool);
+					if (Number.isNaN(num)){
+						nonInt = true;
+					}
+					if (num === 0){
+						boolean = false;
+					} else if (num >= 1){
+						boolean = true;
+					} else if (num <= -1){
+						boolean = true;
+					}
+				}
+				if (boolean === undefined){
+					if (nonInt){
+
+					}
+				}
+			},
+			str_bool_val : function (str) {
+				//unfinsidhed bs
+				this.state.task = "assembling primative bool_val";
+				var boolean;
+				if (str === `""`){
+					boolean = false;
+				} else if (str.length >= 3){
+					boolean = true;
+				}
+				if (boolean === undefined){
+					this.methods.makeError()
+				}
+			},
+			num_bool_val : function (num) {
+				//unfinfished bs
+				this.state.task = "assembling primative bool_val";
+				var number = parseInt(num);
+				if (Number.isNaN(number)){
+					nonInt = true;
+				}
+				if (number === 0){
+					boolean = false;
+				} else if (number >= 1){
+					boolean = true;
+				} else if (number <= -1){
+					boolean = true;
+				}
+			},
+
+			true : function () {
+				const tFunc = function () {
+					return true;
+				}
+				return [tFunc.bind(this.target), "bool_val"]
+			},
+			false : function () {
+				const fFunc = function () {
+					return false;
+				}
+				return [fFunc.bind(this.target), "bool_val"]
 			},
 			/*
 			!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -305,6 +603,38 @@ export const program = {
 				return [getVarValue.bind(this.target), `${type}_val`];
 			},
 		},
+		populateIfHandler : function () {
+			const ifHandler = function (bool_val, then_func, else_func) {
+				this.compiler.verifyType(bool_val,'bool_val');
+				if (this.state.errorState){
+					return;
+				}
+				if (then_func){
+
+				} else {
+					then_func = [function (){}, 'undefined'];
+				}
+				if (else_func){
+
+				} else {
+					else_func = [function (){}, 'undefined'];
+				}
+				var boolProp = bool_val[0];
+				var thenFunc = then_func[0];
+				var elseFunc = else_func[0];
+				const ifFunc = function () {
+
+					if (boolProp()){
+						thenFunc();
+					} else {
+						elseFunc();
+					};
+					return;
+				}
+				return [ifFunc.bind(this.target), 'undefined'];
+			};
+			this.state.ifHandler = [ifHandler.bind(this), []]
+		},
 		verifyVariableAssignee : function (varName){
 			if (this.target.variables[varName] !== undefined){
 				return;
@@ -315,6 +645,17 @@ export const program = {
 		},
 		typeCheckAssignmentValue : function (varName, assignment){
 			this.state.expectedType = this.target.variables[varName][1];
+			if (this.state.expectedType === 'bool'){
+				var isValue = (assignment[1].split("_")[1] === 'val');
+				if (!isValue){
+					this.state.acquiredType = assingment[1];
+					this.methods.makeError('099')
+					return;
+				} else {
+					this.state.parseType = assignment[1];
+					return;
+				}
+			};
 			this.state.acquiredType = assignment[1].split("_")[0]
 			if (this.state.expectedType === this.state.acquiredType){
 				return;
@@ -324,6 +665,12 @@ export const program = {
 			}
 		},
 		verifyType : function (input, expectedType){
+			this.state.task = "verifying type"
+			if (expectedType === 'val'){
+				if ((input[1].split("_").length === 2) && (input[1].split("_")[1] === 'val')){
+					return;
+				}
+			}
 			if (input[1] === expectedType){
 				return;
 			} else {
@@ -333,6 +680,60 @@ export const program = {
 				return;
 			}
 		},
+		coerceAcqToBool : function (){
+			const boolCoerceRouter = {
+				'num_val': function (num_val) {
+					var x = num_val;
+					const numBool = function () {
+						var num = x[0]();
+						if (num === undefined){
+							return false;
+						} else if ( num === 0 ){
+							return false;
+						} else {
+							return true;
+						}
+					}
+					return [numBool, 'bool_val'];
+
+				},
+				'str_val': function (str_val) {
+					var x = str_val;
+					const strBool = function () {
+						var str = x[0]();
+						if (str === undefined){
+							return false;
+						} else if (str.length === 0){
+							return false;
+						} else {
+							return true;
+						}
+					}
+					return [strBool, 'bool_val'];
+
+				},
+				'var_name' : function (var_name) {
+
+				},
+			}
+			if (this.parser.peekAcquiredTerm() === undefined){
+				return;
+			}
+			var coercionTarget = this.state.acquiredTerms.pop();
+			var targetType = coercionTarget[1];
+			if (Object.keys(boolCoerceRouter).includes(targetType)){
+				var returnable = boolCoerceRouter[targetType](coercionTarget);
+				returnable[0] = returnable[0].bind(this.target)
+				this.state.acquiredTerms.push(returnable);
+			} else {
+				if (targetType === 'bool_val'){
+					this.state.acquiredTerms.push(coercionTarget);
+				}
+				return;
+			}
+
+		},
+		
 		captureLastArg : function () {
 			/*
 				!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -354,6 +755,56 @@ export const program = {
 					func();
 				});
 			};
+		},
+		captureLastArgIf : function (index) {
+			if (this.state.ifHandler.length === 0){
+				//could be an error condition, depending on how we handle then and else
+				return;
+			}
+			var argCount = this.state.ifHandler[1].length;
+			if (index === argCount){
+				this.state.ifHandler[1].push(this.state.acquiredTerms.pop());
+			} else if (argCount === 0 && index === 1){
+				this.state.ifHandler[1].push(this.state.acquiredTerms.pop());
+				this.state.ifHandler[1].push([function(){}.bind(this.target), 'undefined']);
+			} else if (argCount > index){
+				if (index === 0){
+					this.methods.makeError('032');
+					return;
+				} else if (index === 1){
+					this.methods.makeError('033');
+					return;
+				}
+			}
+		},
+		composeIfHandler : function () {
+			if (this.state.ifHandler.length === 0){
+				return;
+			};
+			var applyArgs = [];
+			var captureArgs = this.state.ifHandler[1];
+			if (this.state.acquiredTerms.length > 3 - captureArgs.length){
+				console.log('cih ret 1')
+				//this.methods.makeError('somethig')
+				return;
+			}
+			for (var i = this.state.acquiredTerms.length - 1; i >=0; i--){
+				applyArgs.push(this.state.acquiredTerms.pop());
+			};
+			applyArgs = captureArgs.concat(applyArgs.reverse());
+
+			if (applyArgs[0][1] !== 'bool_val'){
+				
+				console.log(`cih ret 2`)
+				//this.methods.makeError('something')
+				return;
+			};
+			var ifConstructor = this.state.ifHandler[0];
+		
+			var ifFunc = ifConstructor.apply(this, applyArgs);
+			this.state.acquiredTerms.push(ifFunc);
+			this.state.ifHandler = [];
+			return;
 		},
 		composeStack : function () {
 			/*
@@ -390,22 +841,43 @@ export const program = {
 						return;
 					}
 					var testArg = this.parser.peekAcquiredTerm();
+					this.state.acquiredType = testArg[1];
 					if (requiredArgTypes[i] !== testArg[1]){
 						if (testArg[1] === 'var_name'){
 							this.compiler.convertAcqVarToVal();
 							testArg = this.parser.peekAcquiredTerm();
-							if (requiredArgTypes[i] !== testArg[1]){
-
-								this.state.expectedType = requiredArgTypes[i];
-								this.state.acquiredType = testArg[1];
-								this.methods.makeError('100');
-								return;
-							} else {
-								collectedArgs.push(this.parser.popAcquiredTerm());
-								continue;
-							}
+							this.state.acquiredType = testArg[1];
 						}
-						console.log('broke here');
+					}
+
+					if (requiredArgTypes[i] === 'val'){
+						if (this.state.acquiredType.split("_").length === 2 && this.state.acquiredType.split("_")[1] === 'val'){
+							collectedArgs.push(this.parser.popAcquiredTerm());
+							continue;
+						}
+					}
+
+
+					if (requiredArgTypes[i] !== testArg){
+						if (requiredArgTypes[i] === 'bool_val'){
+							this.compiler.coerceAcqToBool();
+							testArg = this.parser.peekAcquiredTerm();
+							this.state.acquiredType = testArg[1];
+						}
+					}
+
+					if (requiredArgTypes[i] !== testArg[1]){
+
+						this.state.expectedType = requiredArgTypes[i];
+						this.state.acquiredType = testArg[1];
+						this.methods.makeError('100');
+						return;
+					} else {
+						collectedArgs.push(this.parser.popAcquiredTerm());
+						continue;
+					}
+						
+					/*	console.log('broke here');
 						this.methods.makeError('100')
 						this.state.expectedType = requiredArgTypes[i];
 						this.state.acquiredType = testArg[1];
@@ -414,7 +886,7 @@ export const program = {
 					} else {
 						collectedArgs.push(this.parser.popAcquiredTerm());
 						continue
-					}
+					}*/
 				}
 				collectedArgs = collectedArgs.reverse()
 				collectedArgs = cachedArgs.concat(collectedArgs);
@@ -432,7 +904,7 @@ export const program = {
 			
 		},
 		convertAcqVarToVal : function () {
-			debugger;
+		
 			var var_name = this.state.acquiredTerms.pop();
 			this.compiler.verifyType(var_name, 'var_name');
 			if (this.compiler.errorState){
@@ -455,7 +927,8 @@ export const program = {
 			var constructorFunc = constructorArray[0];
 			var expectedArgTypes = constructorArray[1];
 
-			var applyArgs = constructorArray[3];
+			var applyArgs = []
+			var capArgs = constructorArray[3];
 			for (var i = expectedArgTypes.length - 1; i >= 0; i--) {
 				if (this.state.errorState){
 					return;
@@ -467,21 +940,38 @@ export const program = {
 				if (this.state.expectedType !== this.state.acquiredType){
 					if (this.state.acquiredType === 'var_name'){
 						this.compiler.convertAcqVarToVal();
+						arg = this.parser.peekAcquiredTerm();
+						this.state.acquiredType = arg[1];
+					}
+				}
+		
+				if (this.state.expectedType === 'val'){
+					if (this.state.acquiredType.split("_").length === 2 && this.state.acquiredType.split("_")[1] === 'val'){
+						applyArgs.push(this.parser.popAcquiredTerm());
+						continue;
 					}
 				}
 
-				arg = this.parser.popAcquiredTerm();
-
 				this.state.acquiredType = arg[1];
 
+
 				if (expectedArgTypes[i] !== arg[1]){
+					if (this.state.expectedType === 'bool_val'){
+						this.compiler.coerceAcqToBool()
+					}
+				}
+
+				arg = this.parser.peekAcquiredTerm();
+				this.state.acquiredType = arg[1];
+
+				if (this.state.expectedType !== arg[1]){
 					this.methods.makeError('100');
 					return;
 				} else {
-					applyArgs.push(arg);
+					applyArgs.push(this.parser.popAcquiredTerm());
 				} 
 			}
-			applyArgs = applyArgs.reverse();
+			applyArgs = capArgs.concat(applyArgs.reverse());
 
 			/*
 				I'm a little bit fuzzy on what goes on down here...
@@ -516,7 +1006,7 @@ export const program = {
 				return;
 			},
 			";" : function () {
-				debugger;
+		
 				this.state.task = "verifying line end state";
 				var topOfClosureStack = this.state.closures.pop();
 				var foundClosure = topOfClosureStack[0]
@@ -525,8 +1015,19 @@ export const program = {
 					this.state.missingClosureLocation = topOfClosureStack[1];
 					this.methods.makeError('50');
 				};
+
 				this.compiler.composeStack();
+				if (this.state.errorState){
+					return;
+				}
+				this.compiler.composeIfHandler();
+				if (this.state.errorState){
+					return;
+				}
 				this.compiler.compileLine();
+				if (this.state.errorState){
+					return;
+				}
 				if (this.parser.peekNextChar() === undefined){
 					this.state.end = true;
 					this.target.lastLine = this.state.currentLine;
@@ -563,6 +1064,7 @@ export const program = {
 					assType = assignee[1];
 				};
 				if (assType !== 'num_val' && assType !== 'str_val'){
+					this.state.acquiredType = assType;
 					this.methods.makeError('098');
 					return;
 				};
@@ -574,16 +1076,100 @@ export const program = {
 				return;
 			},
 			"-" : function () {
-
+				if (!this.parser.checkForAcqTerms()){
+					this.parser.pushConstructorFunction('negate', ['num_val']);
+					return;
+				}
+				var assignee = this.parser.peekAcquiredTerm();
+				var assType = assignee[1];
+				if (assType = "var_name"){
+					this.compiler.convertAcqVarToVal();
+					assignee = this.parser.peekAcquiredTerm();
+					assType = assignee[1];
+				}
+				if (assType !== 'num_val'){
+					this.state.operator = "-"
+					this.state.acquiredType = assType;
+					this.methods.makeError('097');
+					return;
+				}
+				this.parser.pushConstructorFunction(`num_sub`, ["num_val"]);
+				this.compiler.captureLastArg();
+				this.state.expectedArgs.push("num_val");
+				return;
 			},
 			"*" : function () {
-
+				if (!this.parser.checkForAcqTerms()){
+					this.state.expectedType = "num_val";
+					this.methods.makeError('051');
+					return;
+				}
+				var assignee = this.parser.peekAcquiredTerm();
+				var assType = assignee[1];
+				if (assType = "var_name"){
+					this.compiler.convertAcqVarToVal();
+					assignee = this.parser.peekAcquiredTerm();
+					assType = assignee[1];
+				}
+				if (assType !== 'num_val'){
+					this.state.operator = "*"
+					this.state.acquiredType = assType;
+					this.methods.makeError('097');
+					return;
+				}
+				this.parser.pushConstructorFunction(`num_mul`, ["num_val"]);
+				this.compiler.captureLastArg();
+				this.state.expectedArgs.push("num_val");
+				return;
 			},
 			"/" : function () {
+				if (!this.parser.checkForAcqTerms()){
+					this.state.expectedType = "num_val";
+					this.methods.makeError('051');
+					return;
+				}
+				var assignee = this.parser.peekAcquiredTerm();
+				var assType = assignee[1];
+				if (assType = "var_name"){
+					this.compiler.convertAcqVarToVal();
+					assignee = this.parser.peekAcquiredTerm();
+					assType = assignee[1];
+				}
+				if (assType !== 'num_val'){
+					this.state.operator = "/"
+					this.state.acquiredType = assType;
+					this.methods.makeError('097');
+					return;
+				}
+				this.parser.pushConstructorFunction(`num_div`, ["num_val"]);
+				this.compiler.captureLastArg();
+				this.state.expectedArgs.push("num_val");
+				return;
 
 			},
 			"%" : function () {
-
+				if (!this.parser.checkForAcqTerms()){
+					this.state.expectedType = "num_val";
+					this.methods.makeError('051');
+					return;
+				}
+				var assignee = this.parser.peekAcquiredTerm();
+				var assType = assignee[1];
+				if (assType = "var_name"){
+					this.compiler.convertAcqVarToVal();
+					assignee = this.parser.peekAcquiredTerm();
+					assType = assignee[1];
+				}
+				if (assType !== 'num_val'){
+					this.state.operator = "%"
+					this.state.acquiredType = assType;
+					this.methods.makeError('097');
+					return;
+				}
+				this.parser.pushConstructorFunction(`num_rem`, ["num_val"]);
+				this.compiler.captureLastArg();
+				this.state.expectedArgs.push("num_val");
+				return;
 			},
 			'(' : function () {
 				//open new paren Closure
@@ -593,6 +1179,25 @@ export const program = {
 			},
 			"==" : function () {
 				//bool equivaelnce op
+				if (!this.parser.checkForAcqTerms()){
+					this.state.expectedType = "expression";
+					this.methods.makeError('051');
+					return;
+				}
+				
+				/*This needs to be a general value function... 
+				just takes 2 values... therefore, need a general val sieve*/
+				var expression = this.parser.peekAcquiredTerm();
+				if (expression[1] === "var_name"){
+					this.compiler.convertAcqVarToVal();
+					expression = this.parser.peekAcquiredTerm();
+				}
+
+				this.parser.pushConstructorFunction('equivalence', ["val"]);
+				this.compiler.captureLastArg();
+				this.state.expectedArgs.push("val");
+			
+
 			},
 			">" : function () {
 
@@ -606,10 +1211,62 @@ export const program = {
 			"<=" : function () {
 
 			},
-			"!==" : function () {
+			"!=" : function () {
 
 			},
 			"!" : function () {
+
+			},
+			"||" : function () {
+				if (! this.parser.checkForAcqTerms()){
+					this.state.expectedType = "expression";
+					this.methods.makeError('051');
+					return;
+				}
+				var expression = this.parser.peekAcquiredTerm();
+				if (expression[1] !== 'bool_val'){
+					if (expression[1] === 'var_name'){
+						this.compiler.convertAcqVarToVal();
+					}
+					this.compiler.coerceAcqToBool();
+					expression = this.parser.peekAcquiredTerm();
+				}
+				if (expression[1] !== 'bool_val'){
+					this.state.task = "prepping boolean operator or";
+					this.state.acquiredType = expression[1];
+					this.state.expectedType = 'bool_val';
+					this.methods.makeError('100');
+					return;
+				}
+				this.parser.pushConstructorFunction('or',['bool_val']);
+				this.compiler.captureLastArg();
+				this.state.expectedArgs.push('bool_val');
+
+			},
+			"&&" : function () {
+				if (! this.parser.checkForAcqTerms()){
+					this.state.expectedType = "expression";
+					this.methods.makeError('051');
+					return;
+				}
+				var expression = this.parser.peekAcquiredTerm();
+				if (expression[1] !== 'bool_val'){
+					if (expression[1] === 'var_name'){
+						this.compiler.convertAcqVarToVal();
+					}
+					this.compiler.coerceAcqToBool();
+					expression = this.parser.peekAcquiredTerm();
+				}
+				if (expression[1] !== 'bool_val'){
+					this.state.task = "prepping boolean operator and";
+					this.state.acquiredType = expression[1];
+					this.state.expectedType = 'bool_val';
+					this.methods.makeError('100');
+					return;
+				}
+				this.parser.pushConstructorFunction('and',['bool_val']);
+				this.compiler.captureLastArg();
+				this.state.expectedArgs.push('bool_val');
 
 			},
 
@@ -626,9 +1283,15 @@ export const program = {
 				this.state.expectedArgs.push("var_name");
 				return;
 			},
+			bool : function () {
+				this.parser.pushConstructorFunction('bool_var', ['var_name'])
+				this.state.expectedArgs.push("var_name");
+				return;
+			},
 			printS : function () {
 				this.parser.pushConstructorFunction('printS', ['str_val'])
 				this.state.expectedArgs.push('str_val');
+			
 				return;
 			},
 			printN : function () {
@@ -636,14 +1299,55 @@ export const program = {
 				this.state.expectedArgs.push('num_val');
 				return;
 			},
+			printB : function () {
+				this.parser.pushConstructorFunction('printB', ['bool_val']);
+				this.state.expectedArgs.push('bool_val');
+			},
 			goto : function () {
 				this.parser.pushConstructorFunction('goto', ['num_val'])
 				this.state.expectedArgs.push('num_val');
 				return;
 			},
-			if : function () {
-				this.parser.pushConstructorFunction('if', ['bool_val'], 0)
-				this.state.expectedArgs.push('bool_val')
+			if : function () { 
+				this.compiler.populateIfHandler();
+				
+				return;
+			},
+			then : function () {
+				if (this.state.ifHandler.length === 0){
+					this.methods.makeError('030');
+					return;
+				}
+				if (this.state.constructorFunctions.length > 0){
+					this.compiler.composeTopConstructor();
+				}
+	
+				this.compiler.captureLastArgIf(0);
+				return;
+			},
+			else : function () {
+				if (this.state.ifHandler.length === 0){
+					this.methods.makeError('031');
+					return;
+				}
+				if (this.state.constructorFunctions.length > 0){
+					this.compiler.composeTopConstructor();
+				}
+				this.compiler.captureLastArgIf(1);
+				return;
+			},
+			end : function () {
+				this.parser.pushConstructorFunction('end', [], 0);
+				return;
+			},
+			true : function () {
+				this.state.parseType = 'true'
+				this.parser.pushAcquiredTerm();
+
+			},
+			false : function () {
+				this.state.parseType = 'false'
+				this.parser.pushAcquiredTerm();
 			},
 
 		},
@@ -707,6 +1411,9 @@ export const program = {
 				this.parser.parseSpecific();
 
 				this.parser.pushAcquiredTerm();
+				if (this.parser.peekAcquiredTerm()[1] === 'var_name'){
+					this.compiler.convertAcqVarToVal();
+				}
 				return;
 			},
 			num_val : function () {
@@ -716,12 +1423,12 @@ export const program = {
 				this.state.acceptableChars = this.dataTables.numChars;
 				this.state.terminalChars = this.dataTables.strictRuleTerminators;
 				this.parser.parseSpecific();
-				if (this.state.term === "5"){
-					debugger;
-				}
+
 				this.parser.pushAcquiredTerm();
 				return;
 			},
+
+			
 			token : function () {
 				this.state.task = "parsing token";
 				this.state.parseType = "token";
@@ -730,7 +1437,6 @@ export const program = {
 				this.state.terminalChars = this.dataTables.tokenTerminators;
 				this.parser.parseSpecific();
 
-				console.log(`the token is....${this.state.term}`)
 				this.parser.tokenRouter[this.state.term]();
 			},
 			name_term : function () {
@@ -748,7 +1454,58 @@ export const program = {
 					this.parser.reservedTermsRouter[this.state.term]();
 				}
 			},
+			/*
+			!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+							Vague specifiers? 
+			!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+			*/
 
+
+			val : function () {
+				this.state.task = "parsing value";
+			
+				this.parser.parseGenericTerm();
+
+				if (this.state.parseType === "token"){
+					//may need a bypass in here for parenthesis;
+					this.methods.makeError('052');
+					return;
+				}
+
+				if (this.state.parseType === "res_term"){
+					this.methods.makeError('053');
+					return;
+				}
+
+
+				var acqTerm = this.parser.peekAcquiredTerm();
+				if (acqTerm[1] === 'var_name'){
+					this.compiler.convertAcqVarToVal();
+					acqTerm = this.parser.peekAcquiredTerm();
+				};
+
+				return;
+			},
+			bool_val : function () {
+				this.parser.specificRouter['val']();
+				this.state.task = "parsing boolean value";
+
+				this.compiler.coerceAcqToBool();
+
+				/*
+				might want som e kind of light typechecking sieve in here? 
+				I dunno, seems a little bare/dependant on compiler type coercion, 
+				but hey... it's working on singular bool values
+
+				UPDATE: delegate to valfunc, then coerce to bool...
+				this should ensure that type is value, then bool always
+				(or err throw in val subroutine)? 
+
+				Will need to verify this works;
+				*/
+				
+				return;
+			},
 		},
 		parseGenericTerm : function () {
 			
@@ -803,6 +1560,7 @@ export const program = {
 						return term;
 					} else {
 						term += prgm.parser.getNextChar();
+						//I think this should route to parseNamedTerm?
 						return termBuilder(term, numCount);
 					}
 				} else {
@@ -835,9 +1593,23 @@ export const program = {
 			}
 			this.state.term = term;
 			if (acceptableTerms.includes(term)){
+				this.state.parseType = 'res_term';
 				this.parser.reservedTermsRouter[term]()
 			} else if (definedVariables.includes(term)){
-				this.state.parseType = 'var_name'
+				this.state.parseType = 'var_name';
+				/*
+
+				currently, the compiler is functioning with this 
+				bottom section as the spill-over
+
+				while I believe that this function would do better
+				to route to parseNamed term instead of allowing the
+				general parse to poop out varnames and resterms
+
+				Problem is above marked with comment
+
+				this push may be pre-emptory... 
+				*/
 				this.parser.pushAcquiredTerm();
 			} else {
 				console.log(term);
@@ -914,7 +1686,7 @@ export const program = {
 							return term;
 						} else {
 							console.log(prgm.state.terminalChars);
-							debugger;
+					
 							prgm.parser.getNextChar();
 							prgm.methods.makeError('001');
 							return;
@@ -926,6 +1698,7 @@ export const program = {
 			if (parseAsVarName){
 				this.state.parseType = 'var_name'
 				this.state.term = term;
+				return;
 			} else {
 				if (Object.keys(this.parser.reservedTermsRouter).includes(term)){
 					this.state.parseType = 'res_term'
@@ -980,6 +1753,7 @@ export const program = {
 							parseAsVariable = true;
 							prgm.state.acceptableChars = prgm.dataTables.varNameChars;
 							prgm.state.terminalChars = prgm.dataTables.varNameTerminators;
+							prgm.state.includeTerminator = false;
 							term += prgm.parser.getNextChar();
 							return termBuilder(term, numCount)
 						}
@@ -1151,6 +1925,7 @@ export const program = {
 				}
 
 			};
+			
 	
 				this.parser.parseGenericTerm();
 				return this.parser.parse();
@@ -1188,12 +1963,7 @@ export const program = {
 					var api = prgm.api
 					prgm.lines[0](); 
 					var executableLoop = function () {
-						if (prgm.end && !prgm.ended){
-							prgm.ended = true;
-							api.log(`${prgm.name} reached "END" on line ${prgm.currentLine}`);
-							api.deleteDrawTriggeredFunctions(`${prgm.name}`);
-							return;
-						};
+						
 						if (prgm.errorState){
 							api.throwError(prgm.errorMessage);
 							api.deleteDrawTriggeredFunctions(`${prgm.name}`);
@@ -1216,8 +1986,16 @@ export const program = {
 					var setTicksPerDraw = function (number) {
 						var iterations = number;
 						var returner = function () {
+							if (prgm.end){
+								prgm.end = false;
+								api.log(`${prgm.name} reached "END" on line ${prgm.currentLine}`);
+								prgm.currentLine = 0;
+								prgm.nextLine = 0;
+								api.deleteDrawTriggeredFunctions(`${prgm.name}`);
+								return;
+							};
 							for (var i = 0; i < iterations; i++){
-							executableLoop();
+								executableLoop();
 							}
 						}
 						return returner;
@@ -1227,7 +2005,7 @@ export const program = {
 				};
 				target.executeNextLine = function (currentLine) {
 					var prgm = this;
-					debugger;
+			
 					console.log(this);
 					var foundLine = false;
 					for (var i = prgm.currentLine; i <= prgm.lastLine; i++) {
@@ -1291,6 +2069,7 @@ export const program = {
 					state.currentLineHasControlFlow = false;
 					state.forStack = [];
 					state.whileStack = [];
+					state.ifHandler = [];
 					state.closures = [];
 					state.constructorFunctions = [];
 					state.expectedArgs = [];
@@ -1375,7 +2154,7 @@ export const program = {
 				var accessibleNodes = this.api.getAccessibleNodes()
 				var accessibleNodesList = Object.keys(accessibleNodes);
 
-				this.api.requestKernelAccess('(wmt_compiler.MASM) requests kernel access to instantiate new executable, grant access?(y/n)', function(kernel){
+				this.api.requestKernelAccess('(wmt_compiler.MASM) requests Seed access to instantiate new executable, grant access?(y/n)', function(kernel){
 					var activeNode = prgm.api.getActiveNode();
 					var activeNodeTrueAddress = activeNode.getTrueAddress();
 					prgm.api.log (' (_Seed) access granted... creating node...');
@@ -1405,7 +2184,7 @@ export const program = {
 					prgm.api.log(` (_Seed) ${finalDocName} sprouted at ${activeNode.address}`);
 				}, function (kernelReject){
 					prgm.api.log(` (_Seed) api_axs_rjct: #0000B4`);
-					prgm.api.log(` (wmt_compiler.MASM) seed access required to instantiate new nodes. Aborting "compile"...`);
+					prgm.api.log(` (wmt_compiler.MASM) Seed access required to instantiate new nodes. Aborting "compile"...`);
 				})
 			},
 
