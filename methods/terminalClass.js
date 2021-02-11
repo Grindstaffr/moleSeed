@@ -1689,6 +1689,7 @@ export class Terminal {
 				if (cmd.stop && cmd.stop.isAvail){
 					cmd.stop.ex();
 				}
+
 				console.log(trmnl.accessibleNodes)
 				if (trmnl.accessibleNodes[programName]){
 					console.log(trmnl.accessibleNodes[programName]);
@@ -1727,9 +1728,15 @@ export class Terminal {
 				console.log('hit stop')
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
+				if (trmnl.api.executableRunning){
+					trmnl.api.haltExecutables();
+				};
 				if (!programName){
 					programName = Object.keys(trmnl.programs.runningPrograms)[0]
 					console.log(programName)
+				}
+				if (programName === undefined && trmnl.programs.runningPrograms.length === 0){
+					return;
 				}
 				if (trmnl.programs.runningPrograms[programName] === undefined){
 					console.log(trmnl.programs.runningPrograms)
@@ -3100,7 +3107,14 @@ export class Terminal {
 				return
 			}
 			this.command[commandName].isAvail = true;
-		}
+		};
+		terminalInterface.unReadyCommand = function (commandName) {
+			if (!this.command[commandName]){
+				console.log(`ERROR: readyCommand(${commandName})... no such command name to be readied`)
+				return
+			}
+			this.command[commandName].isAvail = false;
+		};
 		terminalInterface.hideCommand = function (commandName){
 			if(!this.command[commandName]){
 				console.log(`cannot hide a non-existent command`)
@@ -3143,6 +3157,12 @@ export class Terminal {
 			this.cache.composeText(text)
 			this.cache.composeText(text2)
 			this.cache.composeText(text3)
+			return;
+		};
+		terminalInterface.haltExecutables = function () {
+			var api = this;
+			this.halt = true;
+			setTimeout(function(){ api.halt = false }, 200);
 			return;
 		};
 		terminalInterface.getMemoryUsage = function () {
@@ -3301,6 +3321,12 @@ export class Terminal {
 			} else {
 				requestApproval();
 			}
+		};
+		terminalInterface.declareExecutableRuntime = function () {
+			this.executableRunning = true;
+		};
+		terminalInterface.renounceExecutableRuntime = function () {
+			this.executableRunning = false;
 		};
 		terminalInterface.getCredentials = function () {
 			return this.parent.credentials.getCredentials();

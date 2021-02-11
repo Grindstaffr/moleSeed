@@ -1566,7 +1566,7 @@ export class UserWritable extends Writable {
 			container[this.trueAddress] = this;
 		} else {
 			//does there exist a case when this'll be instantiated without storageindex?
-			throw new Error('when this was written, Old_rat could not think of a use case for instantiating UserWritable without a storageindex')
+			throw new Error('when this was written, old_r@ could not think of a use case for instantiating UserWritable without a storageindex')
 		}
 		
 	}
