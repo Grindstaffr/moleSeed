@@ -1735,7 +1735,7 @@ export class Terminal {
 					programName = Object.keys(trmnl.programs.runningPrograms)[0]
 					console.log(programName)
 				}
-				if (programName === undefined && trmnl.programs.runningPrograms.length === 0){
+				if (programName === undefined && Object.keys(trmnl.programs.runningPrograms).length === 0){
 					return;
 				}
 				if (trmnl.programs.runningPrograms[programName] === undefined){
