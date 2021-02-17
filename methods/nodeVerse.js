@@ -59,8 +59,13 @@ export const bigBang = function () {
 	}
 
 	nodeVerse.createUserExecutable = function (name, text, executable){
+		this.saveFileManager.storeUserWormTongue(name, text);
+		var count = this.saveFileManager.getKeyValue('user_wmt_count');
 		console.log('this is a test func... full persistence still needs to be implemented')
-		var index = 0;
+		var index = parseInt(count) - 1;
+		if (Number.isNaN(index)){
+			throw new Error(`cannot instantiate a new userNode while this shit is broken`)
+		}
 		var node = new UserExecutable(nodeVerse.allNodes, name, false, text, index, executable);
 		console.log(node);
 		return node;
@@ -160,13 +165,14 @@ export const bigBang = function () {
 			var newNode = new UserWritable(nv.allNodes, name, false, text, userWritableTrueAddress)
 			return newNode;
 
-		} else if (trueAddress[0] === 'x') {
-			var userWritableTrueAddress = trueAddress.substring(1);
-			var values = this.saveFileManager.retrieveUserWormTongue(userWritableTrueAddress);
+		} else if (trueAddress[0] === 'e') {
+			var userExecutableTrueAddress = trueAddress.substring(1);
+			var values = this.saveFileManager.retrieveUserWormTongue(userExecutableTrueAddress);
 			var name = values.name;
 			var text = values.text;
+			var executable = values.executable;
 
-			var newNode = new UserWritable(nv.allNodes, name, false, text, index)
+			var newNode = new UserExecutable(nv.allNodes, name, false, text, userExecutableTrueAddress, executable);
 			return newNode;
 
 		} else {

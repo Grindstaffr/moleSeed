@@ -63,6 +63,8 @@ export const nodeAttachmentHandlerConstructor = function (nodeVerse, saveFileMan
 			console.log(userNodeTrueAddress)
 		}
 		console.log('appending');
+		this.saveFileManager.appendEdge(activeNodeTrueAddress, userNodeTrueAddress, nodeNetTrueAddress, dataBankTrueAddress, false, false);
+		console.log('attaching');
 		activeNode.attach(userNode);
 	}
 

@@ -44,6 +44,18 @@ export const program = {
 		'006' : function () {
 			return `syntaxError: invalid use of array index token ":"... token must be preceded by reference to array instance`;
 		},
+		'007' : function () {
+			return `syntaxError: invalid or non-existant reference to line 00`;
+		},
+		'008' : function () {
+			return `syntaxError: line numbers must be greater than all preceding line numbers (expected lineNum > ${Object.keys(this.target.lines)[Object.keys(this.target.lines).length - 1]}, but got lineNum = ${this.state.currentLine})`;
+		},
+		'009' : function () {
+			return `syntaxError: executable must begin with line 00, but got ${this.state.currentLine} on initial line`;
+		},
+		'020' : function () {
+			return `syntaxError: missing lineEnd token ";"`;
+		},
 		'030' : function () {
 			return `syntaxError: then without if... (missing "if" statement) cannot declare conditional response without specifying conditions`;
 		},
@@ -64,6 +76,12 @@ export const program = {
 		},
 		'036' : function () {
 			return `syntaxError: too many arguments: conditional statement (if-then-else) must be of form "["if"] [bool_val] (("then")(func)) (("else")(func))"`
+		},
+		'040' : function () {
+			return `syntaxError: line contains unexpected expression... hanging ${this.state.acquiredType}`;
+		},
+		'041' : function () {
+			return `syntaxError: unexpected numerical expression or missing ";"...`
 		},
 		'050' : function () {
 			return `syntaxError: expected "${this.state.missingClosure}" before ";"... closure opened at line ${this.state.missingClosureLocation[0]}, index ${this.state.missingClosureLocation[1]}`
@@ -88,6 +106,9 @@ export const program = {
 		},
 		'070' : function () {
 			return `mallocError: cannot increase array size through assignment operator (${this.state.assignee} has fewer indexes than ${this.state.assignment})`;
+		},
+		'095' : function () {
+			return `typeError: illegal type-coercion... cannot change ${this.state.acquiredType} variable to alternate type ${this.state.expectedType}`;
 		},
 		'096' : function () {
 			return `typeError: assignment operator cannot handle array resizing`;
@@ -125,11 +146,17 @@ export const program = {
 		'202' : function () {
 			return `referenceError: ${this.state.term} is undefined`;
 		},
+		'250' : function () {
+			return `syntaxError: unexpected reference to undefined variable: ${this.state.term}`
+		},
 		'900' : function () {
 			return `internalError: term length exceeds buffer size... ensure all terms are less than 1024 bytes`;
 		},
 		'950' : function () {
 			return `internalError: parseFailure... parser parsed a number, but compiler got NaN`;
+		},
+		'994' : function () {
+			return `internalError: developer has a diaper brain: compiler is trying to verify that something is something it shouldn't be;`
 		},
 		'995' : function () {
 			return `internalError: parsed ${this.state.term} as a res_term... but no res_terms match ${this.state.term}`;
@@ -218,6 +245,38 @@ export const program = {
 				}
 				return [sizeOf.bind(this.target), 'num_val'];
 			},
+			wait : function (num_val) {
+				var numVal = num_val[0];
+				var count = 0;
+				const waitFunc = function () {
+					if (count < numVal()){
+						this.nextLine = this.currentLine;
+						count = count + 1;
+						return;
+					} else {
+						this.nextLine = -1;
+						count = 0;
+						return;
+					}
+				}
+				return [waitFunc.bind(this.target), 'undefined'];
+			},
+			trmnl_node : function () {
+				const trmnlNodeFunc = function () {
+					var node = this.api.getActiveNode();
+					var index0 = node.name;
+					var index1 = node.type;
+					var index2 = node.address;
+					var index3 = node.getNodeDepth().toString();
+					var output = [[],'str_arr','this_node',4];
+					output[0].push([index0,'str','this_node@0'])
+					output[0].push([index1,'str','this_node@1'])
+					output[0].push([index2,'str','this_node@2'])
+					output[0].push([index3,'str','this_node@3'])
+					return output;
+				}
+				return [trmnlNodeFunc.bind(this.target), 'str_arr'];
+			},
 			this_node : function () {
 				const thisNode = function () {
 					var node = this.activeNode;
@@ -234,16 +293,113 @@ export const program = {
 				};
 				return [thisNode.bind(this.target), 'str_arr'];
 			},
+			inputS : function (var_name) {
+				this.compiler.verifyType(var_name, 'var_name');
+				if (this.state.errorState){
+					return;
+				};
+				var varName = var_name[0];
+				this.compiler.typeCheckVariable(varName, 'str');
+				if (this.state.errorState){
+					return;
+				}
+				//this.target.variables[varName()] = [undefined, 'str', varName];
+				const inputStrFunc = function () {
+					if (this.api === undefined){
+						return
+					}
+					var executable = this;
+					var output;
+					this.api.stallExecutable();
+					this.api.requestInput(function(commandFull){
+						executable.variables[varName()][0] = commandFull;
+						executable.api.resumeExecutable();
+					}, `input ${varName()}:`);
+				}
+				return [inputStrFunc.bind(this.target), 'undefined'];
+			},
+			reel : function () {
+				const reelFunc = function () {
+					while (this.visitedNodes.length > 0) {
+						this.activeNode.assembleVisibleAdjacencies();
+						var accessibleNodes = Object.keys(this.activeNode.visibleAdjacencies);
+						var prevNode = this.visitedNodes.pop()
+						if (accessibleNodes.includes(prevNode) || this.activeNode.name === prevNode){
+							if (this.activeNode.name !== prevNode){
+								this.activeNode = this.activenode.visibleAdjacencies[prevNode];
+							}
+							if (Object.is(this.activeNode, this.api.getActiveNode())){
+								this.visitedNodes = [];
+							}
+						} else {
+							this.api.warn(`directional edges found on traverse path: cannot reel`);
+							return false;
+						}
+					}
+					return true;
+				}
+				return [reelFunc.bind(this.target), 'bool_val'];
+			},
+			trace : function () {
+				const trace = function () {
+					var followPath = this.visitedNodes.reverse();
+					while (followPath.length > 0){
+
+					}
+				};
+				return [traceFunc.bind(this.target), 'bool_val'];
+			},
+			err : function (str_val){
+				this.compiler.verifyType(str_val, 'str_val');
+				if (this.state.errorState){
+					return;
+				}
+				var strVal = str_val[0]
+				const errFunc = function () {
+					this.throwError(strVal());
+					return;
+				}
+				return [err.bind(this.target), 'undefined'];
+			},
+			tmv : function (str_val){
+				this.compiler.verifyType(str_val, 'str_val');
+				if (this.state.errorState) {
+					return; 
+				}
+				var  nodeName = str_val[0];
+				const terminalMove = function () {
+					if (this.api === undefined){
+						return true;
+					} 
+					var startNode = this.api.getActiveNode().name;
+
+					if (startNode === nodeName()){
+						return true;;
+					};
+				
+					this.api.executeCommand('mv', nodeName());
+					
+					if (startNode === this.api.getActiveNode().name){
+						return false;
+					};
+					return true;
+				}
+				return [terminalMove.bind(this.target), 'bool_val'];
+			},
 			mv : function (str_val){
 				this.compiler.verifyType(str_val, 'str_val');
 				var strVal = str_val[0];
 				const move = function () {
+					if (this.api === undefined){
+						return true;
+					}
 					var nodeTarget = strVal();
 					this.activeNode.assembleVisibleAdjacencies();
 					var accessibleNodes = Object.keys(this.activeNode.visibleAdjacencies)
 					if (accessibleNodes.includes(nodeTarget)){
+						this.visitedNodes.push(this.activeNode.name);
 						this.activeNode = this.activeNode.visibleAdjacencies[nodeTarget];
-						console.log('might want some handling for encyrpted nodes/nodelets here?')
+						console.log('might want some handling for encrypted nodes/nodelets here?')
 						return true;
 					} else if (nodeTarget = this.activeNode.name) {
 						return true;
@@ -256,6 +412,9 @@ export const program = {
 			lk : function (){
 
 				const look = function () {
+					if (!this.activeNode.assembleVisibleAdjacencies || typeof this.activeNode.assembleVisibleAdjacencies !== 'function'){
+						debugger;
+					}
 					this.activeNode.assembleVisibleAdjacencies();
 					var output = [];
 					var accessibleNodes = Object.keys(this.activeNode.visibleAdjacencies)
@@ -310,7 +469,6 @@ export const program = {
 			end : function () {
 				const end = function () {
 					this.end = true;
-					debugger;
 					return;
 				}
 				return [end.bind(this.target), 'undefined'];
@@ -676,6 +834,10 @@ export const program = {
 				const numDiv = function () {
 					var a = vfA();
 					var b = vfB();
+					if (b === 0){
+						this.throwError('cannot divide by zero');
+						return;
+					}
 					return a / b;
 				};
 				return [numDiv.bind(this.target), "num_val"];
@@ -1018,7 +1180,15 @@ export const program = {
 				return [getVarValue.bind(this.target), `${type}_val`];
 			},
 		},
-		
+		verifyValidVarName : function () {
+			if (this.state.parseType !== 'var_name'){
+				this.methods.makeError('994');
+			};
+			var varName = this.state.term;
+			if (this.target.variables[varName] === undefined){
+				this.methods.makeError('202');
+			};
+		},
 		verifyVariableAssignee : function (varName){
 			if (this.target.variables[varName] !== undefined){
 				return;
@@ -1043,6 +1213,29 @@ export const program = {
 				this.methods.makeError('101');
 				return;
 			}
+		},
+		typeCheckVariable : function (varName, type) {
+			var types = ['bool','str','num', 'str_arr', 'num_arr'];
+			if (!types.includes(type)){
+				this.methods.makeError('994');
+				return;
+			};
+			var variable = this.target.variables[varName()];
+			if (variable === undefined){
+				this.state.term = varName();
+				this.methods.makeError('202');
+				return;
+			}
+			var varType = variable[1];
+			if (varType !== type){
+				this.state.expectedType = type;
+				this.state.acquiredType = type;
+				this.methods.makeError('095');
+				return;
+			} else {
+				return;
+			}
+
 		},
 		typeCheckAssignmentValue : function (varName, assignment){
 			if (varName.split('@').length === 1){
@@ -1209,8 +1402,26 @@ export const program = {
 			var functionQueue = [];
 		
 			for (var i = this.state.acquiredTerms.length - 1; i >= 0; i--) {
+				if (this.state.acquiredTerms[i][1] === 'var_name'){
+					if (this.target.variables[this.state.acquiredTerms[i][0]()] === undefined){
+						this.methods.makeError('250');
+						break;
+					}
+				}
+				if (this.state.acquiredTerms[i][1] === 'num_val' || this.state.acquiredTerms[i][1] === 'str_val'){
+					this.state.acquiredType = this.state.acquiredTerms[i][1];
+					if (this.state.acquiredTerms[i][1] === 'num_val' && functionQueue.length > 0){
+						this.methods.makeError('041');
+						break;
+					}
+					this.methods.makeError('040');
+					break;
+				}
 				functionQueue.push(this.state.acquiredTerms[i][0]);
 			};
+			if (this.state.errorState){
+				return;
+			}
 			this.target.lines[this.state.currentLine] = function () {
 				functionQueue.forEach(function(func){
 					func();
@@ -1368,6 +1579,9 @@ export const program = {
 						return;
 					}
 					var testArg = this.parser.peekAcquiredTerm();
+					if (testArg === undefined){
+						debugger;
+					}
 					this.state.acquiredType = testArg[1];
 
 					if (requiredArgTypes[i] === 'any' && this.state.acquiredType !== 'undefined'){
@@ -1377,6 +1591,9 @@ export const program = {
 					if (requiredArgTypes[i] !== testArg[1]){
 						if (testArg[1] === 'var_name'){
 							this.compiler.convertAcqVarToVal();
+							if (this.state.errorState){
+								return;
+							}
 							testArg = this.parser.peekAcquiredTerm();
 							this.state.acquiredType = testArg[1];
 						}
@@ -1473,8 +1690,15 @@ export const program = {
 				var variable = this.target.variables[varName()];
 			}
 
-
+			if (variable === undefined){
+				this.state.term = varName(); 
+				this.methods.makeError('202');
+				return;
+			} else {
+				console.log(variable);
+			}
 			var varType = variable[1];
+
 			const valFunc = function () {
 			
 				if (varName().split('@').length === 1){
@@ -1523,6 +1747,9 @@ export const program = {
 				if (this.state.expectedType !== this.state.acquiredType){
 					if (this.state.acquiredType === 'var_name'){
 						this.compiler.convertAcqVarToVal();
+						if (this.state.errorState){
+							return;
+						}
 						arg = this.parser.peekAcquiredTerm();
 						this.state.acquiredType = arg[1];
 					}
@@ -1815,7 +2042,7 @@ export const program = {
 				}
 				this.parser.pushConstructorFunction('gthan', ['num_val']);
 				this.compiler.captureLastArg();
-				this.expectedArgs.push('any');
+				this.state.expectedArgs.push('any');
 
 			},
 			"<" :function () {
@@ -1836,7 +2063,7 @@ export const program = {
 				}
 				this.parser.pushConstructorFunction('lthan', ['num_val']);
 				this.compiler.captureLastArg();
-				this.expectedArgs.push('any');
+				this.state.expectedArgs.push('any');
 
 			},
 			">=" : function () {
@@ -1857,7 +2084,7 @@ export const program = {
 				}
 				this.parser.pushConstructorFunction('geqthan', ['num_val']);
 				this.compiler.captureLastArg();
-				this.expectedArgs.push('any');
+				this.state.expectedArgs.push('any');
 
 			},
 			"<=" : function () {
@@ -1878,7 +2105,7 @@ export const program = {
 				}
 				this.parser.pushConstructorFunction('leqthan', ['num_val']);
 				this.compiler.captureLastArg();
-				this.expectedArgs.push('any');
+				this.state.expectedArgs.push('any');
 
 			},
 			"!=" : function () {
@@ -2068,6 +2295,11 @@ export const program = {
 				this.state.expectedArgs.push('any');
 				return;
 			},
+			inputS : function () {
+				this.parser.pushConstructorFunction('inputS', ['var_name']);
+				this.state.expectedArgs.push('any');
+				return;
+			},
 			printS : function () {
 				this.parser.pushConstructorFunction('printS', ['str_val'])
 				console.warn('changed expectation on printS in resTerm Router from "str_val" to "any"')
@@ -2088,6 +2320,10 @@ export const program = {
 				
 				return;
 			},
+			tmv : function () {
+				this.parser.pushConstructorFunction('tmv', ['str_val']);
+				this.state.expectedArgs.push('any');
+			},
 			mv : function () {
 				console.warn('not done yet');
 				this.parser.pushConstructorFunction('mv', ['str_val']);
@@ -2096,10 +2332,34 @@ export const program = {
 			lk : function () {
 				this.state.parseType = 'lk';
 				this.parser.pushAcquiredTerm();
+				if (this.parser.peekNextChar() === ':'){
+					this.state.term = this.parser.getNextChar();
+					this.parser.tokenRouter[this.state.term]();
+				};
 			},
 			this_node : function () {
 				this.state.parseType = 'this_node';
 				this.parser.pushAcquiredTerm();
+				if (this.parser.peekNextChar() === ':'){
+					this.state.term = this.parser.getNextChar();
+					this.parser.tokenRouter[this.state.term]();
+				};
+			},
+			trmnl_node : function () {
+				this.state.parseType = 'trmnl_node';
+				this.parser.pushAcquiredTerm();
+				if (this.parser.peekNextChar() === ':'){
+					this.state.term = this.parser.getNextChar();
+					this.parser.tokenRouter[this.state.term]();
+				};
+			},
+			reel : function () {
+				this.state.parseType = 'reel';
+				this.parser.pushAcquiredTerm();
+			},
+			wait : function () {
+				this.parser.pushConstructorFunction('wait', ['num_val']);
+				this.state.expectedArgs.push('any');
 			},
 
 
@@ -2107,6 +2367,12 @@ export const program = {
 		nameTermFinalizers : {
 			var_name : function (bool) {
 				this.state.skipPush = bool;
+				if (this.state.constructorFunctions.length === 0){
+					this.compiler.verifyValidVarName();
+				}
+				if (this.state.errorState){
+					return;
+				}
 				this.parser.pushAcquiredTerm();
 
 				if (this.parser.peekNextChar() === ':'){
@@ -2140,6 +2406,24 @@ export const program = {
 				if (this.target.lines[lineNum] !== undefined){
 					this.methods.makeError('003');
 				} else {
+					var allLines = Object.keys(this.target.lines);
+					if (allLines.length === 0){
+						if (lineNum !== 0){
+							this.state.currentLine = lineNum;
+							this.methods.makeError('009');
+							return;
+						}
+					} else {
+						var lastLine = allLines[allLines.length - 1];
+						console.log(allLines)
+						var lastLineInt = parseInt(lastLine);
+						if (lineNum < lastLineInt){
+							this.state.currentLine = lineNum;
+							this.methods.makeError('008');
+							return;
+						}
+
+					}
 					this.state.currentLine = lineNum;
 					this.state.currentLineIndex = 0 + term.length;
 				}
@@ -2163,7 +2447,6 @@ export const program = {
 				if (this.parser.peekNextChar() === ':'){
 					this.state.term = this.parser.getNextChar();
 					this.parser.tokenRouter[this.state.term]();
-				
 				};
 				return;
 			},
@@ -2516,8 +2799,9 @@ export const program = {
 					this.state.parseType = 'res_term'
 					this.state.term = term;
 				} else {
+					this.state.parseType ='var_name';
 					this.state.term = term;
-					this.methods.makeError('995');
+					/*this.methods.makeError('995');*/
 				}
 			}
 			if (this.state.errorState){
@@ -2752,12 +3036,20 @@ export const program = {
 		},
 
 		verifyEndConditions : function () {
+			if (this.state.term !== ';'){
+				this.methods.makeError('020');
+				return;
+			}
 			if (this.state.forStack.length > 0){
 				this.methods.makeError('060');
 				return;
 			};
 			if (this.state.whileStack.length > 0){
 				this.methods.makeError('061');
+				return;
+			};
+			if (Object.keys(this.target.lines).length === 0){
+				this.methods.makeError('007');
 				return;
 			};
 		},
@@ -2774,6 +3066,10 @@ export const program = {
 			};
 			if (this.state.parseString.length === 0){
 				console.log(this.target);
+				this.parser.verifyEndConditions();
+				if (this.state.errorState){
+					return this.parser.parse();
+				}
 				return this.target;
 			}
 			if (this.state.currentLine < 0 || this.state.newLineNeeded/* || some bool representing need to parse next line... like... saw a ';'?*/){
@@ -2824,11 +3120,12 @@ export const program = {
 					target.end = false;
 					target.loopCount = false;
 					target.currentLine = 0;
-					target.nextLine = 0;
+					target.nextLine = -1;
 					target.lastLine = 0;
 					target.variables = {};
 					target.lines = {};
 					target.activeNode = {};
+					target.visitedNodes = [];
 				}
 				target.ex = function (trmnl) {
 					var prgm = this
@@ -2844,6 +3141,9 @@ export const program = {
 						if (prgm.end){
 							return;
 						}
+						if (prgm.api.stall){
+							return;
+						}
 						if (prgm.api.halt){
 							prgm.end = true;
 							return;
@@ -2853,9 +3153,7 @@ export const program = {
 							prgm.errorMessage = "loop iteration exceeded max buffer space. Cannot proceed."
 							return;
 						};
-						if (prgm.nextLine === prgm.currentLine){
-							//prolly need a better sieve here
-
+						if (prgm.nextLine === -1){
 							prgm.executeNextLine(prgm.currentLine);
 							return;
 						} else {
@@ -2870,7 +3168,7 @@ export const program = {
 								prgm.end = false;
 								api.log(`${prgm.name} reached "END" on line ${prgm.currentLine}`);
 								prgm.currentLine = 0;
-								prgm.nextLine = 0;
+								prgm.nextLine = -1;
 								api.deleteDrawTriggeredFunctions(`${prgm.name}`);
 								api.renounceExecutableRuntime();
 								api.unReadyCommand('stop');
@@ -2882,7 +3180,7 @@ export const program = {
 								prgm.end = false;
 								prgm.errorMessage = "";
 								prgm.currentLine = 0;
-								prgm.nextLine = 0;
+								prgm.nextLine = -1;
 								api.deleteDrawTriggeredFunctions(`${prgm.name}`);
 								api.renounceExecutableRuntime();
 								api.unReadyCommand('stop');
@@ -2905,7 +3203,7 @@ export const program = {
 					for (var i = prgm.currentLine; i <= prgm.lastLine; i++) {
 						if (prgm.lines[i] && i !== prgm.currentLine){
 							prgm.currentLine = i;
-							prgm.nextLine = i;
+							prgm.nextLine = -1;
 							prgm.lines[i]();
 							foundLine = true;
 							break;
@@ -2929,12 +3227,9 @@ export const program = {
 				};
 				target.executeLineAt =  function (lineTarget) {
 					var prgm = this;
-					if (lineTarget == '360' || lineTarget === 360){
-						debugger;
-					}
 					if (prgm.lines[lineTarget]){
 						prgm.currentLine = lineTarget;
-						prgm.nextLine = lineTarget;
+						prgm.nextLine = -1;
 						prgm.lines[lineTarget]();
 					} else {
 						prgm.errorState = true;
@@ -2953,7 +3248,8 @@ export const program = {
 				init(name)
 				return target;
 			}
-			this.target = targetConstructor(name)
+			this.target = targetConstructor(name);
+			this.target.activeNode = this.api.getActiveNode();
 		},
 		initializeState : function (textString) {
 			const stateConstructor = function () {
@@ -3052,9 +3348,10 @@ export const program = {
 				if (this.state.errorState){
 					return;
 				}
+			
 
 				var newName = wormTongueFileName.split('.')[0] + '.ex';
-				var accessibleNodes = this.api.getAccessibleNodes()
+				var accessibleNodes = this.api.getAccessibleNodes();
 				var accessibleNodesList = Object.keys(accessibleNodes);
 
 				this.api.requestKernelAccess('(wmt_compiler.MASM) requests Seed access to instantiate new executable, grant access?(y/n)', function(kernel){
@@ -3100,6 +3397,60 @@ export const program = {
 
 		this.methods.prepAll(nodeName);
 		this.methods.compile();
+	},
+	backDoorCompile : function (name, text) {
+		var dummyApi = {
+			log : function (text) {console.log(text)},
+			throwError : function (text) {console.warn(`Error: ${text}`)},
+			warn : function (text) {console.warn(text)},
+			getActiveNode : function () { 
+				var output = { 
+					name : 'dummy', 
+					assembleVisibleAdjacencies : function () {},
+					assembleAccessibleNodes : function () {},
+					visibleAdjacencies : {},
+					getTrueAddress : function () { return 0 }, 
+					address: "000000000000000000",
+				}
+				return output;
+			},
+		}
+		this.api = dummyApi;
+		
+		Object.keys(this.methods).forEach(function(methodName){
+			if (typeof this.methods[methodName] === 'function'){
+				this.methods[methodName] = this.methods[methodName].bind(this)
+			}
+		}, this);
+		Object.keys(this.parser).forEach(function(routerFunctionName){
+			if (typeof this.parser[routerFunctionName] === 'function'){
+				this.parser[routerFunctionName] = this.parser[routerFunctionName].bind(this);
+			} else if (routerFunctionName === 'specificRouter' || routerFunctionName === 'nameTermFinalizers' || routerFunctionName === 'tokenRouter' || routerFunctionName === 'reservedTermsRouter'){
+				Object.keys(this.parser[routerFunctionName]).forEach(function(parserRouteName){
+					this.parser[routerFunctionName][parserRouteName] = this.parser[routerFunctionName][parserRouteName].bind(this);
+				}, this)
+			}
+		}, this)
+
+		Object.keys(this.compiler).forEach(function(compilerFunctionName){
+			console.log(compilerFunctionName)
+			if (typeof this.compiler[compilerFunctionName] === 'function'){
+				this.compiler[compilerFunctionName] = this.compiler[compilerFunctionName].bind(this);
+			} else if (compilerFunctionName === 'constructors'){
+				Object.keys(this.compiler[compilerFunctionName]).forEach(function(constructorFunc){
+					this.compiler[compilerFunctionName][constructorFunc] = this.compiler[compilerFunctionName][constructorFunc].bind(this)
+				},this)
+			}
+		}, this);
+		Object.keys(this.errorMessages).forEach(function(errorCode){
+			this.errorMessages[errorCode] = this.errorMessages[errorCode].bind(this);
+		}, this);
+
+		this.methods.initializeState(text);
+		this.methods.initializeNewTarget(name);
+		return this.parser.parse();
+
+
 	},
 	install : function (trmnl, callback) {
 		this.trmnl = trmnl;

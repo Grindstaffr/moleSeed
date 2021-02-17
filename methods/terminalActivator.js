@@ -120,6 +120,15 @@ export class TerminalActivator {
 		
 			if (terminalIndex === number.toString()){
 				this.activeTerminal = this.terminals[terminalIndex]
+				this.activeTerminal.activeNode.assembleVisibleAdjacencies();
+				this.activeTerminal.api.assembleAccessibleNodes();
+				Object.keys(this.activeTerminal.programs).forEach(function(programName){
+					if (programName === 'runningPrograms'){
+						return;
+					}
+					this.programs[programName].api = this.api;
+					this.programs[programName].data = this.api.getData(programName);
+				}, this.activeTerminal);
 				this.terminals[terminalIndex].isActiveTerminal = true;
 				this.activeTerminal.__calcLocAndDim();
 				return;
@@ -269,7 +278,8 @@ export class TerminalActivator {
 						return accumulator
 					} else {
 						if (isNaN(parseInt(currentNodeObject.getTrueAddress()))){
-							if (currentNodeObject.getTrueAddress()[0] === 'l'){
+							var initialChar = currentNodeObject.getTrueAddress()[0]
+							if (initialChar === 'l' || initialChar === 'w' || initialChar === 'e' ){
 								if (isNaN(parseInt(currentNodeObject.getTrueAddress().substring(1)))){
 									console.log('TRUEADDRESS ERROR');
 									return accumulator;

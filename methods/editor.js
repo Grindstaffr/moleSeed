@@ -57,6 +57,7 @@ export const program = {
 		},
 	},
 	settings: {
+		activeTerminal : 0,
 		edit_mode : false,
 		slct_mode : false,
 		fast_mode : false,
@@ -2313,9 +2314,66 @@ export const program = {
 		},
 
 	},
+	initializeData : function () {
+		var data = {
+			activeDoc : {
+				name : "",
+				type : "",
+				line_count : 0,
+				char_count : 0,
+				word_count : 0,
+				est_mem_use : 0,
+				writable : false,
+			},
+			activeDocTrueAddress : "",
+			cursorLocation : [0,0,0],
+			inserting : false,
+			shiftDown : false,
+			ctrlDown : false,
+			altDown : false,
+			clipBoard : "",
+			text : "",
+			highlight : [0,0],
+			prevHighlight : [0,0],
+			selectedText : false,
+			textWidth : 0,
+			displayHeight : 0,
+			colHeight : 0,
+			rowWidth : 0,
+			characterMatrix : [],
+			displayBarWidth : 20,
+			stringIndexOffset : 0,
+			vRowOffset : 0,
+			lastInsertIndex : 0,
+			scrollBar : '',
+			displayBar : {
+				keyBindings : {
+					'F1' : '(edit_mode) copy slctd text',
+					'F2' : '(edit_mode) cut slctd text',
+					'F3' : '(edit_mode) paste slctd text',
+					'F4' : 'toggle_mode [slow/fast]',
+					'F5' : 'toggle_mode [select/write]',
+					'F6' : 'toggle_mode [edit/terminal]',
+					'F7' : 'toggle sidebar_[on/off]',
+					'F8' : 'cycle sidebar pages',
+				},
+				commands : {
+					'stop' : 'stop editor.ext',
+					'save' : 'update active doc',
+					'open' : 'edit an accessible doc',
+					'new_rdbl' : 'create new .rdbl doc',
+					'new_wmt' : 'create new .wmt doc',
+					'rename' : 'rename active doc',
+				},
+			},
+		}
+		this.api.setData('editor.ext', data);
+		this.data = data;
+	},
 	install : function (terminal, callback) {
 		this.trmnl = terminal;
 		this.api = terminal.api;
+
 
 		this.installData.edit.ex = this.installData.edit.ex.bind(this)
 
@@ -2346,6 +2404,8 @@ export const program = {
 		if (callback){
 			callback(this.installData)
 		}
+
+		this.initializeData();
 
 	},
 	uninstall : function () {

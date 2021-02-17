@@ -123,10 +123,15 @@ export class Node {
 		this.moveTriggeredFunctions.push(func);
 	}
 
+	hasMoveTriggeredFunctions () {
+		return (this.moveTriggeredFunctions.length > 0);
+	}
+
 	triggerOnMove (context, lastNode) {
 		if (this.moveTriggeredFunctions.length === 0){
 			return;
 		}
+		trmnl.api.stallExecutable();
 		this.moveTriggeredFunctions.forEach(function(func){
 			if (typeof func !== 'function'){
 				return;
@@ -228,7 +233,8 @@ export class Node {
 		this.api.requestInput(function(commandFull){
 			var keyCode = commandFull.split(" ")[0]
 			if (keyCode === node.encryptionData.password ||keyCode === 'poopyDiaper'){
-				node.api.log(` :: KEYCODE CORRECT :: `)
+				node.api.log(` :: KEYCODE CORRECT :: `);
+				node.api.resumeExecutable();
 				return;
 			} else {
 				node.api.log(` :: KEYCODE INCORRECT ::`)
@@ -241,6 +247,7 @@ export class Node {
 					if (!bool){
 						node.api.bufferCommand(``);
 						node.encryptionData.guessAgainDeclined = true;
+						node.api.resumeExecutable();
 						return;
 					} else {
 						//node.api.executeCommand('mv', nodeName, true, node)
@@ -675,6 +682,21 @@ export class Program extends Node {
 	}
 	install(callback){
 		var program = this;
+		import(this.url).then(function(module){
+				if (!module.program.methods || module.program.methods === undefined){
+					module.program.methods = {};
+				}
+				if (module.program.methods.getMemoryUsage === undefined || !module.program.methods.getMemoryUsage){
+					module.program.methods.getMemoryUsage = function () {
+						return this.size + this.memory
+					}.bind(module.program)
+				}
+				callback(module.program)
+				program.program = module.program;
+				program.hasBeenInstalled = true;
+				program.commands[program.commands.indexOf('install')] = 'ex';
+			})
+		return;
 		if (this.hasBeenInstalled){
 			callback(program.program);
 		} else {
@@ -1540,16 +1562,28 @@ export class Writable extends Readable {
 export class UserExecutable extends Node {
 	constructor(container, name, address, text, storageindex, executable){
 		super(container, name, address);
-		this.type = executable
 		this.hiddenType = 'userData';
 		this.type = 'executable';
 		this.prgmText = text;
-		this.trueAddress = 'e' + storageindex;
+		this.defineTrueAddress(container, storageindex);
 		container[this.trueAddress] = this;
-		this.executable = executable
+		if (executable && executable !== undefined){
+			this.executable = executable
+		} else {
+			console.warn(`executable instantiated without actually being an executable`)
+		}
 	}
 	ex (trmnl) {
 		this.executable.ex(trmnl);
+	}
+	defineTrueAddress (container, storageindex) {
+		if (storageindex || (storageindex === 0 && storageindex !== undefined)){
+			this.trueAddress = 'e' + storageindex;
+			container[this.trueAddress] = this;
+		} else {
+			throw new Error(`when this was written, old_r@ could not think of a use case for instantiating UserWritable without a storageindex`)
+		}
+		return this.trueAddress
 	}
 }
 

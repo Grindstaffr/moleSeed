@@ -1,4 +1,6 @@
-import { constructGraphStringParser } from './stringToGraphConverter.js'
+import { constructGraphStringParser } from './stringToGraphConverter.js';
+import { program as wmtCompiler } from './wmtCompiler.js';
+
 export const saveFileManagerConstructor = function (activator) {
 	const saveFileManager = {};
 	const init = function (activator) {
@@ -8,6 +10,7 @@ export const saveFileManagerConstructor = function (activator) {
 		saveFileManager.nodeVerse.saveFileManager = saveFileManager
 		saveFileManager.stringToGraphConverter = constructGraphStringParser(saveFileManager.nodeVerse);
 		saveFileManager.convertToGraph = saveFileManager.stringToGraphConverter.convertToGraph
+		saveFileManager.compileWmt = wmtCompiler.backDoorCompile.bind(wmtCompiler)
 		saveFileManager.parser = {};
 		saveFileManager.data = {
 			graphDiffString : "$0#0[()()]%",
@@ -428,7 +431,14 @@ export const saveFileManagerConstructor = function (activator) {
 
 		console.log(message);
 	};
-
+	saveFileManager.printSack = function () {
+		var output = localStorage.getItem('terminal0_storedNodes');
+		console.log(output);
+	};
+	saveFileManager.printDiff = function () {
+		var output = localStorage.getItem(`graphDiffString`);
+		console.log(output);
+	};
 	saveFileManager.printStorage = function () {
 		var message = `CurrentSaveFileData : \n`
 		Object.keys(this.data).forEach(function(key){
@@ -616,7 +626,7 @@ export const saveFileManagerConstructor = function (activator) {
 						var targetListStartIndex = (edgeListSubstring.indexOf(nodeEdgeToken) + 2 + nodeTrueAddressLength);
 						var prevTarget = "";
 						for (var i = targetListStartIndex; i < edgeListSubstring.length ; i++){
-							var addressLetters = ['l','w','u','0','1','2','3','4','5','6','7','8','9'];
+							var addressLetters = ['l','w','u','e','0','1','2','3','4','5','6','7','8','9'];
 							if (addressLetters.includes(edgeListSubstring[i])){
 								prevTarget += edgeListSubstring[i];
 							} else {
@@ -657,7 +667,7 @@ export const saveFileManagerConstructor = function (activator) {
 							var targetListStartIndex = edgeListSubstring.indexOf(nodeEdgeToken) + 2 + nodeTrueAddressLength;
 						var prevTarget = "";
 						for (var i = targetListStartIndex; i < (edgeListSubstring.length) ; i++){
-							var addressLetters = ['l','w','u','0','1','2','3','4','5','6','7','8','9'];
+							var addressLetters = ['l','w','u','e','0','1','2','3','4','5','6','7','8','9'];
 							if (addressLetters.includes(edgeListSubstring[i])){
 								prevTarget += edgeListSubstring[i];
 							} else {
@@ -734,7 +744,7 @@ export const saveFileManagerConstructor = function (activator) {
 		return returnObject;
 	};
 
-	saveFileManager.storeUserWormTongue = function (name, text) {
+	saveFileManager.storeUserWormTongue = function (name, text, specifiedIndex) {
 		var index = ''
 		if ((!specifiedIndex || specifiedIndex === undefined) && specifiedIndex !== 0){
 			index = localStorage.getItem('user_wmt_count');
@@ -757,7 +767,8 @@ export const saveFileManagerConstructor = function (activator) {
 		}
 		var returnObject = {
 			name : "",
-			text : ""
+			text : "",
+			executable : {},
 		}
 		var key = `user_wmt_${index}`;
 
@@ -766,6 +777,7 @@ export const saveFileManagerConstructor = function (activator) {
 
 		returnObject.name = fields[0];
 		returnObject.text = fields[1];
+		returnObject.executable = this.compileWmt(fields[0], fields[1]);
 
 		return returnObject;
 	};

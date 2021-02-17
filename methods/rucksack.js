@@ -9,6 +9,7 @@ export const program = {
 		readMe : `\\n rucksack.ext v.0.6.14 \\n \\n  \\t rucksack.ext is an extension for the moleSeed Terminal that allows for the storage of up to 8 nodes. \\n \\t NOTE: rucksack.ext does not store node adjacencies.`,	
 	},
 	settings : {
+		activeTerminal : 0,
 		maxNodes : 8,
 		isRunning : false,
 	},
@@ -55,9 +56,19 @@ export const program = {
 			var count = this.api.getMaxLineLength();
 			this.api.writeToGivenRow(("-").repeat(count - 12) + 'rucksack.ext', 19)
 		},
+		
 
 	},
 	installData : {
+		api_appendStoredNodes : function  () {
+			this.data.storedNodes.forEach(function(node){
+				if (node.name === '[EMPTY SLOT]'){
+					return;
+				} else {
+					this.api.appendAccessibleNodes(node);
+				}
+			}, this)
+		},
 		api_triggerReDraw : function (bool) {
 			console.log(this)
 			this.api.runCommand(`ex rucksack.ext ${bool}`);
@@ -223,12 +234,16 @@ export const program = {
 		this.data.settings = this.settings
 		this.methods.data = this.data;
 		this.methods.api = this.api;
+
 		this.methods.showContents= this.methods.showContents.bind(this);
+
 		this.data.storedNodes = new Array(8).fill({name : `[EMPTY SLOT]`})
+
 		this.installData.grab.ex = this.installData.grab.ex.bind(this);
 		this.installData.rummage.ex = this.installData.rummage.ex.bind(this);
 		this.installData.ditch.ex = this.installData.ditch.ex.bind(this);
 
+		this.installData.api_appendStoredNodes = this.installData.api_appendStoredNodes.bind(this);
 		this.installData.api_triggerReDraw = this.installData.api_triggerReDraw.bind(this);
 		this.installData.api_checkRucksackRunning = this.installData.api_checkRucksackRunning.bind(this);
 		this.installData.api_getStoredNodes = this.installData.api_getStoredNodes.bind(this);
@@ -237,6 +252,8 @@ export const program = {
 
 		this.api.addCommand(this.installData.grab);
 		this.api.addCommand(this.installData.rummage);
+
+		this.api.addInterfaceFunction(this.installData.api_appendStoredNodes, 'appendStoredNodes');
 		this.api.addInterfaceFunction(this.installData.api_triggerReDraw,`reRenderRucksack`);
 		this.api.addInterfaceFunction(this.installData.api_checkRucksackRunning, `checkRucksackRunning`)
 		this.api.addInterfaceFunction(this.installData.api_getStoredNodes, `getRucksackContents`)
@@ -255,6 +272,8 @@ export const program = {
 		if (this.isRunning){
 			this.stop();
 		}
+
+		this.api.deleteInterfaceFunction('appendStoredNodes', 'rucksack.ext');
 		this.api.deleteInterfaceFunction(`reRenderRucksack`, 'rucksack.ext');
 		this.api.deleteInterfaceFunction(`checkRucksackRunning`,'rucksack.ext');
 		this.api.deleteInterfaceFunction(`getRucksackContents`,'rucksack.ext');
@@ -290,6 +309,7 @@ export const program = {
 	ex : function (bool) {
 		var rucksack = this;
 		// this.api.composeText(this.data.readMe)
+		debugger;
 		if (!this.settings.isRunning){
 			this.api.addMoveTriggeredFunction('append', function(){
 				rucksack.api.runCommand(`ex rucksack.ext true`, true);

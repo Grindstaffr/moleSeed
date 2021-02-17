@@ -27,6 +27,7 @@ export class Terminal {
 		this.__calcLocAndDim();
 
 		this.programs = this.constructPrograms();
+		this.dataStore = this.constructProgramData();
 		this.cache = this.constructCache(this);
 		this.command = this.constructCommands(this.cache, this);
 		//this.compiler = this.constructCompiler(this.command, this);
@@ -578,6 +579,22 @@ export class Terminal {
 		const programs = {};
 		programs.runningPrograms = {};
 		return programs;
+	}
+
+	constructProgramData () {
+		const programData = {};
+		const dataCache = {};
+		programData.dataCache = dataCache;
+		programData.setData = function (programName, dataObject) {
+			this.dataCache[programName] = dataObject;
+		};
+		programData.getData = function (programName){
+			return this.dataCache[programName];
+		}
+		programData.scrubData = function (programName){
+			delete this.dataCache[programName];
+		}
+		return programData;
 	}
 
 	constructCredentials () {
@@ -1919,10 +1936,34 @@ export class Terminal {
 				trmnl.api.clearStorage();
 			},
 		}
+		command.pdiff = {
+			name : 'pdiff',
+			rex : true,
+			isAvail: false,
+			isHidden: true,
+			syntax: 'pdiff',
+			ex : function () {
+				var cmd = this.parent;
+				var trmnl = cmd.parent;
+				trmnl.api.printDiff();
+			}
+		}
+		command.printsack = {
+			name :'printsack',
+			rex : true,
+			isAvail: false,
+			isHidden: true,
+			syntax: 'printsack',
+			ex : function () {
+				var cmd = this.parent;
+				var trmnl = cmd.parent;
+				trmnl.api.printSack();
+			}
+		}
 		command.pstor= {
 			name: 'pstor',
 			rex : true,
-			isAVail : false,
+			isAvail : false,
 			isHidden : true,
 			syntax : 'pstor',
 			ex : function () {
@@ -2358,10 +2399,10 @@ export class Terminal {
 			ex : function (node) {
 				var cmd = this.parent;
 				var trmnl = cmd.parent;
-				trmnl.accessibleNodes[node.name] = node;
 				if (node.name === '[EMPTY SLOT]'){
 					return;
 				}
+				trmnl.accessibleNodes[node.name] = node;
 				//trmnl.compiler.synonyms.nodeSyns[node.name] = node.synonyms;
 			},
 		};
@@ -2912,6 +2953,9 @@ export class Terminal {
 		};
 		terminalInterface.assembleAccessibleNodes = function () {
 			this.command.assembleAccessibleNodes.ex();
+			if (Object.keys(this.parent.programs.runningPrograms).includes('rucksack.ext')){
+				this.appendStoredNodes();
+			}
 		}
 		terminalInterface.getAccessibleNodes = function () {
 			return this.parent.accessibleNodes;
@@ -2946,7 +2990,39 @@ export class Terminal {
 				this.parent.command.stop.isAvail = true;
 				return;
 			}
-		}
+		};
+		terminalInterface.setData = function (programName, dataObject) {
+			if (programName === 'runningPrograms'){
+				return;
+			}
+			if (!Object.keys(this.parent.programs).includes(programName)){
+				console.warn('dont try this at home kids')
+				return;
+			}
+			this.parent.dataStore.setData(programName, dataObject);
+		};
+		terminalInterface.getData = function (programName) {
+			if (programName === 'runningPrograms'){
+				return;
+			}
+			if (!Object.keys(this.parent.programs).includes(programName)){
+				console.warn('dont try this at home kids')
+				return;
+			}
+			debugger;
+			return this.parent.dataStore.getData(programName);
+		};
+		terminalInterface.scrubData = function (programName) {
+			if (programName === 'runningPrograms'){
+				return;
+			}
+			if (!Object.keys(this.parent.programs).includes(programName)){
+				console.warn('dont try this at home kids')
+				return;
+			}
+			this.parent.dataStore.scrubData(programName);
+
+		};
 		terminalInterface.addMoveTriggeredFunction = function (funcName, func){
 			if(!funcName){
 				return
@@ -3159,6 +3235,16 @@ export class Terminal {
 			this.cache.composeText(text3)
 			return;
 		};
+		terminalInterface.stallExecutable = function () {
+			var api = this;
+			api.stall = true;
+			return;
+		};
+		terminalInterface.resumeExecutable = function () {
+			var api = this;
+			api.stall = false;
+			return;
+		}
 		terminalInterface.haltExecutables = function () {
 			var api = this;
 			this.halt = true;
@@ -3224,6 +3310,12 @@ export class Terminal {
 		};
 		terminalInterface.saveTerminalStates = function () {
 			this.parent.terminalActivator.saveFileManager.harvestAndSaveWorldState();
+		};
+		terminalInterface.printSack = function () {
+			this.parent.terminalActivator.saveFileManager.printSack();
+		};	
+		terminalInterface.printDiff = function () {
+			this.parent.terminalActivator.saveFileManager.printDiff();
 		};
 		terminalInterface.printStorage = function () {
 			this.parent.terminalActivator.saveFileManager.printStorage();
