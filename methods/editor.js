@@ -540,7 +540,8 @@ export const program = {
 					}
 					this.methods.cloneReadOnly(docName);
 					return;
-				} 
+				}
+				this.methods.reimportDocText(); 
 				this.settings.edit_mode = true;
 				if (!this.settings.displaySidebar){
 					this.methods.toggleSideBar();
@@ -941,6 +942,7 @@ export const program = {
 			var prevCharBackslash = false;
 			var prevCharBullshit = false;
 			for (var i = 0; i < string.length; i++) {
+				
 				if (!this.data.characterMatrix[currentRow]){
 					this.methods.appendRowToCharacterMatrix();
 				}
@@ -1575,6 +1577,10 @@ export const program = {
 			var rowFidelity = searchRowIndex;
 			var searchColIndex = 0;
 			var counter = 2*this.data.characterMatrix.length
+
+			if (targetValue === 0 && this.data.characterMatrix.length === 0){
+				return [0,0,0];
+			}
 			//this can be reinstantiated as a binary tree search
 
 			while(col === -1 && counter > 0){
@@ -1697,11 +1703,11 @@ export const program = {
 			}
 
 			if (row === -1){
-				return;
+				return [0,0,0];
 			}
 
 			if (col === -1){
-				return;
+				return [0,0,0];
 			}
 
 		
@@ -2027,6 +2033,15 @@ export const program = {
 		
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		*/
+		reimportDocText : function () {
+			var editor = this;
+			var node = this.api.getAccessibleNodes()[this.data.activeDoc.name];
+			node.read(function (text, doc) {
+				editor.data.text = text;
+				editor.methods.recomposeText();
+				editor.methods.filterText();
+			})
+		},
 		resetActiveDoc : function (){
 			this.data.activeDoc.name = "";
 			this.data.activeDoc.type = "";
@@ -2040,6 +2055,7 @@ export const program = {
 			if (!text || text === undefined){
 				text = this.data.text;
 			}
+
 			if (isNull){
 				this.data.activeDoc.name = "null";
 				this.data.activeDoc.type = "undefined";
@@ -2109,6 +2125,7 @@ export const program = {
 				this.methods.filterText();
 			} else {
 				this.data.text = "";
+				this.methods.filterText()
 			}
 			this.methods.resetActiveDoc();
 			this.methods.updateActiveDoc(text, doc, isNull);

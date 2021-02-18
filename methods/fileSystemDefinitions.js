@@ -682,21 +682,6 @@ export class Program extends Node {
 	}
 	install(callback){
 		var program = this;
-		import(this.url).then(function(module){
-				if (!module.program.methods || module.program.methods === undefined){
-					module.program.methods = {};
-				}
-				if (module.program.methods.getMemoryUsage === undefined || !module.program.methods.getMemoryUsage){
-					module.program.methods.getMemoryUsage = function () {
-						return this.size + this.memory
-					}.bind(module.program)
-				}
-				callback(module.program)
-				program.program = module.program;
-				program.hasBeenInstalled = true;
-				program.commands[program.commands.indexOf('install')] = 'ex';
-			})
-		return;
 		if (this.hasBeenInstalled){
 			callback(program.program);
 		} else {

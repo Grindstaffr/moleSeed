@@ -3348,16 +3348,52 @@ export const program = {
 				if (this.state.errorState){
 					return;
 				}
-			
+				var activeNode = prgm.api.getActiveNode();
 
 				var newName = wormTongueFileName.split('.')[0] + '.ex';
 				var accessibleNodes = this.api.getAccessibleNodes();
 				var accessibleNodesList = Object.keys(accessibleNodes);
+				if (accessibleNodesList.includes(newName)){
+					/*Might wanna put an overwrite verify here?*/
+					this.api.requestKernelAccess('(wmt_compiler.MASM) requests Seed access to replace an existing executable with a re-compiled version, grant access?(y/n)', function(kernel){
+						var executableTrueAddress = accessibleNodes[newName].getTrueAddress();
+						var text = prgm.state.fullInputString;
+						prgm.api.log(' (_Seed) access granted... overwriting node...')
+						try {
+							kernel.updateUserExecutable(newName, text, executableTrueAddress, executable);
+						} catch (error) {
+							prgm.api.throwError(` (_Seed) cmd_rjct: #1F44B4`);
+							throw new Error(error);
+							return;
+						}
+						var finalDocName = newName;
+						prgm.api.assembleAccessibleNodes();
+						var newAccessibleNodes = prgm.api.getAccessibleNodes();
+						var newAccessibleNodesList = Object.keys(newAccessibleNodes);
+						newAccessibleNodesList = newAccessibleNodesList.filter(function(nodeName){
+							if (accessibleNodesList.includes(nodeName)){
+								return false;
+							} else {
+								return true;
+							}
+						})
+						if (newAccessibleNodesList.length === 1){
+							finalDocName = newAccessibleNodesList[0];
+						} else {
+							;
+						}
+						prgm.api.log(` (_Seed) ${finalDocName} replaced with re-compiled executable`);
+					}, function(kernelReject){
+						prgm.api.log(` (_Seed) api_axs_rjct: #0000B6`);
+						prgm.api.log(` (wmt_compiler.MASM) Seed access required to instantiate new nodes. Aborting "compile"...`);
+					})
+					return;
+				}
 
 				this.api.requestKernelAccess('(wmt_compiler.MASM) requests Seed access to instantiate new executable, grant access?(y/n)', function(kernel){
-					var activeNode = prgm.api.getActiveNode();
+					
 					var activeNodeTrueAddress = activeNode.getTrueAddress();
-					prgm.api.log (' (_Seed) access granted... creating node...');
+					prgm.api.log(' (_Seed) access granted... creating node...');
 					try {
 						kernel.appendUserExecutable(activeNodeTrueAddress, newName, prgm.state.fullInputString, executable);
 					} catch (error) {

@@ -125,11 +125,8 @@ export class Terminal {
 		this.drawCurrentRows();
 		this.blinkyCursor.draw();
 
-		if (this.api.drawTriggerFunctions.length > 0){
-			this.api.drawTriggerFunctions.forEach(function(funcObj){
-				funcObj.func();
-			})
-		};
+		//gonna double-hit drawfuncs on active terminal with this bad boy;
+		//this.api.triggerDrawFuncs();
 	}
 	generateAddress (number) {
 		const map = {
@@ -598,7 +595,7 @@ export class Terminal {
 			delete this.dataCache[programName].settings
 		};
 		programData.hasSettingsFor = function (programName) {
-			var boolProp = !(this.dataCache[programName].settings === undefined || !this.dataCache[programName]);
+			var boolProp = !(!this.dataCache[programName] || this.dataCache[programName].settings === undefined );
 			return boolProp;
 		};
 		programData.setData = function (programName, dataObject) {
@@ -614,7 +611,7 @@ export class Terminal {
 			delete this.dataCache[programName].data;
 		}
 		programData.hasDataFor = function (programName){
-			var boolProp = !(this.dataCache[programName].data === undefined || !this.dataCache[programName])
+			var boolProp = !(!this.dataCache[programName] || this.dataCache[programName].data === undefined )
 			return boolProp;
 		}
 		return programData;
@@ -3171,7 +3168,14 @@ export class Terminal {
 				}, this);
 			};
 			return;
-		}
+		};
+		terminalInterface.triggerDrawFuncs = function () {
+			if (this.drawTriggerFunctions.length > 0){
+				this.drawTriggerFunctions.forEach(function(funcObj){
+					funcObj.func();
+				})
+			};
+		};
 		terminalInterface.addInstallTrigger = function (callback) {
 			this.command.install.triggerFuncs.push(callback);
 			return this.command.install.triggerFuncs.length - 1;

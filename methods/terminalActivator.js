@@ -385,6 +385,9 @@ export class TerminalActivator {
 			this.context.fillText(`F11 isn't working`, this.clickX, this.clickY )
 		}
 		this.activeTerminal.draw();
+		Object.keys(this.terminals).forEach(function(terminalKey){
+			this.terminals[terminalKey].api.triggerDrawFuncs();
+		}, this);
 	}
 	mouseHandler(e){
 		if (!this.shouldClick){

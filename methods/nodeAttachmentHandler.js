@@ -29,9 +29,9 @@ export const nodeAttachmentHandlerConstructor = function (nodeVerse, saveFileMan
 		this.nodeVerse.updateUserWritableNode(name, text, wIndex);
 	}
 
-	nodeAttachmentHandler.updateUserWormTongue = function (name, text, xIndex){
+	nodeAttachmentHandler.updateUserExecutable= function (name, text, eIndex, executable){
 		console.warn(`NOT A COMPLETE FUNCTION`);
-		this.nodeVerse.updateUserWormTongue(name, text, xIndex)
+		this.nodeVerse.updateUserWormTongue(name, text, eIndex, executable)
 	}
 
 	nodeAttachmentHandler.appendUserExecutable = function (activeNodeTrueAddress, name, text, executable){

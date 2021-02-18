@@ -47,6 +47,26 @@ export const bigBang = function () {
 		this.saveFileManager.storeUserWritable(name, text, index);
 	}
 
+	nodeVerse.updateUserWormTongue = function(name, text, trueAddress, executable){
+		if (trueAddress[0]!== 'e'){
+			console.warn(`r@ says... this shouldn'ta happened`);
+			return;
+		}
+		if (this.allNodes[trueAddress]){
+			if (this.allNodes[trueAddress].name !== name){
+				this.allNodes[trueAddress].changeReferenceName(name);
+			}
+			if (this.allNodes[trueAddress].prgmText !== text){
+				this.allNodes[trueAddress].prgmText = text;
+			}
+			this.allNodes[trueAddress].executable = executable;
+		} else {
+			console.log(`fuckshitasss -- r@ (this is an edge condition that should never occur).`)
+		}
+		var index = trueAddress.substring(1);
+		this.saveFileManager.storeUserWormTongue(name, text, index);
+	}
+
 	nodeVerse.createUserWritableNode = function (name, text) {
 		this.saveFileManager.storeUserWritable(name,text);
 		var count = this.saveFileManager.getKeyValue('user_rdbl_count');
