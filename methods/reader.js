@@ -444,11 +444,50 @@ export const program = {
 		},
 
 	},
+	initializeSettings : function () {
+		var settings = {isRunning : false,
+				recentlyVerified : false,
+				lineBreakThreshold: .80,}
+		this.settings = settings;
+		this.api.setSettings('reader.ext', settings);
+		return;
+	},
+	initializeData : function () {
+		var data = {
+			textName : "",
+			text : "",
+			pageCount : 0,
+			pages : [],
+			currentPageNum : 0,
+			currentPageText : [],
+			rowCount: 0,
+			blacklistedPageNums : [],
+			lineCensoredTerms : [`SWARM`, `SWARM/phoenix`, `phoenix`],
+			pageCensoredTerms : [],
+		};
+		this.data = data;
+		this.api.setData('reader.ext', data);
+		return;
+	},
+	setAPI : function (api) {
+		this.api = api;
+		return;
+	},
+	setData : function (data) {
+		this.data = data;
+		return;
+	},
+	setSettings : function (settings) {
+		this.settings = settings;
+		return;
+	},
 	install : function (terminal, callback){
 		this.trmnl = terminal;
 		terminal.programs[this.name] = this;
 		this.api = terminal.api;
 		callback(this.installData);
+		this.initializeData();
+		this.initializeSettings();
 		for (var prop in this.methods){
 				this.methods[prop] = this.methods[prop].bind(this)
 		}

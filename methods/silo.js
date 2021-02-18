@@ -433,6 +433,43 @@ export const program = {
 		},
 
 	},
+	setAPI : function (api) {
+		this.api = api;
+		return;
+	},
+	setData : function (data) {
+		this.data = data;
+		/*
+		 JANKY PATCHING CODE FROM HERE
+		*/
+		var storedNodes = this.api.getData('rucksack.ext').storedNodes;
+		this.data.storedNodes = storedNodes;
+		//  UNTIL HERE
+		return;
+	},
+	setSettings: function (settings) {
+		this.settings = settings;
+		return;
+	},
+	initializeData : function () {
+		var data =  {
+			armedRecruiter : {isDummy : true},
+			targetedHardware : {isDummy : true},
+			meanUnLinkTime : 300000,
+			unLinkTime : 100000,
+			linkTime: 0,
+			linkTimeStart: 0,
+			linkedHardware : {isDummy : true},
+			canRecruit : false,
+			hardwareStatus : {
+				linked : false,
+				targeted : false,
+			},
+		}
+		this.data = data;
+		this.api.setData('silo.ext', data);
+		return;
+	},
 	install : function (terminal, callback){
 		this.trmnl = terminal;
 		this.api = terminal.api;
@@ -440,19 +477,27 @@ export const program = {
 			this.api.throwError(`(unfound dependency): missing rucksack.ext`)
 			return;
 		};
-		this.rucksack = this.trmnl.programs[`rucksack.ext`];
-		this.rucksack.silo = this;
-		this.data.storedNodes = this.rucksack.data.storedNodes;
-		terminal.programs[this.name] = this;
 		if (callback){
 			callback(this.installData);
 		};
+		this.initializeData();
+		terminal.programs[this.name] = this;
 		this.isInstalled = true;
+
+		console.log(`every bit of code between here`)
+		/*
+		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		FUCKED UP BLOC...
+		*/
+
+		this.rucksack = this.trmnl.programs[`rucksack.ext`];
+		this.rucksack.silo = this;
+		this.data.storedNodes = this.rucksack.data.storedNodes;
 		this.data.settings = this.settings
 		this.methods.data = this.data;
 		this.methods.api = this.api;
-		this.methods.monitor = this.methods.monitor.bind(this);
-		this.rucksack.methods.drawSilo = this.methods.drawSilo.bind(this);
 
 		this.deprecatedFunctions.stop = this.rucksack.stop
 		this.deprecatedFunctions.ex = this.rucksack.ex
@@ -463,6 +508,16 @@ export const program = {
 		this.rucksack.ex = this.installData.patch_rucksack_ex;
 		this.rucksack.methods.showContents = this.installData.patch_showContents;
 		this.rucksack.methods.drawWindow = this.installData.patch_drawWindow;
+
+		console.log(`and here... is pretty fucked`)
+		/*It's like I wrote this and thought. well, this is done, never gonna have to edit this...
+
+		god I'm fucking stupid
+
+		*/
+
+		this.methods.monitor = this.methods.monitor.bind(this);
+		this.rucksack.methods.drawSilo = this.methods.drawSilo.bind(this);
 
 		Object.keys(this.methods.siloApi).forEach(function(key){
 			this.methods.siloApi[key] = this.methods.siloApi[key].bind(this);

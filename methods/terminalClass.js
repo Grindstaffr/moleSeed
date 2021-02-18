@@ -585,14 +585,37 @@ export class Terminal {
 		const programData = {};
 		const dataCache = {};
 		programData.dataCache = dataCache;
+		programData.setSettings = function (programName, settingsObject) {
+			if (this.dataCache[programName] === undefined){
+				this.dataCache[programName] = { settings : {} };
+			}
+			this.dataCache[programName].settings = settingsObject;
+		};
+		programData.getSettings = function (programName) {
+			return this.dataCache[programName].settings
+		};
+		programData.scrubSettings = function (programName) {
+			delete this.dataCache[programName].settings
+		};
+		programData.hasSettingsFor = function (programName) {
+			var boolProp = !(this.dataCache[programName].settings === undefined || !this.dataCache[programName]);
+			return boolProp;
+		};
 		programData.setData = function (programName, dataObject) {
-			this.dataCache[programName] = dataObject;
+			if (this.dataCache[programName] === undefined){
+				this.dataCache[programName] = { data : {} }
+			}
+			this.dataCache[programName].data = dataObject;
 		};
 		programData.getData = function (programName){
-			return this.dataCache[programName];
+			return this.dataCache[programName].data;
 		}
 		programData.scrubData = function (programName){
-			delete this.dataCache[programName];
+			delete this.dataCache[programName].data;
+		}
+		programData.hasDataFor = function (programName){
+			var boolProp = !(this.dataCache[programName].data === undefined || !this.dataCache[programName])
+			return boolProp;
 		}
 		return programData;
 	}
@@ -796,8 +819,16 @@ export class Terminal {
 				array[index] = new Array(1);
 			})
 			var newInput = new Array(this.rowCount).fill("");
+			var newPrevRows = new Array(this.rowCount - 1);
+			newPrevRows.forEach(function(cellToBe, index, array){
+				array[index] = new Array(1);
+			})
 
-			this.previousRows = new Array(this.rowCount).fill([]);
+			var prevRows = this.previousRows;
+			var prevContent = this.previousRows.flat(2);
+			if (this.rowCount === prevRows[0])
+
+			
 			this.inputRowPrev = new Array(this.rowCount).fill("");
 		    this.inputRowNext = new Array(this.rowCount).fill("");
 
@@ -812,25 +843,59 @@ export class Terminal {
 		    if (diff === 0){
 			    this.currentRows.forEach(function(row, index){
 			    	if (row.length > 0){
-			    		newDisplay[index] = row
+			    		newDisplay[index] = row;
 			    	}
-			    },this)
+			    },this);
+			    this.previousRows.forEach(function(row, index){
+			    	if (row.length > 0){
+			    		newPrevRows[index] = row;
+			    	}
+			    })
 		    } else if (diff > 0){
 		    	for (var i = diff; i < currentCacheLength; i ++){
 		    		if (!this.currentRows[i]){
-		    			this.currentRows[i] = new Array(this.rowCount).fill([]);
+		    			this.currentRows[i] = new Array(this.rowCount);
+		    			for (var j = 0; j < this.rowCount; j ++){
+		    				var arrboxCR = [];
+		    				this.currentRows[i][j] = arrboxCR;
+		   		    	}
+		    		}
+		    		if (!this.previousRows[i]){
+		    			this.previousRows[i] = new Array(this.rowCount);
+		    			for (var j = 0; j < this.rowCount; j ++){
+		    				var arrboxPR = [];
+		    				this.previousRows[i][j] = arrboxPR
+		    			}
 		    		}
 		    		if (this.currentRows[i].length >= 0){
-		    			newDisplay[(i)-(diff + 1)] = this.currentRows[i]
-		    		} 
+		    			newDisplay[(i)-(diff + 1)] = this.currentRows[i];
+		    		}
+		    		if (this.previousRows[i].length >= 0){
+		    			newPrevRows[(i) - (diff + 1)] = this.previousRows[i];
+		    		}
 		    	}
+
 		    } else {
 		    	for (var i = 0; i < currentCacheLength ; i ++){
 		    		if (!this.currentRows[i]){
-		    			this.currentRows[i] = new Array(this.rowCount).fill([]);
+		    			this.currentRows[i] = new Array(this.rowCount);
+		    			for (var j = 0; j < this.rowCount; j ++){
+		    				var arrboxCR = [];
+		    				this.currentRows[i][j] = arrboxCR;
+		   		    	}
+		    		}
+		    		if (!this.previousRows[i]){
+		    			this.previousRows[i] = new Array(this.rowCount);
+		    			for (var j = 0; j < this.rowCount; j ++){
+		    				var arrboxPR = [];
+		    				this.previousRows[i][j] = arrboxPR
+		    			}
 		    		}
 		    		if (this.currentRows[i].length >= 0){
 		    			newDisplay[(i)-(diff + 1)] = this.currentRows[i]
+		    		}
+		    		if (this.previousRows[i].length >= 0){
+		    			newPrevRows[(i) - (diff + 1)] = this.previousRows[i];
 		    		}
 		    	}
 
@@ -838,6 +903,7 @@ export class Terminal {
 
 		    this.inputRow = newInput.slice(0,this.rowCount-1)
 			this.currentRows = newDisplay.slice(0,this.rowCount-1);
+			this.previousRows = newPrevRows.slice(0,this.rowCount -1);
 		}.bind(cache)
 
 		cache.reservedRows = 0;
@@ -2991,6 +3057,37 @@ export class Terminal {
 				return;
 			}
 		};
+		terminalInterface.setSettings = function (programName, settingsObject) {
+			if (programName === 'runningPrograms'){
+				return;
+			}
+			if (!Object.keys(this.parent.programs).includes(programName)){
+				console.warn('dont try this at home kids')
+				return;
+			}
+			this.parent.dataStore.setSettings(programName, settingsObject);
+		};
+		terminalInterface.getSettings = function (programName) {
+			if (programName === 'runningPrograms'){
+				return;
+			}
+			if (!Object.keys(this.parent.programs).includes(programName)){
+				console.warn('dont try this at home kids')
+				return;
+			}
+			return this.parent.dataStore.getSettings(programName);
+		};
+		terminalInterface.scrubSettings = function (programName) {
+			if (programName === 'runningPrograms'){
+				return;
+			}
+			if (!Object.keys(this.parent.programs).includes(programName)){
+				console.warn('dont try this at home kids')
+				return;
+			}
+			this.parent.dataStore.scrubSettings(programName);
+
+		};
 		terminalInterface.setData = function (programName, dataObject) {
 			if (programName === 'runningPrograms'){
 				return;
@@ -3009,7 +3106,6 @@ export class Terminal {
 				console.warn('dont try this at home kids')
 				return;
 			}
-			debugger;
 			return this.parent.dataStore.getData(programName);
 		};
 		terminalInterface.scrubData = function (programName) {
@@ -3263,6 +3359,7 @@ export class Terminal {
 			}
 		};
 		terminalInterface.activateTerminalAtIndex = function (index) {
+		
 			if (this.parent.index === index) {
 					if (this.parent.isActiveTerminal){
 						return;
@@ -3271,7 +3368,34 @@ export class Terminal {
 				if (!this.parent.terminalActivator.isTerminalAtIndex(index)){
 					return;
 				}
+				Object.keys(this.parent.programs).forEach(function(programName){
+					if (programName === 'runningPrograms'){
+						return;
+					}
+					if (this.dataStore.hasDataFor(programName)){
+						this.dataStore.setData(programName, this.programs[programName].data)
+					}
+					if (this.dataStore.hasSettingsFor(programName)){
+						this.dataStore.setSettings(programName, this.programs[programName].settings);
+					}
+				}, this.parent)
 				this.parent.terminalActivator.activateTerminal(index);
+		};
+		terminalInterface.activate = function () {
+			Object.keys(this.parent.programs).forEach(function(programName){
+				if (programName == 'runningPrograms'){
+					return
+				}
+				if (this.programs[programName]){
+					this.programs[programName].setAPI(this.api);
+				};
+				if (this.dataStore.hasDataFor(programName)){
+					this.programs[programName].setData(this.dataStore.getData(programName));
+				};
+				if (this.dataStore.hasSettingsFor(programName)){
+					this.programs[programName].setSettings(this.dataStore.getSettings(programName));
+				}
+			}, this.parent)
 		};
 		terminalInterface.getLastTerminalIndex = function () {
 			var count = this.parent.terminalActivator.getTerminalCount();

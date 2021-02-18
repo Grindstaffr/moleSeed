@@ -9,7 +9,6 @@ export const program = {
 		readMe : `\\n rucksack.ext v.0.6.14 \\n \\n  \\t rucksack.ext is an extension for the moleSeed Terminal that allows for the storage of up to 8 nodes. \\n \\t NOTE: rucksack.ext does not store node adjacencies.`,	
 	},
 	settings : {
-		activeTerminal : 0,
 		maxNodes : 8,
 		isRunning : false,
 	},
@@ -53,6 +52,7 @@ export const program = {
 			}, this)
 		},
 		drawWindow : function () {
+			console.log(`drawing window:  current activeTerminal : ${this.api.parent.terminalActivator.activeTerminal.index} currentAPI : ${this.api.parent.index}`)
 			var count = this.api.getMaxLineLength();
 			this.api.writeToGivenRow(("-").repeat(count - 12) + 'rucksack.ext', 19)
 		},
@@ -173,6 +173,7 @@ export const program = {
 					node = adjNodes[nodeName]
 				}
 				console.log(trueVal)
+				console.log(this.data)
 				if (!this.data.storedNodes[trueVal].name === '[EMPTY SLOT]' ){
 					//need to throw a verify here.... but current verify syntax is all tangled, so I can't just throw one in the middle...
 				}
@@ -225,19 +226,54 @@ export const program = {
 		},
 
 	},
+	initializeSettings : function () {
+		var settings = {	
+			maxNodes : 8,
+			isRunning : false,
+		};
+		this.settings = settings;
+		this.api.setSettings(`rucksack.ext`, settings);
+		return;
+	},
+	initializeData : function () {
+		var data = {
+			storedNodes : [],
+			pages : 1,
+		}
+		
+		for (var i = 0; i < (8 * data.pages); i ++ ){
+			var dummyNode = { name : `[EMPTY SLOT]` };
+			data.storedNodes.push(dummyNode);
+		}
+		this.data = data;
+		console.log(`INIT DATA: current activeTerminal : ${this.api.parent.terminalActivator.activeTerminal.index} currentAPI : ${this.api.parent.index}`);
+		this.api.setData('rucksack.ext', data);
+		return data;
+	},
+	setAPI : function (api) {
+		this.api = api;
+		return;
+	},
+	setData : function (data) {
+		console.log(`SETTING DATA: current activeTerminal : ${this.api.parent.terminalActivator.activeTerminal.index} currentAPI : ${this.api.parent.index}`)
+		this.data = data;
+		return;
+	},
+	setSettings: function (settings) {
+		console.log(`SETTING Settings: current activeTerminal : ${this.api.parent.terminalActivator.activeTerminal.index} currentAPI : ${this.api.parent.index}`)
+		this.settings = settings;
+		return;
+	},
 	install : function (terminal, callback) {
 		this.trmnl = terminal;
 		terminal.programs[this.name] = this;
 		this.api = terminal.api;
 		this.methods.getMemoryUsage = this.methods.getMemoryUsage.bind(this);
 		this.isInstalled = true;
-		this.data.settings = this.settings
-		this.methods.data = this.data;
-		this.methods.api = this.api;
 
 		this.methods.showContents= this.methods.showContents.bind(this);
 
-		this.data.storedNodes = new Array(8).fill({name : `[EMPTY SLOT]`})
+		
 
 		this.installData.grab.ex = this.installData.grab.ex.bind(this);
 		this.installData.rummage.ex = this.installData.rummage.ex.bind(this);
@@ -264,6 +300,13 @@ export const program = {
 		if (callback){
 			callback(this.installData);
 		}
+
+		this.initializeData();
+		this.initializeSettings();
+		this.data.settings = this.settings
+		Object.keys(this.methods).forEach(function(methodName){
+			this.methods[methodName] = this.methods[methodName].bind(this);
+		}, this)
 	},
 	uninstall : function () {
 		if (Object.keys(this.api.getPrograms()).includes('silo.ext')){
@@ -309,7 +352,7 @@ export const program = {
 	ex : function (bool) {
 		var rucksack = this;
 		// this.api.composeText(this.data.readMe)
-		debugger;
+
 		if (!this.settings.isRunning){
 			this.api.addMoveTriggeredFunction('append', function(){
 				rucksack.api.runCommand(`ex rucksack.ext true`, true);

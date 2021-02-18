@@ -409,6 +409,50 @@ export const program = {
 			},
 		},
 	},
+	initializeSettings : function () {
+		var settings = {	
+			isRunning : false,
+			displayPageOfFiles : false,
+			displayReqFile : false,
+			displayWindow : true,
+			displayLibMessage : true,
+		};
+		this.settings = settings;
+		this.api.setSettings('biblio.ext', settings);
+		return;
+	},
+	initializeData : function () {
+		var data = {
+			library : {},
+			message : "",
+			requestedFile : {type : 'null'},
+			shortCutTable : {},
+			pages : {},
+			currentPage : 0,
+			pseudonyms : {
+				search : ['-s','sea', 'lookfor', 'find'],
+				help : ['?', '-h', 'hlp', 'hep', 'hel'],
+				next : ['>','+page', '-n'],
+				prev : ['<','-page', '-p'],
+				request : ['-r', 'req','get','fetch', 'retrieve'],
+			},
+		}
+		this.data = data;
+		this.api.setData('biblio.ext', data);
+		return;
+	},
+	setAPI : function (api) {
+		this.api = api;
+		return;
+	},
+	setData : function (data) {
+		this.data = data;
+		return;
+	},
+	setSettings: function (settings) {
+		this.settings = settings;
+		return;
+	},
 	install : function (trmnl, callback) {
 		this.trmnl = trmnl;
 		trmnl.programs[this.name] = this;
@@ -416,10 +460,14 @@ export const program = {
 		if (callback){
 			callback(this.installData);
 		}
+		this.initializeData();
+
 		this.isInstalled = true;
+		/*
 		this.data.settings = this.settings
 		this.methods.data = this.data;
 		this.methods.api = this.api;
+		*/
 
 		Object.keys(this.methods).forEach(function(propName){
 			if (typeof this.methods[propName] !== 'function'){

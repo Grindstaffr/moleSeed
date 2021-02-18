@@ -122,13 +122,7 @@ export class TerminalActivator {
 				this.activeTerminal = this.terminals[terminalIndex]
 				this.activeTerminal.activeNode.assembleVisibleAdjacencies();
 				this.activeTerminal.api.assembleAccessibleNodes();
-				Object.keys(this.activeTerminal.programs).forEach(function(programName){
-					if (programName === 'runningPrograms'){
-						return;
-					}
-					this.programs[programName].api = this.api;
-					this.programs[programName].data = this.api.getData(programName);
-				}, this.activeTerminal);
+				this.activeTerminal.api.activate();
 				this.terminals[terminalIndex].isActiveTerminal = true;
 				this.activeTerminal.__calcLocAndDim();
 				return;
@@ -273,7 +267,7 @@ export class TerminalActivator {
 					console.log(`cannot retrieve property storedNodes... terminal${index} has no rucksack`)
 					return "";
 				}
-				return programs[`rucksack.ext`].data.storedNodes.reduce(function(accumulator, currentNodeObject, index){
+				return trmnlAct.terminals[index].api.getData('rucksack.ext').storedNodes.reduce(function(accumulator, currentNodeObject, index){
 					if (currentNodeObject.name === '[EMPTY SLOT]'){
 						return accumulator
 					} else {

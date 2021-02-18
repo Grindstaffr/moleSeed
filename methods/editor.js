@@ -57,7 +57,6 @@ export const program = {
 		},
 	},
 	settings: {
-		activeTerminal : 0,
 		edit_mode : false,
 		slct_mode : false,
 		fast_mode : false,
@@ -2314,6 +2313,18 @@ export const program = {
 		},
 
 	},
+	initializeSettings : function () {
+		var settings = {
+			edit_mode : false,
+			slct_mode : false,
+			fast_mode : false,
+			side_disp : 'special_keys', 
+			displaySidebar : false,
+		}
+		this.settings = settings;
+		this.api.setSettings('editor.ext', settings);
+		return;
+	},
 	initializeData : function () {
 		var data = {
 			activeDoc : {
@@ -2370,6 +2381,18 @@ export const program = {
 		this.api.setData('editor.ext', data);
 		this.data = data;
 	},
+	setAPI : function (api) {
+		this.api = api;
+		return;
+	},
+	setData : function (data) {
+		this.data = data;
+		return;
+	},
+	setSettings: function (settings) {
+		this.settings = settings;
+		return;
+	},
 	install : function (terminal, callback) {
 		this.trmnl = terminal;
 		this.api = terminal.api;
@@ -2406,6 +2429,7 @@ export const program = {
 		}
 
 		this.initializeData();
+		this.initializeSettings();
 
 	},
 	uninstall : function () {

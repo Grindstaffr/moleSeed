@@ -3452,11 +3452,23 @@ export const program = {
 
 
 	},
+	setAPI : function (api) {
+		this.api = api;
+		return;
+	},
+	setData : function (data) {
+		this.data = data;
+		return;
+	},
+	setSettings : function (settings) {
+		this.settings = settings;
+		return;
+	},
 	install : function (trmnl, callback) {
 		this.trmnl = trmnl;
 		trmnl.programs[this.name] = this;
 		this.api = trmnl.api;
-		this.compiler.api = this.api;
+		//this.compiler.api = this.api;
 
 		/*
 		YOU GET TO DO THIS WHEN YOU ARE DONE WITH SOMETHING MARGINALLY FUNCTIONAL!

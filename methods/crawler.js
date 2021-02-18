@@ -168,11 +168,48 @@ export const program = {
 		},
 
 	},
+	initializeSettings : function () {
+		var settings = {
+			isRunning : false,
+			inpectionOn : false,
+			inspectedNode : {},
+		};
+		this.settings = settings;
+		this.api.setSettings('crawler.mse', settings);
+		return;
+	},
+	initializeData : function () {
+		var data = {
+			selectorIndex : 0,
+			openDocSubMenuOn : false,
+			selectedNodeName : "",
+			prevNodes: [],
+			navColCurrent : [],
+			navColPrev : [],
+			navColSubMenu : [],
+		}
+		this.data = data;
+		this.api.setData('crawler.mse', data);
+		return;
+	},
+	setAPI : function (api) {
+		this.api = api;
+		return;
+	},
+	setData : function (data) {
+		this.data = data;
+		return;
+	},
+	setSettings: function (settings) {
+		this.settings = settings;
+		return;
+	},
 	install : function (terminal, callback) {
 		this.trmnl = terminal;
 		terminal.programs[this.name] = this;
 		this.api = terminal.api;
 		callback(this.installData);
+		this.initializeData();
 		for (var prop in this.methods){
 			for (var func in this.methods[prop]){
 				func = this.methods[prop][func].bind(this)
